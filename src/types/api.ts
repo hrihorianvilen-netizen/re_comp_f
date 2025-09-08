@@ -32,6 +32,9 @@ export interface Merchant {
   screenshots?: string[];
   allowComments?: boolean;
   weeklyVisits?: number;
+  hideAds?: boolean;
+  isStarred?: boolean;
+  reportCount?: number;
   createdAt: string;
   updatedAt: string;
 }

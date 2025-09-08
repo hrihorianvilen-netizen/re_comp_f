@@ -142,7 +142,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (item.children) {
       return item.children.some((child: NavChildItem) => pathname === child.href);
     }
-    return item.href !== '/admin' && pathname.startsWith(item.href);
+    return item.href !== '/admin' && item.href && pathname.startsWith(item.href);
   };
 
   const isChildActive = (childHref: string) => {

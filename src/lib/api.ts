@@ -1,6 +1,6 @@
 import { User, Merchant, Review, Post, AuthResponse, MerchantsResponse, ReviewsResponse, PostsResponse } from '@/types/api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-xu3f.onrender.com/api';
 
 export interface ApiResponse<T> {
   data?: T;
@@ -115,6 +115,7 @@ class ApiClient {
     category?: string;
     status?: string;
     search?: string;
+    excludeDrafts?: boolean;
   }) {
     const searchParams = new URLSearchParams();
     if (params) {

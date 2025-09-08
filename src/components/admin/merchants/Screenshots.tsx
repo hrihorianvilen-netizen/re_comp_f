@@ -34,7 +34,7 @@ export default function Screenshots({ onScreenshotsChange }: ScreenshotsProps = 
         return;
       }
 
-      const img = new Image();
+      const img = new (window as any).Image();
       img.onload = () => {
         const aspectRatio = img.width / img.height;
         if (Math.abs(aspectRatio - expectedRatio) > toleranceRatio) {

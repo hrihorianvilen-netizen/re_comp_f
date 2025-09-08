@@ -73,7 +73,7 @@ export default function SeoConfiguration({ onSeoChange }: SeoConfigurationProps 
       // Create preview and check dimensions
       const reader = new FileReader();
       reader.onload = () => {
-        const img = new Image();
+        const img = new (window as any).Image();
         img.onload = () => {
           // Check aspect ratio (1.91:1 is ideal)
           const aspectRatio = img.width / img.height;

@@ -36,7 +36,7 @@ export default function MerchantsPage() {
 
   const searchParams = useSearchParams();
   const router = useRouter();
-  const observer = useRef<IntersectionObserver>();
+  const observer = useRef<IntersectionObserver | null>(null);
   const lastMerchantElementRef = useCallback((node: HTMLDivElement) => {
     if (loadingMore) return;
     if (observer.current) observer.current.disconnect();
