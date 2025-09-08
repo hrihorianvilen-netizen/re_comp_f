@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function NewAdvertisementPage() {
   const router = useRouter();
@@ -330,9 +331,11 @@ export default function NewAdvertisementPage() {
                   {/* Image Preview */}
                   {imagePreview ? (
                     <div className="relative">
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Banner preview"
+                        width={400}
+                        height={256}
                         className="w-full h-64 object-cover rounded-lg border border-gray-300"
                       />
                       <button

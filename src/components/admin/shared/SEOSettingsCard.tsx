@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface SEOSettingsCardProps {
   seoTitle: string;
@@ -125,9 +126,11 @@ export default function SEOSettingsCard({
           />
           {seoImagePreview && (
             <div className="mt-3">
-              <img
+              <Image
                 src={seoImagePreview}
                 alt="SEO Preview"
+                width={384}
+                height={201}
                 className="w-full max-w-sm h-auto rounded border border-gray-200"
                 style={{ aspectRatio: '1.91/1' }}
               />

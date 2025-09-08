@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { AdminMerchant } from '@/types';
+import { Merchant } from '@/types/api';
 import RatingStars from '@/components/RatingStars';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
@@ -22,7 +22,7 @@ const statusColors = {
 };
 
 export default function AdminMerchantsPage() {
-  const [merchants, setMerchants] = useState<any[]>([]);
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState('all');

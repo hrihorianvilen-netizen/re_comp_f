@@ -735,7 +735,7 @@ export default function PostDetailPage() {
 
               {/* Get bonuses section */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-md font-semibold text-gray-900 mb-4">Don't miss your chance to get free giftcode</h3>
+                <h3 className="text-md font-semibold text-gray-900 mb-4">Don&apos;t miss your chance to get free giftcode</h3>
                 <div className="space-y-4">
                   <p className="text-sm text-gray-600">
                     Get bonuses, giftcodes and attractive gifts.

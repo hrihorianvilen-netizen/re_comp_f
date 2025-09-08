@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+
 interface LogoUploadProps {
   logoPreview: string;
   setLogoPreview: (preview: string) => void;
@@ -37,9 +39,11 @@ export default function LogoUpload({ logoPreview, setLogoPreview, onLogoChange, 
         <div className="space-y-1 text-center">
           {logoPreview ? (
             <div className="relative">
-              <img
+              <Image
                 src={logoPreview}
                 alt="Logo preview"
+                width={64}
+                height={64}
                 className="mx-auto h-16 w-16 object-cover rounded-lg"
                 style={{ aspectRatio: '1/1' }}
               />

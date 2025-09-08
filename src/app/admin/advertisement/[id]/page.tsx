@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Mock advertisement data
 const mockAdvertisement = {
@@ -419,9 +420,11 @@ export default function AdvertisementDetailPage() {
                   {/* Image Preview */}
                   {imagePreview ? (
                     <div className="relative">
-                      <img
+                      <Image
                         src={imagePreview}
                         alt="Banner preview"
+                        width={400}
+                        height={256}
                         className="w-full h-64 object-cover rounded-lg border border-gray-300"
                       />
                       {isEditing && (

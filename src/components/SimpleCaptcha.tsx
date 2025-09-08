@@ -110,7 +110,7 @@ export default function SimpleCaptcha({ onVerify, reset }: SimpleCaptchaProps) {
       </div>
       
       <p className="text-xs text-gray-500">
-        Please enter the characters shown above to verify you're human.
+        Please enter the characters shown above to verify you&apos;re human.
       </p>
     </div>
   );

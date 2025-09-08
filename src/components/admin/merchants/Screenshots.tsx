@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface ScreenshotData {
   desktopImages: File[];
@@ -196,10 +197,11 @@ export default function Screenshots({ onScreenshotsChange }: ScreenshotsProps = 
               {desktopPreviews.map((imagePreview, index) => (
                 <div key={index} className="relative group">
                   <div className="aspect-[16/10] bg-gray-100 rounded-lg overflow-hidden">
-                    <img
+                    <Image
                       src={imagePreview.preview}
                       alt={`Desktop screenshot ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   </div>
                   <button
@@ -261,10 +263,11 @@ export default function Screenshots({ onScreenshotsChange }: ScreenshotsProps = 
               {mobilePreviews.map((imagePreview, index) => (
                 <div key={index} className="relative group">
                   <div className="aspect-[9/16] bg-gray-100 rounded-lg overflow-hidden">
-                    <img
+                    <Image
                       src={imagePreview.preview}
                       alt={`Mobile screenshot ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   </div>
                   <button

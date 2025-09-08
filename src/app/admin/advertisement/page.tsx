@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import AdvertisementHeader from '@/components/admin/advertisement/AdvertisementHeader';
 import AdvertisementStatusFilter from '@/components/admin/advertisement/AdvertisementStatusFilter';
 import AdvertisementActionFilter from '@/components/admin/advertisement/AdvertisementActionFilter';
@@ -203,9 +204,11 @@ export default function AdvertisementsPage() {
                   {/* Advertisement Image */}
                   <div className="col-span-2 flex justify-center">
                     <div className="relative">
-                      <img
+                      <Image
                         src={ad.imageUrl}
                         alt={ad.adName}
+                        width={64}
+                        height={48}
                         className="w-16 h-12 object-cover rounded border border-gray-200"
                       />
                       <div className="absolute -top-1 -right-1">

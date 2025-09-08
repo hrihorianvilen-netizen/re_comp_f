@@ -8,6 +8,10 @@ interface ForgotPasswordModalProps {
   onSuccess?: () => void;
 }
 
+interface FormErrors {
+  [key: string]: string;
+}
+
 type ForgotPasswordStep = 'email' | 'reset';
 
 export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: ForgotPasswordModalProps) {
@@ -21,10 +25,10 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: Forg
     newPassword: false,
     confirmPassword: false,
   });
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const validateEmail = () => {
-    const newErrors: { [key: string]: string } = {};
+    const newErrors: FormErrors = {};
     
     if (!email.trim()) {
       newErrors.email = 'Email is required';
@@ -37,7 +41,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: Forg
   };
 
   const validatePasswords = () => {
-    const newErrors: { [key: string]: string } = {};
+    const newErrors: FormErrors = {};
     
     if (!passwords.newPassword) {
       newErrors.newPassword = 'New password is required';
@@ -119,7 +123,7 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: Forg
         {step === 'email' ? (
           <form onSubmit={handleEmailSubmit} className="p-4 space-y-4">
             <p className="text-sm text-gray-600">
-              Don't worry, this happens to even the best of people.
+              Don&apos;t worry, this happens to even the best of people.
             </p>
             
             {/* Email Field */}

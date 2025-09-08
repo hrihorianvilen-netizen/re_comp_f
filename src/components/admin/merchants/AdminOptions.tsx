@@ -227,9 +227,9 @@ export default function AdminOptions({
               </div>
               <div className="ml-3 text-sm">
                 <label htmlFor="dont-show-ads" className="font-medium text-gray-700">
-                  Don't show advertisements on my page
+                  Don&apos;t show advertisements on my page
                 </label>
-                <p className="text-gray-500">Disable all advertisements for this merchant's page</p>
+                <p className="text-gray-500">Disable all advertisements for this merchant&apos;s page</p>
               </div>
             </div>
             

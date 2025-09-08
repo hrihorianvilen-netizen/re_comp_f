@@ -18,7 +18,7 @@ export default function HomePage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [recentlyViewed, setRecentlyViewed] = useState<any[]>([]);
+  const [recentlyViewed, setRecentlyViewed] = useState<Merchant[]>([]);
 
   useEffect(() => {
     loadInitialData();

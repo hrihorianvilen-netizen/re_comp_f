@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function NewPostPage() {
   const [formData, setFormData] = useState({
@@ -246,9 +247,11 @@ export default function NewPostPage() {
                   />
                   {seoImagePreview && (
                     <div className="mt-3">
-                      <img
+                      <Image
                         src={seoImagePreview}
                         alt="SEO Preview"
+                        width={400}
+                        height={209}
                         className="w-full max-w-sm h-auto rounded border border-gray-200"
                         style={{ aspectRatio: '1.91/1' }}
                       />
@@ -350,9 +353,11 @@ export default function NewPostPage() {
                 </div>
                 {featuredImagePreview && (
                   <div className="mt-3">
-                    <img
+                    <Image
                       src={featuredImagePreview}
                       alt="Featured Image Preview"
+                      width={400}
+                      height={192}
                       className="w-full h-48 object-cover rounded border border-gray-200"
                     />
                     <p className="text-xs text-gray-500 mt-1">Featured Image Preview</p>

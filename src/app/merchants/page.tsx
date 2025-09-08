@@ -514,7 +514,7 @@ export default function MerchantsPage() {
                 {/* End of Results */}
                 {!hasMore && merchants.length > 0 && (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">You've reached the end of the results.</p>
+                    <p className="text-gray-600">You&apos;ve reached the end of the results.</p>
                   </div>
                 )}
               </>

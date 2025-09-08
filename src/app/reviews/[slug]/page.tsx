@@ -517,7 +517,7 @@ export default function ReviewDetailPage() {
         <div className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Reply to {review.displayName}'s comment</h3>
+              <h3 className="text-lg font-semibold">Reply to {review.displayName}&apos;s comment</h3>
               <button
                 onClick={() => setShowCommentForm(false)}
                 className="text-gray-500 hover:text-gray-700"

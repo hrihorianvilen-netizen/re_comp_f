@@ -309,7 +309,7 @@ export interface AnalyticsEvent {
   merchantId?: string;
   reviewId?: string;
   promotionId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
   ipAddress?: string;
   userAgent?: string;
   referrer?: string;

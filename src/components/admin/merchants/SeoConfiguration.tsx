@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface SeoData {
   title: string;
@@ -199,9 +200,11 @@ export default function SeoConfiguration({ onSeoChange }: SeoConfigurationProps 
             <div className="space-y-1 text-center">
               {imagePreview ? (
                 <div className="relative">
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="SEO preview"
+                    width={305}
+                    height={160}
                     className="mx-auto max-h-40 object-cover rounded-lg"
                     style={{ aspectRatio: '1.91/1' }}
                   />

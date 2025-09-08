@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import moment from 'moment';
+import Image from 'next/image';
 
 // Mock data for posts
 const mockPosts = [
@@ -308,9 +309,11 @@ export default function PostsPage() {
                   {/* Title */}
                   <div className="col-span-3 text-center">
                     <div className="flex items-center justify-center space-x-3">
-                      <img
+                      <Image
                         src={post.imageUrl}
                         alt={post.title}
+                        width={80}
+                        height={60}
                         className="w-20 h-15 object-cover rounded border border-gray-200"
                       />
                       <div className="space-y-1 text-left">
