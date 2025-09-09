@@ -189,7 +189,7 @@ export default function MerchantEditPage() {
       } else {
         setErrors({ general: result.error || 'Failed to update merchant' });
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: 'Network error. Please try again.' });
     } finally {
       setIsSubmitting(false);

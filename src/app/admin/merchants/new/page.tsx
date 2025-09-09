@@ -128,7 +128,7 @@ export default function AddMerchantPage() {
       
       // Add screenshots if present
       if (formData.screenshots) {
-        Array.from(formData.screenshots).forEach((file, index) => {
+        Array.from(formData.screenshots).forEach((file) => {
           formDataToSend.append('desktopScreenshots', file);
         });
       }
@@ -140,7 +140,7 @@ export default function AddMerchantPage() {
       } else {
         setErrors({ general: result.error || 'Failed to create merchant' });
       }
-    } catch (error) {
+    } catch {
       setErrors({ general: 'Network error. Please try again.' });
     } finally {
       setIsSubmitting(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Merchant } from '@/types/api';
@@ -11,6 +11,7 @@ import { getImageUrl } from '@/lib/utils';
 const statusColors = {
   approved: 'bg-green-100 text-green-800',
   pending: 'bg-yellow-100 text-yellow-800',
+  draft: 'bg-orange-100 text-orange-800',
   suspended: 'bg-red-100 text-red-800',
   rejected: 'bg-gray-100 text-gray-800',
   recommended: 'bg-green-100 text-green-800',
@@ -32,12 +33,7 @@ export default function AdminMerchantsPage() {
   const [totalMerchants, setTotalMerchants] = useState(0);
   const itemsPerPage = 10;
 
-  // Load merchants from backend
-  useEffect(() => {
-    loadMerchants();
-  }, [currentPage, selectedStatus, searchQuery]);
-
-  const loadMerchants = async () => {
+  const loadMerchants = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -73,7 +69,12 @@ export default function AdminMerchantsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, selectedStatus, searchQuery]);
+
+  // Load merchants from backend
+  useEffect(() => {
+    loadMerchants();
+  }, [loadMerchants]);
 
   const handleDelete = async (merchantId: string) => {
     if (!confirm('Are you sure you want to delete this merchant? This action cannot be undone.')) {
@@ -218,7 +219,7 @@ export default function AdminMerchantsPage() {
 
             {/* Status Filter */}
             <div className="flex gap-2 flex-wrap">
-              {['all', 'pending', 'recommended', 'trusted', 'neutral', 'controversial', 'avoid'].map((status) => (
+              {['all', 'draft', 'pending', 'recommended', 'trusted', 'neutral', 'controversial', 'avoid'].map((status) => (
                 <button
                   key={status}
                   onClick={() => handleStatusChange(status)}
@@ -307,7 +308,7 @@ export default function AdminMerchantsPage() {
                       />
                       <div>
                         <Link
-                          href={`/admin/merchants/${merchant.id}`}
+                          href={(merchant.status === 'pending' || merchant.status === 'draft') ? `/admin/merchants/${merchant.id}/edit` : `/admin/merchants/${merchant.id}`}
                           className="font-medium text-gray-900 hover:text-[#A96B11]"
                         >
                           {merchant.name}
@@ -335,7 +336,7 @@ export default function AdminMerchantsPage() {
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       statusColors[merchant.status as keyof typeof statusColors] || statusColors.neutral
                     }`}>
-                      {merchant.status === 'pending' ? 'Pending' : (merchant.status || 'neutral').charAt(0).toUpperCase() + (merchant.status || 'neutral').slice(1)}
+                      {(merchant.status || 'neutral').charAt(0).toUpperCase() + (merchant.status || 'neutral').slice(1)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">
@@ -355,9 +356,9 @@ export default function AdminMerchantsPage() {
                         </svg>
                       </Link>
                       <Link
-                        href={merchant.status === 'pending' ? `/admin/merchants/${merchant.id}/edit` : `/admin/merchants/${merchant.id}`}
+                        href={(merchant.status === 'pending' || merchant.status === 'draft') ? `/admin/merchants/${merchant.id}/edit` : `/admin/merchants/${merchant.id}`}
                         className="text-gray-400 hover:text-[#A96B11]"
-                        title={merchant.status === 'pending' ? 'Edit Draft' : 'Edit'}
+                        title={(merchant.status === 'pending' || merchant.status === 'draft') ? 'Edit Draft' : 'Edit'}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

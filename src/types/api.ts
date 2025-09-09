@@ -24,7 +24,7 @@ export interface Merchant {
   description: string;
   rating: number;
   reviewCount: number;
-  status: 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid' | 'pending' | 'approved' | 'suspended' | 'rejected';
+  status: 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid' | 'pending' | 'approved' | 'suspended' | 'rejected' | 'draft';
   website?: string;
   email?: string;
   phone?: string;

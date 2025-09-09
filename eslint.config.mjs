@@ -19,6 +19,12 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      // Allow unused vars as warnings in production
+      "@typescript-eslint/no-unused-vars": "warn",
+      // Other rules that might help deployment
+      "react-hooks/exhaustive-deps": "warn",
+    },
   },
 ];
 

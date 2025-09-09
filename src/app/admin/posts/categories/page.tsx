@@ -150,7 +150,7 @@ export default function CategoriesPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
           <Link
-            href="/admin/categories/new"
+            href="/admin/posts/categories/new"
             className="px-4 py-2 bg-[#A96B11] text-white text-sm font-medium rounded-md hover:bg-[#8B5A0F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A96B11]"
           >
             New Category

@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Merchant, Review } from '@/types/api';
 import api from '@/lib/api';
-import { getImageUrl } from '@/lib/utils';
 
 // Import your original components
 import MerchantTabs from '@/components/MerchantTabs';

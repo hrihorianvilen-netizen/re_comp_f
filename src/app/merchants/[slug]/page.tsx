@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Merchant, Review, ReviewComment, Promotion, FAQ } from '@/types/api';
+import { Merchant, Review, ReviewComment, FAQ } from '@/types/api';
 import RatingStars from '@/components/RatingStars';
 import InteractiveRatingStars from '@/components/InteractiveRatingStars';
 import ReviewFormModal, { ReviewFormData } from '@/components/ReviewFormModal';
@@ -28,14 +28,12 @@ export default function MerchantDetailPage() {
   const [error, setError] = useState<string | null>(null);
   
   // UI state
-  const [activeTab, setActiveTab] = useState('reviews');
   const [expandedFAQ, setExpandedFAQ] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [replyToReviewId, setReplyToReviewId] = useState<string | null>(null);
   const [currentReviewPage, setCurrentReviewPage] = useState(1);
-  const [submittingReview, setSubmittingReview] = useState(false);
   const reviewsPerPage = 5;
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
@@ -317,13 +315,6 @@ export default function MerchantDetailPage() {
     ? JSON.parse(merchant.faq)
     : merchant.faq || [];
 
-  const promotions = typeof merchant.promotions === 'string'
-    ? JSON.parse(merchant.promotions)
-    : merchant.promotions || [];
-
-  const tabs = [
-    { id: 'reviews', label: `Reviews (${reviews.length})` },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -557,7 +548,6 @@ export default function MerchantDetailPage() {
                           ? reviews.filter(review => selectedRatingFilters.has(review.rating))
                           : reviews;
                         
-                        const totalReviewPages = Math.ceil(filteredReviews.length / reviewsPerPage);
                         const startIndex = (currentReviewPage - 1) * reviewsPerPage;
                         const endIndex = startIndex + reviewsPerPage;
                         const currentReviews = filteredReviews.slice(startIndex, endIndex);

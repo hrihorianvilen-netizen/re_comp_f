@@ -40,7 +40,7 @@ export default function AdvertisementStatusFilter({
           {/* Status Filter Tabs - Left */}
           <div className="flex flex-wrap items-center gap-1">
             {statusOptions.map((option, index) => (
-              <>
+              <div key={index}>
                 <button
                   key={option.key}
                   onClick={() => onStatusChange(option.key)}
@@ -55,7 +55,7 @@ export default function AdvertisementStatusFilter({
                 {index < statusOptions.length - 1 && (
                   <span className="text-gray-400">|</span>
                 )}
-              </>
+              </div>
             ))}
           </div>
 

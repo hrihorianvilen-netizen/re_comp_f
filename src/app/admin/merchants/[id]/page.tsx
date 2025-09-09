@@ -24,7 +24,7 @@ interface MerchantFormData {
   address: string;
   logo: File | null;
   screenshots: FileList | null;
-  status: 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid' | 'pending' | 'approved' | 'suspended' | 'rejected';
+  status: 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid' | 'pending' | 'approved' | 'suspended' | 'rejected' | 'draft';
 }
 
 export default function MerchantDetailPage() {
@@ -52,8 +52,8 @@ export default function MerchantDetailPage() {
   const [originalData, setOriginalData] = useState<MerchantFormData | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Check if merchant is in pending status
-  const isPending = formData.status === 'pending';
+  // Check if merchant is in draft/pending status
+  const isDraft = formData.status === 'pending' || formData.status === 'draft';
 
   useEffect(() => {
     const fetchMerchantData = async () => {
@@ -71,7 +71,7 @@ export default function MerchantDetailPage() {
             'neutral',
             'controversial',
             'avoid',
-            'pending', 'approved', 'suspended', 'rejected'
+            'pending', 'approved', 'suspended', 'rejected', 'draft'
           ];
 
           const safeStatus: MerchantFormData['status'] = allowedStatuses.includes(
@@ -97,8 +97,8 @@ export default function MerchantDetailPage() {
           setFormData(merchantData);
           setOriginalData(merchantData);
           
-          // If merchant is pending, automatically enable edit mode
-          if (merchant.status === 'pending') {
+          // If merchant is draft/pending, automatically enable edit mode
+          if (merchant.status === 'pending' || merchant.status === 'draft') {
             setIsEditMode(true);
           }
           
@@ -302,7 +302,7 @@ export default function MerchantDetailPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <MerchantDetailHeader 
           isEditMode={isEditMode}
-          isDraft={isPending}
+          isDraft={isDraft}
           merchantName={formData.name}
           merchantStatus={formData.status}
           onEditClick={handleEditClick}
