@@ -16,8 +16,8 @@ export function getAssetUrl(path: string | null | undefined): string {
   }
   
   // Get the backend base URL (without /api)
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
-  // const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://reviews-backend-2zkw.onrender.com';
+  // const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://reviews-backend-2zkw.onrender.com';
   
   // Construct and return the full URL
   return `${baseUrl}${path}`;
