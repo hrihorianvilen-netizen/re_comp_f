@@ -5,9 +5,9 @@ export interface User {
   displayName?: string;
   avatar?: string;
   phone?: string;
-  provider?: string;
-  status?: string;
-  isEmailVerified?: boolean;
+  provider?: 'email' | 'google' | 'facebook' | 'apple';
+  status?: 'active' | 'inactive' | 'suspended';
+  isEmailVerified: boolean;
   lastLoginAt?: string;
   reviewCount?: number;
   commentCount?: number;
@@ -24,17 +24,19 @@ export interface Merchant {
   description: string;
   rating: number;
   reviewCount: number;
-  status: string;
+  status: 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid' | 'pending' | 'approved' | 'suspended' | 'rejected';
   website?: string;
   email?: string;
   phone?: string;
   address?: string;
   screenshots?: string[];
-  allowComments?: boolean;
+  allowComments: boolean;
   weeklyVisits?: number;
-  hideAds?: boolean;
-  isStarred?: boolean;
-  reportCount?: number;
+  hideAds: boolean;
+  isStarred: boolean;
+  reportCount: number;
+  faq?: FAQ[];
+  promotions?: Promotion[];
   createdAt: string;
   updatedAt: string;
 }
@@ -48,25 +50,26 @@ export interface Review {
   title: string;
   rating: number;
   content: string;
-  helpful?: number;
-  notHelpful?: number;
+  helpful: number;
+  notHelpful: number;
   createdAt: string;
   updatedAt: string;
   merchant?: Merchant;
   user?: User;
-  comments?: Comment[];
+  comments?: ReviewComment[];
 }
 
-export interface Comment {
+export interface ReviewComment {
   id: string;
   reviewId: string;
   userId?: string;
   displayName?: string;
   reaction: '❤️' | '😢' | '😡';
   content?: string;
-  isReported?: boolean;
-  reportCount?: number;
-  status?: string;
+  isReported: boolean;
+  reportCount: number;
+  status: 'published' | 'pending' | 'hidden';
+  selectedReaction?: '❤️' | '😢' | '😡';
   createdAt: string;
   updatedAt: string;
   user?: User;
@@ -118,4 +121,55 @@ export interface ReviewsResponse {
 export interface PostsResponse {
   posts: Post[];
   pagination: Pagination;
+}
+
+export interface Promotion {
+  id: string;
+  title: string;
+  description: string;
+  code?: string;
+  discount?: string;
+  validUntil?: string;
+  type: 'default' | 'priority';
+  startDate?: string;
+  endDate?: string;
+  loginRequired: boolean;
+  reviewRequired: boolean;
+  giftCode?: {
+    code: string;
+    isActive: boolean;
+    maxClaims: number;
+    currentClaims: number;
+    claimedBy: GiftCodeClaim[];
+  };
+  isActive: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GiftCodeClaim {
+  id: string;
+  promotionId: string;
+  userId?: string;
+  userEmail?: string;
+  displayName?: string;
+  claimedAt: string;
+  ipAddress?: string;
+}
+
+export interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface Advertisement {
+  id: string;
+  title: string;
+  description?: string;
+  imageUrl: string;
+  link: string;
+  position: 'top' | 'sidebar' | 'bottom';
+  active: boolean;
 }

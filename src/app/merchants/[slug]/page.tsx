@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Merchant, Review, Comment, Promotion, FAQ } from '@/types';
+import { Merchant, Review, ReviewComment, Promotion, FAQ } from '@/types/api';
 import RatingStars from '@/components/RatingStars';
 import InteractiveRatingStars from '@/components/InteractiveRatingStars';
 import ReviewFormModal, { ReviewFormData } from '@/components/ReviewFormModal';
@@ -109,7 +109,7 @@ export default function MerchantDetailPage() {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string | Date) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
@@ -117,7 +117,7 @@ export default function MerchantDetailPage() {
     }).format(new Date(date));
   };
   
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: string | Date) => {
     const now = new Date();
     const diffInMs = now.getTime() - new Date(date).getTime();
     const diffInMins = Math.floor(diffInMs / 60000);
@@ -235,7 +235,7 @@ export default function MerchantDetailPage() {
       
       if (response.data) {
         // Use the comment returned from the backend
-        const newComment = response.data.comment;
+        const newComment: ReviewComment = response.data.comment;
         
         // Update the review with new comment locally
         setReviews(reviews.map(review => {

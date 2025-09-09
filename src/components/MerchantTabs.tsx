@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Merchant } from '@/types';
+import { Merchant } from '@/types/api';
 import Image from 'next/image';
 import Link from 'next/link';
 import RatingStars from './RatingStars';

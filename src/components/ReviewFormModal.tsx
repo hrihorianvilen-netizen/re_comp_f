@@ -239,7 +239,7 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
         onClose={() => setShowAuthModal(false)}
         onSuccess={(userData) => {
           // Handle successful authentication
-          setFormData({ ...formData, displayName: userData.displayName || userData.email });
+          setFormData({ ...formData, displayName: userData.user?.displayName || userData.user?.email || 'Anonymous' });
           setShowAuthModal(false);
         }}
       />

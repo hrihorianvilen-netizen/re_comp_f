@@ -30,6 +30,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
   });
   const [errors, setErrors] = useState<Partial<typeof formData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState<AuthResponse | null>(null);
   const { login, register } = useAuth();
   
   // Update mode when initialMode prop changes
@@ -76,6 +77,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
         });
 
         if (result.success) {
+          setRegistrationResult({ user: result.user!, token: '' }); // Token is handled by AuthContext
           setShowCongratulations(true);
           if (onRegistrationSuccess) {
             onRegistrationSuccess();
@@ -88,7 +90,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
 
         if (result.success) {
           if (onSuccess) {
-            onSuccess({ email: formData.email });
+            onSuccess({ user: result.user!, token: '' }); // Token is handled by AuthContext
           }
           onClose();
         } else {
@@ -321,8 +323,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
         isOpen={showCongratulations}
         onClose={() => {
           setShowCongratulations(false);
-          if (onSuccess) {
-            onSuccess({ ...formData, id: Date.now().toString() });
+          if (onSuccess && registrationResult) {
+            onSuccess(registrationResult);
           }
           onClose();
         }}

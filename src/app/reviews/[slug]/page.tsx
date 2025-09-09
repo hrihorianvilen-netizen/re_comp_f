@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Review, Comment, Merchant } from '@/types';
+import { Review, ReviewComment, Merchant } from '@/types/api';
 import RatingStars from '@/components/RatingStars';
 import CommentForm, { CommentFormData } from '@/components/CommentForm';
 import { getApiReaction, getReactionEmoji } from '@/lib/reactions';
@@ -32,8 +32,8 @@ The laptop itself exceeded my expectations. It was exactly as described, came wi
 I've already recommended TechStore Pro to several friends and will definitely be shopping here again. This is how online shopping should be - transparent, efficient, and customer-focused.`,
   helpful: 12,
   notHelpful: 1,
-  createdAt: new Date('2024-01-25'),
-  updatedAt: new Date('2024-01-25'),
+  createdAt: '2024-01-25T00:00:00Z',
+  updatedAt: '2024-01-25T00:00:00Z',
     merchant: {
       id: '1',
       slug: 'techstore-pro',
@@ -42,27 +42,39 @@ I've already recommended TechStore Pro to several friends and will definitely be
       category: 'Technology',
       rating: 4.5,
       reviewCount: 1250,
-      status: 'recommended',
+      status: 'recommended' as const,
       logo: '/images/shopee.jpg',
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-25'),
+      allowComments: true,
+      hideAds: false,
+      isStarred: true,
+      reportCount: 0,
+      createdAt: '2024-01-15T00:00:00Z',
+      updatedAt: '2024-01-25T00:00:00Z',
     },
   comments: [
     {
       id: '1',
       reviewId: '1',
       displayName: 'Store Owner',
-      reaction: 'helpful',
+      reaction: '❤️' as const,
       content: 'Thank you so much for taking the time to share your detailed experience! We\'re thrilled to hear that you had such a positive experience with our store. Customer satisfaction is our top priority, and feedback like yours motivates our entire team. We look forward to serving you again!',
-      createdAt: new Date('2024-01-26'),
+      isReported: false,
+      reportCount: 0,
+      status: 'published' as const,
+      createdAt: '2024-01-26T00:00:00Z',
+      updatedAt: '2024-01-26T00:00:00Z',
     },
     {
       id: '2',
       reviewId: '1',
       displayName: 'Sarah M.',
-      reaction: 'helpful',
+      reaction: '❤️' as const,
       content: 'Thanks for this detailed review! I was hesitant about ordering from them but your experience convinced me to give them a try.',
-      createdAt: new Date('2024-01-27'),
+      isReported: false,
+      reportCount: 0,
+      status: 'published' as const,
+      createdAt: '2024-01-27T00:00:00Z',
+      updatedAt: '2024-01-27T00:00:00Z',
     },
   ],
   }
@@ -90,7 +102,7 @@ export default function ReviewDetailPage() {
   const [shareUrl, setShareUrl] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string | Date) => {
     return new Intl.DateTimeFormat('en-US', {
       month: 'long',
       day: 'numeric',
@@ -98,7 +110,7 @@ export default function ReviewDetailPage() {
     }).format(new Date(date));
   };
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: string | Date) => {
     const now = new Date();
     const diffInMs = now.getTime() - new Date(date).getTime();
     const diffInMins = Math.floor(diffInMs / 60000);
@@ -130,7 +142,7 @@ export default function ReviewDetailPage() {
       }
       
       // Use the comment returned from the backend
-      const newComment = result.data.comment;
+      const newComment: ReviewComment = result.data!.comment;
       
       // Update local state
       setReview({
@@ -422,8 +434,8 @@ export default function ReviewDetailPage() {
                             {formatTimeAgo(comment.createdAt)}
                           </span>
                         </div>
-                        {comment.title && (
-                          <h5 className="font-medium text-gray-900 mb-1">{comment.title}</h5>
+                        {comment.displayName && (
+                          <h5 className="font-medium text-gray-900 mb-1">{comment.displayName}</h5>
                         )}
                         <p className="text-gray-700">{comment.content}</p>
                       </div>

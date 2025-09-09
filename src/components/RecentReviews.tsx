@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Review } from '@/types';
+import { Review } from '@/types/api';
 import { formatDistanceToNow } from 'date-fns';
 import RatingStars from './RatingStars';
 
@@ -8,7 +8,7 @@ interface RecentReviewsProps {
 }
 
 export default function RecentReviews({ reviews }: RecentReviewsProps) {
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string | Date) => {
     return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
 

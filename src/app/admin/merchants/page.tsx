@@ -18,7 +18,6 @@ const statusColors = {
   controversial: 'bg-yellow-100 text-yellow-800',
   avoid: 'bg-red-100 text-red-800',
   neutral: 'bg-gray-100 text-gray-800',
-  draft: 'bg-yellow-100 text-yellow-800',
 };
 
 export default function AdminMerchantsPage() {
@@ -219,7 +218,7 @@ export default function AdminMerchantsPage() {
 
             {/* Status Filter */}
             <div className="flex gap-2 flex-wrap">
-              {['all', 'draft', 'recommended', 'trusted', 'neutral', 'controversial', 'avoid'].map((status) => (
+              {['all', 'pending', 'recommended', 'trusted', 'neutral', 'controversial', 'avoid'].map((status) => (
                 <button
                   key={status}
                   onClick={() => handleStatusChange(status)}
@@ -336,7 +335,7 @@ export default function AdminMerchantsPage() {
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                       statusColors[merchant.status as keyof typeof statusColors] || statusColors.neutral
                     }`}>
-                      {merchant.status === 'draft' ? 'Draft' : (merchant.status || 'neutral').charAt(0).toUpperCase() + (merchant.status || 'neutral').slice(1)}
+                      {merchant.status === 'pending' ? 'Pending' : (merchant.status || 'neutral').charAt(0).toUpperCase() + (merchant.status || 'neutral').slice(1)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-500">
@@ -356,9 +355,9 @@ export default function AdminMerchantsPage() {
                         </svg>
                       </Link>
                       <Link
-                        href={merchant.status === 'draft' ? `/admin/merchants/${merchant.id}/edit` : `/admin/merchants/${merchant.id}`}
+                        href={merchant.status === 'pending' ? `/admin/merchants/${merchant.id}/edit` : `/admin/merchants/${merchant.id}`}
                         className="text-gray-400 hover:text-[#A96B11]"
-                        title={merchant.status === 'draft' ? 'Edit Draft' : 'Edit'}
+                        title={merchant.status === 'pending' ? 'Edit Draft' : 'Edit'}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

@@ -164,8 +164,8 @@ const mockMerchants = [
     hideAds: false,
     isStarred: true,
     reportCount: 0,
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-20'),
+    createdAt: '2024-01-15T00:00:00.000Z',
+    updatedAt: '2024-01-20T00:00:00.000Z',
   },
   {
     id: '2',
@@ -181,8 +181,8 @@ const mockMerchants = [
     hideAds: false,
     isStarred: false,
     reportCount: 1,
-    createdAt: new Date('2024-01-10'),
-    updatedAt: new Date('2024-01-22'),
+    createdAt: '2024-01-10T00:00:00.000Z',
+    updatedAt: '2024-01-22T00:00:00.000Z',
   },
   {
     id: '3',
@@ -198,8 +198,8 @@ const mockMerchants = [
     hideAds: true,
     isStarred: false,
     reportCount: 15,
-    createdAt: new Date('2024-01-05'),
-    updatedAt: new Date('2024-01-25'),
+    createdAt: '2024-01-05T00:00:00.000Z',
+    updatedAt: '2024-01-25T00:00:00.000Z',
   },
 ];
 
@@ -217,8 +217,8 @@ const mockReviews = [
     helpful: 45,
     notHelpful: 2,
     verified: true,
-    createdAt: new Date('2024-01-20'),
-    updatedAt: new Date('2024-01-20'),
+    createdAt: '2024-01-20T00:00:00.000Z',
+    updatedAt: '2024-01-20T00:00:00.000Z',
   },
   {
     id: '2',
@@ -232,8 +232,8 @@ const mockReviews = [
     helpful: 32,
     notHelpful: 5,
     verified: true,
-    createdAt: new Date('2024-01-19'),
-    updatedAt: new Date('2024-01-19'),
+    createdAt: '2024-01-19T00:00:00.000Z',
+    updatedAt: '2024-01-19T00:00:00.000Z',
   },
   {
     id: '3',
@@ -247,8 +247,8 @@ const mockReviews = [
     helpful: 18,
     notHelpful: 3,
     verified: false,
-    createdAt: new Date('2024-01-18'),
-    updatedAt: new Date('2024-01-18'),
+    createdAt: '2024-01-18T00:00:00.000Z',
+    updatedAt: '2024-01-18T00:00:00.000Z',
   },
 ];
 

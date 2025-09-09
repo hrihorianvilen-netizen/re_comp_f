@@ -1,6 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Advertisement as AdType } from '@/types';
+import { Advertisement as AdType } from '@/types/api';
 
 interface AdvertisementProps {
   advertisement: AdType;

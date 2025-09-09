@@ -24,7 +24,7 @@ interface MerchantFormData {
   address: string;
   logo: File | null;
   screenshots: FileList | null;
-  status: 'draft' | 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid';
+  status: 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid' | 'pending' | 'approved' | 'suspended' | 'rejected';
 }
 
 export default function MerchantDetailPage() {
@@ -46,14 +46,14 @@ export default function MerchantDetailPage() {
     address: '',
     logo: null,
     screenshots: null,
-    status: 'draft',
+    status: 'neutral',
   });
 
   const [originalData, setOriginalData] = useState<MerchantFormData | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Check if merchant is in draft status
-  const isDraft = formData.status === 'draft';
+  // Check if merchant is in pending status
+  const isPending = formData.status === 'pending';
 
   useEffect(() => {
     const fetchMerchantData = async () => {
@@ -64,6 +64,21 @@ export default function MerchantDetailPage() {
         
         if (result.data && result.data.merchant) {
           const merchant = result.data.merchant;
+
+          const allowedStatuses: MerchantFormData['status'][] = [
+            'recommended',
+            'trusted',
+            'neutral',
+            'controversial',
+            'avoid',
+            'pending', 'approved', 'suspended', 'rejected'
+          ];
+
+          const safeStatus: MerchantFormData['status'] = allowedStatuses.includes(
+            merchant.status as MerchantFormData['status']
+          )
+            ? (merchant.status as MerchantFormData['status'])
+            : 'neutral';
           
           const merchantData: MerchantFormData = {
             name: merchant.name || '',
@@ -76,14 +91,14 @@ export default function MerchantDetailPage() {
             address: merchant.address || '',
             logo: null,
             screenshots: null,
-            status: merchant.status || 'neutral',
+            status: safeStatus,
           };
           
           setFormData(merchantData);
           setOriginalData(merchantData);
           
-          // If merchant is draft, automatically enable edit mode
-          if (merchant.status === 'draft') {
+          // If merchant is pending, automatically enable edit mode
+          if (merchant.status === 'pending') {
             setIsEditMode(true);
           }
           
@@ -287,7 +302,7 @@ export default function MerchantDetailPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <MerchantDetailHeader 
           isEditMode={isEditMode}
-          isDraft={isDraft}
+          isDraft={isPending}
           merchantName={formData.name}
           merchantStatus={formData.status}
           onEditClick={handleEditClick}

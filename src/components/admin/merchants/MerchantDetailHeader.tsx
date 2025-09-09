@@ -6,7 +6,7 @@ interface MerchantDetailHeaderProps {
   isEditMode: boolean;
   isDraft: boolean;
   merchantName: string;
-  merchantStatus?: 'pending' | 'approved' | 'suspended' | 'rejected';
+  merchantStatus?: 'draft' | 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid' | 'pending' | 'approved' | 'suspended' | 'rejected';
   onEditClick: () => void;
   onSaveClick: () => void;
   onCancelClick: () => void;

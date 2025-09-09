@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Merchant } from '@/types';
+import { Merchant } from '@/types/api';
 import RatingStars from '@/components/RatingStars';
 import { getImageUrl } from '@/lib/utils';
 
@@ -14,6 +14,10 @@ const statusColors = {
   controversial: 'bg-yellow-100 text-yellow-800',
   avoid: 'bg-red-100 text-red-800',
   neutral: 'bg-gray-100 text-gray-800',
+  pending: 'bg-orange-100 text-orange-800',
+  approved: 'bg-green-100 text-green-800',
+  suspended: 'bg-red-100 text-red-800',
+  rejected: 'bg-gray-100 text-gray-800',
 };
 
 const statusLabels = {
@@ -22,6 +26,10 @@ const statusLabels = {
   controversial: 'Controversial',
   avoid: 'Avoid',
   neutral: 'Neutral',
+  pending: 'Pending',
+  approved: 'Approved',
+  suspended: 'Suspended',
+  rejected: 'Rejected',
 };
 
 export default function MerchantCard({ merchant }: MerchantCardProps) {

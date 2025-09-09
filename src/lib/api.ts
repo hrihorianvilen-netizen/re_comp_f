@@ -1,4 +1,4 @@
-import { User, Merchant, Review, Post, AuthResponse, MerchantsResponse, ReviewsResponse, PostsResponse } from '@/types/api';
+import { User, Merchant, Review, Post, AuthResponse, MerchantsResponse, ReviewsResponse, PostsResponse, ReviewComment } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-xu3f.onrender.com/api';
 
@@ -197,7 +197,7 @@ class ApiClient {
   }
 
   async reportReview(reviewId: string, reason?: string) {
-    return this.request(`/reviews/${reviewId}/report`, {
+    return this.request<{ message: string }>(`/reviews/${reviewId}/report`, {
       method: 'POST',
       body: JSON.stringify({ reason: reason || 'Content reported by user for review' }),
     });
@@ -208,7 +208,7 @@ class ApiClient {
     content?: string;
     displayName?: string;
   }) {
-    return this.request(`/reviews/${reviewId}/comments`, {
+    return this.request<{ comment: ReviewComment; message: string }>(`/reviews/${reviewId}/comments`, {
       method: 'POST',
       body: JSON.stringify(commentData),
     });

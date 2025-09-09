@@ -1,30 +1,19 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User } from '@/types/api';
 import api from '@/lib/api';
-
-interface User {
-  id: string;
-  email: string;
-  name?: string;
-  displayName?: string;
-  avatar?: string;
-  isEmailVerified: boolean;
-  provider: string;
-  reviewCount: number;
-  commentCount: number;
-}
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: User; }>;
   register: (userData: {
     email: string;
     password: string;
     name?: string;
     displayName?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
+  }) => Promise<{ success: boolean; error?: string; user?: User; }>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -53,14 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; user?: User; }> => {
     try {
       const result = await api.login({ email, password });
       
       if (result.data) {
         api.setToken(result.data.token);
         setUser(result.data.user);
-        return { success: true };
+        return { success: true, user: result.data.user };
       } else {
         return { success: false, error: result.error || 'Login failed' };
       }
@@ -74,14 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string;
     name?: string;
     displayName?: string;
-  }): Promise<{ success: boolean; error?: string }> => {
+  }): Promise<{ success: boolean; error?: string; user?: User; }> => {
     try {
       const result = await api.register(userData);
       
       if (result.data) {
         api.setToken(result.data.token);
         setUser(result.data.user);
-        return { success: true };
+        return { success: true, user: result.data.user };
       } else {
         return { success: false, error: result.error || 'Registration failed' };
       }

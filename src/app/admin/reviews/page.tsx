@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import RatingStars from '@/components/RatingStars';
-import { Review } from '@/types';
+import { Review } from '@/types/api';
 
 // Mock data for admin review management
 const mockReviews: (Review & { merchantName: string; status: string; flagged: boolean })[] = [
@@ -18,8 +18,8 @@ const mockReviews: (Review & { merchantName: string; status: string; flagged: bo
     content: 'Excellent service! My order arrived quickly and exactly as described.',
     helpful: 12,
     notHelpful: 1,
-    createdAt: new Date('2024-01-25'),
-    updatedAt: new Date('2024-01-25'),
+    createdAt: '2024-01-25T00:00:00Z',
+    updatedAt: '2024-01-25T00:00:00Z',
     comments: [],
     status: 'published',
     flagged: false,
@@ -35,8 +35,8 @@ const mockReviews: (Review & { merchantName: string; status: string; flagged: bo
     content: 'Quality products but shipping took longer than expected.',
     helpful: 8,
     notHelpful: 2,
-    createdAt: new Date('2024-01-24'),
-    updatedAt: new Date('2024-01-24'),
+    createdAt: '2024-01-24T00:00:00Z',
+    updatedAt: '2024-01-24T00:00:00Z',
     comments: [],
     status: 'published',
     flagged: false,
@@ -52,8 +52,8 @@ const mockReviews: (Review & { merchantName: string; status: string; flagged: bo
     content: 'Received counterfeit items. Customer service is non-responsive.',
     helpful: 25,
     notHelpful: 3,
-    createdAt: new Date('2024-01-23'),
-    updatedAt: new Date('2024-01-23'),
+    createdAt: '2024-01-23T00:00:00Z',
+    updatedAt: '2024-01-23T00:00:00Z',
     comments: [],
     status: 'pending',
     flagged: true,
@@ -69,8 +69,8 @@ const mockReviews: (Review & { merchantName: string; status: string; flagged: bo
     content: 'Nice selection of clothes and quick shipping.',
     helpful: 6,
     notHelpful: 0,
-    createdAt: new Date('2024-01-22'),
-    updatedAt: new Date('2024-01-22'),
+    createdAt: '2024-01-22T00:00:00Z',
+    updatedAt: '2024-01-22T00:00:00Z',
     comments: [],
     status: 'published',
     flagged: false,
@@ -86,8 +86,8 @@ const mockReviews: (Review & { merchantName: string; status: string; flagged: bo
     content: 'Order arrived 45 minutes late and food was cold.',
     helpful: 15,
     notHelpful: 5,
-    createdAt: new Date('2024-01-21'),
-    updatedAt: new Date('2024-01-21'),
+    createdAt: '2024-01-21T00:00:00Z',
+    updatedAt: '2024-01-21T00:00:00Z',
     comments: [],
     status: 'published',
     flagged: false,
@@ -133,8 +133,9 @@ export default function AdminReviewsPage() {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
       year: 'numeric',

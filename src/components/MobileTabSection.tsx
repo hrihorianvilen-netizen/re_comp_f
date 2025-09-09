@@ -4,7 +4,7 @@ import { useState } from 'react';
 import MerchantTabs from './MerchantTabs';
 import RecentReviews from './RecentReviews';
 import NewsSection from './NewsSection';
-import { Merchant, Review } from '@/types';
+import { Merchant, Review } from '@/types/api';
 
 interface MobileTabSectionProps {
   merchants: Merchant[];

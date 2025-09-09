@@ -75,7 +75,7 @@ export default function MerchantEditPage() {
             address: merchant.address || '',
             logo: null,
             screenshots: null,
-            status: merchant.status || 'neutral',
+            status: (merchant.status as MerchantFormData['status']) || 'neutral',
           };
           
           console.log('Setting form data:', merchantData); // Debug log
