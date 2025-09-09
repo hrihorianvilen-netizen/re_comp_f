@@ -22,7 +22,9 @@ export default function CongratulationsModal({ isOpen, onClose }: Congratulation
   };
 
   const goToShopee = () => {
-    window.open('http://localhost:3000');
+    if (typeof window !== "undefined") {
+      window.location.href = window.location.origin;
+    }
   };
 
   if (!isOpen) return null;
