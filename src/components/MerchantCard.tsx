@@ -18,7 +18,8 @@ const statusColors = {
   approved: 'bg-green-100 text-green-800',
   suspended: 'bg-red-100 text-red-800',
   rejected: 'bg-gray-100 text-gray-800',
-};
+  draft: 'bg-purple-100 text-purple-800',
+} as const;
 
 const statusLabels = {
   recommended: 'Recommended',
@@ -30,7 +31,8 @@ const statusLabels = {
   approved: 'Approved',
   suspended: 'Suspended',
   rejected: 'Rejected',
-};
+  draft: 'Draft',
+} as const;
 
 export default function MerchantCard({ merchant }: MerchantCardProps) {
 
