@@ -187,8 +187,6 @@ export default function MerchantDetailPage() {
   const handleReviewSubmit = async (data: ReviewFormData) => {
     if (!merchant) return;
     
-    setSubmittingReview(true);
-    
     try {
       const response = await api.createReview({
         merchantId: merchant.id,
@@ -210,8 +208,6 @@ export default function MerchantDetailPage() {
     } catch (error) {
       console.error('Review submission error:', error);
       alert('Failed to submit review. Please try again.');
-    } finally {
-      setSubmittingReview(false);
     }
   };
 
@@ -471,7 +467,7 @@ export default function MerchantDetailPage() {
               {merchant.description && merchant.description.length > 300 && (
                 <button
                   onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                  className="mt-3 text-[#198639] hover:text-[#145a2c] font-medium text-sm transition-all duration-300 inline-flex items-center gap-1 hover:gap-2 group"
+                  className="mt-3 text-[#198639] hover:text-[#145a2c] font-medium text-sm transition-all duration-300 inline-flex items-center gap-1 hover:gap-2 group cursor-pointer"
                 >
                   {isDescriptionExpanded ? (
                     <>
@@ -581,7 +577,7 @@ export default function MerchantDetailPage() {
                                   <div className="relative group">
                                     <button
                                       onClick={() => handleReportReview(review.id)}
-                                      className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50"
+                                      className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50 cursor-pointer"
                                       title="Report this review"
                                     >
                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -633,7 +629,7 @@ export default function MerchantDetailPage() {
                                       e.preventDefault();
                                       toggleReviewExpansion(review.id);
                                     }}
-                                    className="sm:hidden text-blue-600 hover:text-blue-800 text-sm font-medium mt-1 outline-none"
+                                    className="sm:hidden text-blue-600 hover:text-blue-800 text-sm font-medium mt-1 outline-none cursor-pointer"
                                   >
                                     {expandedReviews.has(review.id) ? 'Show less' : 'Show more'}
                                   </button>
@@ -645,7 +641,7 @@ export default function MerchantDetailPage() {
                                       e.preventDefault();
                                       toggleReviewExpansion(review.id);
                                     }}
-                                    className="hidden sm:block text-blue-600 hover:text-blue-800 text-sm font-medium mt-1 outline-none"
+                                    className="hidden sm:block text-blue-600 hover:text-blue-800 text-sm font-medium mt-1 outline-none cursor-pointer"
                                   >
                                     {expandedReviews.has(review.id) ? 'Show less' : 'Show more'}
                                   </button>
@@ -662,19 +658,19 @@ export default function MerchantDetailPage() {
                                 <>
                                   <button 
                                     onClick={() => api.markReviewHelpful(review.id)}
-                                    className="flex items-center gap-1 hover:bg-[#a96b11] hover:text-white px-2 py-1 rounded transition-all outline-none"
+                                    className="flex items-center gap-1 hover:bg-[#a96b11] hover:text-white px-2 py-1 rounded transition-all outline-none cursor-pointer"
                                   >
                                     <span className="text-lg">❤️</span>
                                     <span>{emoticonCounts.love}</span>
                                   </button>
                                   <button 
                                     onClick={() => api.markReviewNotHelpful(review.id)}
-                                    className="flex items-center gap-1 hover:bg-[#a96b11] hover:text-white px-2 py-1 rounded transition-all outline-none"
+                                    className="flex items-center gap-1 hover:bg-[#a96b11] hover:text-white px-2 py-1 rounded transition-all outline-none cursor-pointer"
                                   >
                                     <span className="text-lg">😢</span>
                                     <span>{emoticonCounts.cry}</span>
                                   </button>
-                                  <button className="flex items-center gap-1 hover:bg-[#a96b11] hover:text-white px-2 py-1 rounded transition-all outline-none">
+                                  <button className="flex items-center gap-1 hover:bg-[#a96b11] hover:text-white px-2 py-1 rounded transition-all outline-none cursor-pointer">
                                     <span className="text-lg">😡</span>
                                     <span>{emoticonCounts.angry}</span>
                                   </button>
@@ -682,7 +678,7 @@ export default function MerchantDetailPage() {
                               );
                             })()}
                             <button 
-                              className="hover:text-blue-600 ml-2 outline-none"
+                              className="hover:text-blue-600 ml-2 outline-none cursor-pointer"
                               onClick={() => setReplyToReviewId(replyToReviewId === review.id ? null : review.id)}
                             >
                               Reply
@@ -762,7 +758,7 @@ export default function MerchantDetailPage() {
                                               e.preventDefault();
                                               toggleCommentExpansion(comment.id);
                                             }}
-                                            className="sm:hidden text-blue-600 hover:text-blue-800 text-xs font-medium mt-1 outline-none"
+                                            className="sm:hidden text-blue-600 hover:text-blue-800 text-xs font-medium mt-1 outline-none cursor-pointer"
                                           >
                                             {expandedComments.has(comment.id) ? 'Show less' : 'Show more'}
                                           </button>
@@ -774,7 +770,7 @@ export default function MerchantDetailPage() {
                                               e.preventDefault();
                                               toggleCommentExpansion(comment.id);
                                             }}
-                                            className="hidden sm:block text-blue-600 hover:text-blue-800 text-xs font-medium mt-1 outline-none"
+                                            className="hidden sm:block text-blue-600 hover:text-blue-800 text-xs font-medium mt-1 outline-none cursor-pointer"
                                           >
                                             {expandedComments.has(comment.id) ? 'Show less' : 'Show more'}
                                           </button>
@@ -811,7 +807,7 @@ export default function MerchantDetailPage() {
                           <button
                             onClick={() => setCurrentReviewPage(prev => Math.max(1, prev - 1))}
                             disabled={currentReviewPage === 1}
-                            className="px-3 py-1 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                            className="px-3 py-1 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 hover:cursor-pointer"
                           >
                             &lt;
                           </button>
@@ -835,7 +831,7 @@ export default function MerchantDetailPage() {
                           <button
                             onClick={() => setCurrentReviewPage(prev => Math.min(totalReviewPages, prev + 1))}
                             disabled={currentReviewPage === totalReviewPages}
-                            className="px-3 py-1 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                            className="px-3 py-1 rounded-md border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 hover:cursor-pointer"
                           >
                             &gt;
                           </button>
@@ -940,7 +936,7 @@ export default function MerchantDetailPage() {
                   {faqItems.map((item: FAQ, index: number) => (
                     <div key={item.id || index} className="border-b pb-4 last:border-b-0 last:pb-0">
                       <button
-                        className="w-full text-left flex justify-between items-start gap-4 outline-none"
+                        className="w-full text-left flex justify-between items-start gap-4 outline-none cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => setExpandedFAQ(expandedFAQ === (item.id || index.toString()) ? null : (item.id || index.toString()))}
                       >
                         <h3 className="font-medium text-[#007aff]">{item.question}</h3>
@@ -986,7 +982,7 @@ export default function MerchantDetailPage() {
           >
             <button
               onClick={() => setModalOpen(false)}
-              className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+              className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 cursor-pointer"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
