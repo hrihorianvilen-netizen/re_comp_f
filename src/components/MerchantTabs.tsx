@@ -148,7 +148,7 @@ export default function MerchantTabs({ merchants }: MerchantTabsProps) {
                         <div className="flex items-center gap-1">
                           <span className="text-blue-500">👥</span>
                           <span className="text-sm text-gray-600">
-                            {(merchant.weeklyVisits || 0).toLocaleString()} visits this week
+                            {((merchant.weeklyVisits || 0)).toLocaleString()} visits this week
                           </span>
                         </div>
                       </div>

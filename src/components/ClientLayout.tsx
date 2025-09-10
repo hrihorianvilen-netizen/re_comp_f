@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import Navigation from './Navigation';
 import Footer from './Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
+import QueryProvider from '@/providers/QueryProvider';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -16,20 +17,22 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   const isAdminPath = pathname?.startsWith('/admin');
 
   return (
-    <AuthProvider>
-      {isAdminPath ? (
-        // Admin paths have their own layout
-        <>{children}</>
-      ) : (
-        // Regular user layout - with header/footer
-        <div className="min-h-screen flex flex-col">
-          <Navigation />
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-        </div>
-      )}
-    </AuthProvider>
+    <QueryProvider>
+      <AuthProvider>
+        {isAdminPath ? (
+          // Admin paths have their own layout
+          <>{children}</>
+        ) : (
+          // Regular user layout - with header/footer
+          <div className="min-h-screen flex flex-col">
+            <Navigation />
+            <main className="flex-1">
+              {children}
+            </main>
+            <Footer />
+          </div>
+        )}
+      </AuthProvider>
+    </QueryProvider>
   );
 }

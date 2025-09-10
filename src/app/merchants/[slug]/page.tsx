@@ -67,6 +67,13 @@ export default function MerchantDetailPage() {
         if (reviewsRes.data) {
           setReviews(reviewsRes.data.reviews || []);
         }
+
+        // Track the visit when page loads
+        try {
+          await api.trackMerchantVisit(slug);
+        } catch (visitErr) {
+          console.warn('Failed to track merchant visit:', visitErr);
+        }
       } catch (err) {
         console.error('Failed to load merchant data:', err);
         setError('Failed to load merchant information. Please try again.');
@@ -362,7 +369,7 @@ export default function MerchantDetailPage() {
                   <div className="flex items-center gap-2 text-sm lg:text-base">
                     <span className="text-blue-500">👥</span>
                     <span className="text-gray-600">
-                      {((merchant.reviewCount || 0) * 100 + 50000).toLocaleString()} visits this week
+                      {((merchant.weeklyVisits || 0)).toLocaleString()} visits this week
                     </span>
                   </div>
                 </div>
