@@ -1,10 +1,14 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Navigation() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { user, loading, logout } = useAuth();
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
@@ -56,13 +60,17 @@ export default function Navigation() {
                   <Link href="/tin-tuc" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     News
                   </Link>
-                  <div className="border-t border-gray-100"></div>
-                  <Link href="/auth/login" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    Login
-                  </Link>
-                  <Link href="/auth/signup" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                    Sign Up
-                  </Link>
+                  {!user && (
+                    <>
+                      <div className="border-t border-gray-100"></div>
+                      <Link href="/auth/login" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Login
+                      </Link>
+                      <Link href="/auth/signup" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Sign Up
+                      </Link>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -78,15 +86,112 @@ export default function Navigation() {
               </svg>
               <span>Request More Companies</span>
             </Link>
+
+            {/* User Avatar / Login */}
+            <div className="flex items-center">
+              {!loading && (
+                <>
+                  {user ? (
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                        className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100 transition-colors"
+                      >
+                        {user.avatar ? (
+                          <Image
+                            src={user.avatar}
+                            alt={user.displayName || user.name || 'User'}
+                            width={32}
+                            height={32}
+                            className="rounded-full border border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                            <span className="text-gray-600 text-sm font-medium">
+                              {(user.displayName || user.name || user.email)?.[0]?.toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className="hidden sm:block text-sm font-medium">
+                          {user.displayName || user.name || 'User'}
+                        </span>
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+
+                      {isUserMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                          <div className="px-4 py-2 border-b border-gray-100">
+                            <p className="text-sm font-medium text-gray-900">
+                              {user.displayName || user.name}
+                            </p>
+                            <p className="text-xs text-gray-500">{user.email}</p>
+                          </div>
+                          <Link 
+                            href="/account" 
+                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Account Settings</span>
+                          </Link>
+                          <Link 
+                            href="/account/reviews" 
+                            className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                            <span>My Reviews</span>
+                          </Link>
+                          <div className="border-t border-gray-100"></div>
+                          <button
+                            onClick={() => {
+                              setIsUserMenuOpen(false);
+                              logout();
+                              window.location.href = '/';
+                            }}
+                            className="flex items-center space-x-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            <span>Logout</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link
+                      href="/auth/login"
+                      className="flex items-center space-x-1 text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md transition-colors"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span className="hidden sm:block text-sm font-medium">Login</span>
+                    </Link>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Overlay to close dropdown when clicking outside */}
-      {isDropdownOpen && (
+      {(isDropdownOpen || isUserMenuOpen) && (
         <div 
           className="fixed inset-0 z-40" 
-          onClick={() => setIsDropdownOpen(false)}
+          onClick={() => {
+            setIsDropdownOpen(false);
+            setIsUserMenuOpen(false);
+          }}
         ></div>
       )}
     </nav>
