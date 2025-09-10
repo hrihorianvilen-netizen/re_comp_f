@@ -1,8 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import Navigation from './Navigation';
-import Footer from './Footer';
+import { Navigation, Footer } from '@/components/layout';
 import { AuthProvider } from '@/contexts/AuthContext';
 import QueryProvider from '@/providers/QueryProvider';
 

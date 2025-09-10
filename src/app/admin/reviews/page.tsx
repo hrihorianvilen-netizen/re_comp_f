@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import RatingStars from '@/components/RatingStars';
+import { RatingStars } from '@/components/ui';
 import { Review } from '@/types/api';
 
 // Mock data for admin review management

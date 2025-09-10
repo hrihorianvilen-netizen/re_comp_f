@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import ForgotPasswordModal from './ForgotPasswordModal';
-import CongratulationsModal from './CongratulationsModal';
+import { ForgotPasswordModal } from '@/components/auth';
+import { CongratulationsModal } from '@/components/modals';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthResponse } from '@/types/api';
 

@@ -8,7 +8,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
-import RatingStars from '@/components/RatingStars';
+import { RatingStars } from '@/components/ui';
 import { merchantKeys } from '@/hooks/useMerchants';
 import { Merchant } from '@/types/api';
 

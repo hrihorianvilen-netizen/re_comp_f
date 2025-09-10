@@ -6,11 +6,10 @@ import Link from 'next/link';
 import { Merchant, Review } from '@/types/api';
 import api from '@/lib/api';
 
-// Import your original components
-import MerchantTabs from '@/components/MerchantTabs';
-import RecentReviews from '@/components/RecentReviews';
-import MobileTabSection from '@/components/MobileTabSection';
-import RecentlyViewedSwiper from '@/components/RecentlyViewedSwiper';
+// Import organized components
+import { MerchantTabs, RecentlyViewedSwiper } from '@/components/merchants';
+import { RecentReviews } from '@/components/reviews';
+import { MobileTabSection } from '@/components/shared';
 
 export default function HomePage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);

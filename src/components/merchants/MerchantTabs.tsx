@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Merchant } from '@/types/api';
 import Image from 'next/image';
 import Link from 'next/link';
-import RatingStars from './RatingStars';
+import { RatingStars } from '@/components/ui';
 import { getImageUrl } from '@/lib/utils';
 import api from '@/lib/api';
 

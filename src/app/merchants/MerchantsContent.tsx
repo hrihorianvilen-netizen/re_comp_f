@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
-import RatingStars from '@/components/RatingStars';
+import { RatingStars } from '@/components/ui';
 
 interface Merchant {
   id: string;

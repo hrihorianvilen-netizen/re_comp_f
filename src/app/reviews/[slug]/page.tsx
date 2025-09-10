@@ -5,8 +5,8 @@ import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Review, ReviewComment, Merchant } from '@/types/api';
-import RatingStars from '@/components/RatingStars';
-import CommentForm, { CommentFormData } from '@/components/CommentForm';
+import { RatingStars } from '@/components/ui';
+import { CommentForm, CommentFormData } from '@/components/comments';
 import { getApiReaction, getReactionEmoji } from '@/lib/reactions';
 import api from '@/lib/api';
 

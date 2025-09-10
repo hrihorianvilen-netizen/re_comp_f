@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { Review } from '@/types/api';
 import { formatDistanceToNow } from 'date-fns';
-import RatingStars from './RatingStars';
-import CommentDisplay from './CommentDisplay';
+import { RatingStars } from '@/components/ui';
+import { CommentDisplay } from '@/components/comments';
 
 interface RecentReviewsProps {
   reviews: Review[];

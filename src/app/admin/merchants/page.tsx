@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Merchant } from '@/types/api';
-import RatingStars from '@/components/RatingStars';
+import { RatingStars } from '@/components/ui';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 

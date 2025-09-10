@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import moment from 'moment';
-import RatingStars from '@/components/RatingStars';
+import { RatingStars } from '@/components/ui';
 import CommunicationHeader from '@/components/admin/communication/CommunicationHeader';
 import StatusFilter from '@/components/admin/communication/StatusFilter';
 import ActionFilter from '@/components/admin/communication/ActionFilter';

@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import RecentlyViewedSwiper from '@/components/RecentlyViewedSwiper';
-import NewsSection from '@/components/NewsSection';
-import MerchantTabs from '@/components/MerchantTabs';
-import RecentReviews from '@/components/RecentReviews';
+import { RecentlyViewedSwiper, MerchantTabs } from '@/components/merchants';
+import { NewsSection } from '@/components/news';
+import { RecentReviews } from '@/components/reviews';
 
 interface NewsItem {
   id: string;

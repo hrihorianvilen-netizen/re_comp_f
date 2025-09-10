@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import MerchantTabs from './MerchantTabs';
-import RecentReviews from './RecentReviews';
-import NewsSection from './NewsSection';
+import { MerchantTabs } from '@/components/merchants';
+import { RecentReviews } from '@/components/reviews';
+import { NewsSection } from '@/components/news';
 import { Merchant, Review } from '@/types/api';
 
 interface MobileTabSectionProps {

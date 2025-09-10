@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import InteractiveRatingStars from './InteractiveRatingStars';
-import AuthModal from './AuthModal';
-import SimpleCaptcha from './SimpleCaptcha';
+import { InteractiveRatingStars, SimpleCaptcha } from '@/components/ui';
+import { AuthModal } from '@/components/auth';
 
 interface ReviewFormModalProps {
   isOpen: boolean;

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { EMOTION_REACTIONS } from '@/lib/reactions';
-import AuthModal from './AuthModal';
+import { AuthModal } from '@/components/auth';
 
 interface CommentFormProps {
   reviewId: string;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import AuthModal from '@/components/AuthModal';
+import { AuthModal } from '@/components/auth';
 import { AuthResponse } from '@/types/api';
 
 export default function SignupPage() {
