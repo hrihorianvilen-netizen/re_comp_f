@@ -25,7 +25,7 @@ export default function ReviewsManagement() {
   });
 
   const reviews = reviewsData?.reviews || [];
-  const totalPages = Math.ceil((reviewsData?.total || 0) / 20);
+  const totalPages = Math.ceil((reviewsData?.pagination?.total || 0) / 20);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -152,7 +152,7 @@ export default function ReviewsManagement() {
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-semibold text-[#198639]">{reviewsData?.total || 0}</div>
+              <div className="text-2xl font-semibold text-[#198639]">{reviewsData?.pagination?.total || 0}</div>
               <div className="text-sm text-gray-600">Total Reviews</div>
             </div>
             <div className="text-center">
