@@ -3,10 +3,19 @@ import api from '@/lib/api';
 import { Merchant, Review, ReviewComment } from '@/types/api';
 
 // Query Keys
+interface MerchantFilters {
+  page?: number;
+  limit?: number;
+  category?: string;
+  status?: string;
+  search?: string;
+  excludeDrafts?: boolean;
+}
+
 export const merchantKeys = {
   all: ['merchants'] as const,
   lists: () => [...merchantKeys.all, 'list'] as const,
-  list: (filters: any) => [...merchantKeys.lists(), filters] as const,
+  list: (filters: MerchantFilters) => [...merchantKeys.lists(), filters] as const,
   details: () => [...merchantKeys.all, 'detail'] as const,
   detail: (slug: string) => [...merchantKeys.details(), slug] as const,
   reviews: (slug: string) => [...merchantKeys.all, 'reviews', slug] as const,
@@ -57,6 +66,25 @@ export function useMerchants(params?: {
     queryKey: merchantKeys.list(params || {}),
     queryFn: async () => {
       const response = await api.getMerchants(params);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+  });
+}
+
+// Hook to fetch reviews (general)
+export function useReviews(params?: {
+  page?: number;
+  limit?: number;
+  merchantId?: string;
+  merchantSlug?: string;
+  rating?: number;
+  sort?: string;
+}) {
+  return useQuery({
+    queryKey: ['reviews', 'list', params],
+    queryFn: async () => {
+      const response = await api.getReviews(params);
       if (response.error) throw new Error(response.error);
       return response.data;
     },

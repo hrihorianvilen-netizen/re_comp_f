@@ -109,6 +109,51 @@ class ApiClient {
     return result;
   }
 
+  async updateProfile(userData: {
+    name?: string;
+    displayName?: string;
+    phone?: string;
+    avatar?: File;
+  }) {
+    const formData = new FormData();
+    if (userData.name) formData.append('name', userData.name);
+    if (userData.displayName) formData.append('displayName', userData.displayName);
+    if (userData.phone) formData.append('phone', userData.phone);
+    if (userData.avatar) formData.append('avatar', userData.avatar);
+
+    return this.request<{ user: User }>('/auth/profile', {
+      method: 'PUT',
+      body: formData,
+    });
+  }
+
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }) {
+    return this.request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async forgotPassword(email: string) {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(data: {
+    token: string;
+    newPassword: string;
+  }) {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Merchant endpoints
   async getMerchants(params?: {
     page?: number;
@@ -313,6 +358,115 @@ class ApiClient {
     return this.request('/admin/merchants/bulk', {
       method: 'POST',
       body: JSON.stringify({ action, ids }),
+    });
+  }
+
+  // User management endpoints (admin only)
+  async getUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'active' | 'inactive' | 'suspended';
+    sort?: 'newest' | 'oldest' | 'name';
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+
+    const query = searchParams.toString();
+    return this.request<{
+      users: User[];
+      total: number;
+      page: number;
+      totalPages: number;
+    }>(`/admin/users${query ? `?${query}` : ''}`);
+  }
+
+  async getUserById(id: string) {
+    return this.request<{ user: User }>(`/admin/users/${id}`);
+  }
+
+  async updateUserStatus(id: string, status: 'active' | 'suspended') {
+    return this.request<{ user: User; message: string }>(`/admin/users/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async deleteUser(id: string) {
+    return this.request<{ message: string }>(`/admin/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async bulkActionUsers(action: 'suspend' | 'activate' | 'delete', ids: string[]) {
+    return this.request('/admin/users/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ action, ids }),
+    });
+  }
+
+  // Ads management endpoints (admin only)
+  async getAds(params?: {
+    page?: number;
+    limit?: number;
+    status?: 'active' | 'inactive' | 'pending';
+    type?: 'banner' | 'sidebar' | 'popup';
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+
+    const query = searchParams.toString();
+    return this.request<{
+      ads: any[];
+      total: number;
+      page: number;
+      totalPages: number;
+    }>(`/admin/ads${query ? `?${query}` : ''}`);
+  }
+
+  async createAd(adData: {
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    link?: string;
+    type: 'banner' | 'sidebar' | 'popup';
+    status: 'active' | 'inactive' | 'pending';
+  }) {
+    return this.request<{ ad: any; message: string }>('/admin/ads', {
+      method: 'POST',
+      body: JSON.stringify(adData),
+    });
+  }
+
+  async updateAd(id: string, adData: {
+    title?: string;
+    description?: string;
+    imageUrl?: string;
+    link?: string;
+    type?: 'banner' | 'sidebar' | 'popup';
+    status?: 'active' | 'inactive' | 'pending';
+  }) {
+    return this.request<{ ad: any; message: string }>(`/admin/ads/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(adData),
+    });
+  }
+
+  async deleteAd(id: string) {
+    return this.request<{ message: string }>(`/admin/ads/${id}`, {
+      method: 'DELETE',
     });
   }
 }

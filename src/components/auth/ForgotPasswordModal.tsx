@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useForgotPassword, useResetPassword } from '@/hooks/useAuth';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;
@@ -15,8 +16,12 @@ interface FormErrors {
 type ForgotPasswordStep = 'email' | 'reset';
 
 export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: ForgotPasswordModalProps) {
+  const forgotPasswordMutation = useForgotPassword();
+  const resetPasswordMutation = useResetPassword();
+  
   const [step, setStep] = useState<ForgotPasswordStep>('email');
   const [email, setEmail] = useState('');
+  const [token, setToken] = useState(''); // For reset token from URL or email
   const [passwords, setPasswords] = useState({
     newPassword: '',
     confirmPassword: '',
@@ -59,30 +64,42 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: Forg
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateEmail()) {
-      // In a real app, this would send a password reset email
-      console.log('Password reset email sent to:', email);
-      setStep('reset');
-      setErrors({});
+      try {
+        await forgotPasswordMutation.mutateAsync(email);
+        setStep('reset');
+        setErrors({});
+      } catch (error) {
+        console.error('Failed to send password reset email:', error);
+      }
     }
   };
 
-  const handlePasswordReset = (e: React.FormEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validatePasswords()) {
-      // In a real app, this would update the password
-      console.log('Password reset successfully');
-      if (onSuccess) {
-        onSuccess();
+    if (validatePasswords() && token) {
+      try {
+        await resetPasswordMutation.mutateAsync({
+          token,
+          newPassword: passwords.newPassword,
+        });
+        
+        if (onSuccess) {
+          onSuccess();
+        }
+        
+        // Reset form and close
+        setStep('email');
+        setEmail('');
+        setToken('');
+        setPasswords({ newPassword: '', confirmPassword: '' });
+        setErrors({});
+        onClose();
+      } catch (error) {
+        console.error('Failed to reset password:', error);
       }
-      // Reset form and close
-      setStep('email');
-      setEmail('');
-      setPasswords({ newPassword: '', confirmPassword: '' });
-      setErrors({});
-      onClose();
     }
   };
 
@@ -147,16 +164,52 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: Forg
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-[#198639] text-white py-2 px-4 rounded-md hover:bg-[#15732f] font-medium transition-colors"
+              disabled={forgotPasswordMutation.isPending}
+              className="w-full bg-[#198639] text-white py-2 px-4 rounded-md hover:bg-[#15732f] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Send password
+              {forgotPasswordMutation.isPending ? 'Sending...' : 'Send password'}
             </button>
+
+            {/* Error Message */}
+            {forgotPasswordMutation.error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-800">
+                  {forgotPasswordMutation.error.message || 'Failed to send reset email'}
+                </p>
+              </div>
+            )}
           </form>
         ) : (
           <form onSubmit={handlePasswordReset} className="p-4 space-y-4">
             <p className="text-lg font-medium text-gray-900">
               Create a new password
             </p>
+            
+            {/* Success message for email sent */}
+            {forgotPasswordMutation.isSuccess && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md mb-4">
+                <p className="text-sm text-green-800">
+                  Password reset instructions have been sent to your email. Please check your email for the reset token.
+                </p>
+              </div>
+            )}
+            
+            {/* Reset Token Field */}
+            <div>
+              <label htmlFor="reset-token" className="block text-sm font-medium text-gray-700 mb-1">
+                Reset Token *
+              </label>
+              <input
+                type="text"
+                id="reset-token"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent"
+                placeholder="Enter the token from your email"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Check your email for the reset token</p>
+            </div>
             
             {/* New Password Field */}
             <div>
@@ -233,10 +286,27 @@ export default function ForgotPasswordModal({ isOpen, onClose, onSuccess }: Forg
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-[#198639] text-white py-2 px-4 rounded-md hover:bg-[#15732f] font-medium transition-colors"
+              disabled={resetPasswordMutation.isPending || !token}
+              className="w-full bg-[#198639] text-white py-2 px-4 rounded-md hover:bg-[#15732f] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create a new password
+              {resetPasswordMutation.isPending ? 'Resetting Password...' : 'Create a new password'}
             </button>
+
+            {/* Success Message */}
+            {resetPasswordMutation.isSuccess && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-800">Password reset successfully!</p>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {resetPasswordMutation.error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-800">
+                  {resetPasswordMutation.error.message || 'Failed to reset password'}
+                </p>
+              </div>
+            )}
           </form>
         )}
       </div>

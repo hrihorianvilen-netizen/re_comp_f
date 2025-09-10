@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ForgotPasswordModal } from '@/components/auth';
 import { CongratulationsModal } from '@/components/modals';
-import { useAuth } from '@/contexts/AuthContext';
+import { useLogin, useRegister } from '@/hooks/useAuth';
 import { AuthResponse } from '@/types/api';
 
 interface AuthModalProps {
@@ -19,6 +19,9 @@ interface AuthModalProps {
 type AuthMode = 'login' | 'register';
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSuccess, onRegistrationSuccess, onModeChange }: AuthModalProps) {
+  const loginMutation = useLogin();
+  const registerMutation = useRegister();
+  
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -29,9 +32,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
     displayName: '',
   });
   const [errors, setErrors] = useState<Partial<typeof formData>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<AuthResponse | null>(null);
-  const { login, register } = useAuth();
   
   // Update mode when initialMode prop changes
   useEffect(() => {
@@ -63,44 +64,40 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || isSubmitting) return;
+    if (!validate()) return;
 
-    setIsSubmitting(true);
     setErrors({});
 
     try {
       if (mode === 'register') {
-        const result = await register({
+        const result = await registerMutation.mutateAsync({
           email: formData.email,
           password: formData.password,
           displayName: formData.displayName || 'Anonymous',
         });
 
-        if (result.success) {
-          setRegistrationResult({ user: result.user!, token: '' }); // Token is handled by AuthContext
+        if (result) {
+          setRegistrationResult({ user: result.user!, token: result.token! });
           setShowCongratulations(true);
           if (onRegistrationSuccess) {
             onRegistrationSuccess();
           }
-        } else {
-          setErrors({ email: result.error || 'Registration failed' });
         }
       } else {
-        const result = await login(formData.email, formData.password);
+        const result = await loginMutation.mutateAsync({
+          email: formData.email,
+          password: formData.password,
+        });
 
-        if (result.success) {
+        if (result) {
           if (onSuccess) {
-            onSuccess({ user: result.user!, token: '' }); // Token is handled by AuthContext
+            onSuccess({ user: result.user!, token: result.token! });
           }
           onClose();
-        } else {
-          setErrors({ email: result.error || 'Login failed' });
         }
       }
-    } catch (error) {
-      setErrors({ email: 'Network error. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
+    } catch (error: any) {
+      setErrors({ email: error.message || 'Authentication failed' });
     }
   };
 
@@ -232,10 +229,12 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={loginMutation.isPending || registerMutation.isPending}
             className="w-full bg-[#198639] text-white py-2 px-4 rounded-md hover:bg-[#15732f] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? (mode === 'register' ? 'Creating account...' : 'Logging in...') : (mode === 'register' ? 'Join now' : 'Login')}
+            {(mode === 'register' ? registerMutation.isPending : loginMutation.isPending) 
+              ? (mode === 'register' ? 'Creating account...' : 'Logging in...') 
+              : (mode === 'register' ? 'Join now' : 'Login')}
           </button>
 
           {/* Divider */}
