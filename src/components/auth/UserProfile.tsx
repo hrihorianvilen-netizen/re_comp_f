@@ -38,7 +38,12 @@ export default function UserProfile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const updateData: any = {};
+    const updateData: {
+      name?: string;
+      displayName?: string;
+      phone?: string;
+      avatar?: File;
+    } = {};
     
     if (formData.name !== user?.name) updateData.name = formData.name;
     if (formData.displayName !== user?.displayName) updateData.displayName = formData.displayName;

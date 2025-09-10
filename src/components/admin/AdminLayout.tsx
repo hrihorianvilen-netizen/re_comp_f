@@ -122,7 +122,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { data: user, isLoading } = useUser();
 
   // Check if user is admin (you'll need to add role field to User type)
-  const isAdmin = user && (user as any).role === 'admin';
+  const isAdmin = user && 'role' in user && (user as User & { role: string }).role === 'admin';
 
   if (isLoading) {
     return (

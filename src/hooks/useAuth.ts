@@ -15,8 +15,9 @@ export function useUser() {
       if (response.error) throw new Error(response.error);
       return response.data?.user;
     },
-    retry: (failureCount, error: any) => {
-      if (error?.message?.includes('401') || error?.message?.includes('Unauthorized')) {
+    retry: (failureCount, error) => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
         return false;
       }
       return failureCount < 3;

@@ -1,4 +1,4 @@
-import { User, Merchant, Review, Post, AuthResponse, MerchantsResponse, ReviewsResponse, PostsResponse, ReviewComment } from '@/types/api';
+import { User, Merchant, Review, Post, AuthResponse, MerchantsResponse, ReviewsResponse, PostsResponse, ReviewComment, Advertisement } from '@/types/api';
 
 // const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-backend-2zkw.onrender.com/api';
@@ -429,7 +429,7 @@ class ApiClient {
 
     const query = searchParams.toString();
     return this.request<{
-      ads: any[];
+      ads: Advertisement[];
       total: number;
       page: number;
       totalPages: number;
@@ -444,7 +444,7 @@ class ApiClient {
     type: 'banner' | 'sidebar' | 'popup';
     status: 'active' | 'inactive' | 'pending';
   }) {
-    return this.request<{ ad: any; message: string }>('/admin/ads', {
+    return this.request<{ ad: Advertisement; message: string }>('/admin/ads', {
       method: 'POST',
       body: JSON.stringify(adData),
     });
@@ -458,7 +458,7 @@ class ApiClient {
     type?: 'banner' | 'sidebar' | 'popup';
     status?: 'active' | 'inactive' | 'pending';
   }) {
-    return this.request<{ ad: any; message: string }>(`/admin/ads/${id}`, {
+    return this.request<{ ad: Advertisement; message: string }>(`/admin/ads/${id}`, {
       method: 'PUT',
       body: JSON.stringify(adData),
     });

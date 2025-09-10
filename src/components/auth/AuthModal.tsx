@@ -96,8 +96,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onSu
           onClose();
         }
       }
-    } catch (error: any) {
-      setErrors({ email: error.message || 'Authentication failed' });
+    } catch (error) {
+      setErrors({ email: error instanceof Error ? error.message : 'Authentication failed' });
     }
   };
 

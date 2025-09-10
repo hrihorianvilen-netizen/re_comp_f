@@ -5,7 +5,7 @@ import { User } from '@/types/api';
 export const userKeys = {
   all: ['users'] as const,
   lists: () => [...userKeys.all, 'list'] as const,
-  list: (filters: any) => [...userKeys.lists(), filters] as const,
+  list: (filters: Record<string, unknown>) => [...userKeys.lists(), filters] as const,
   details: () => [...userKeys.all, 'detail'] as const,
   detail: (id: string) => [...userKeys.details(), id] as const,
 };
@@ -24,8 +24,9 @@ export function useUsers(params?: {
       if (response.error) throw new Error(response.error);
       return response.data;
     },
-    retry: (failureCount, error: any) => {
-      if (error?.message?.includes('429')) {
+    retry: (failureCount, error) => {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('429')) {
         return failureCount < 3;
       }
       return failureCount < 2;
