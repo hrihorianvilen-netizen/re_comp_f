@@ -33,8 +33,12 @@ export default function HomePage() {
       
       if (result.data) {
         const merchants = result.data.merchants || [];
-        console.log('Recently viewed merchants loaded:', merchants.length, 'items');
-        setRecentlyViewed(merchants);
+        // Filter out draft merchants from recently viewed
+        const publicMerchants = merchants.filter(
+          merchant => merchant.status !== 'draft'
+        );
+        console.log('Recently viewed merchants loaded:', publicMerchants.length, 'items');
+        setRecentlyViewed(publicMerchants);
       }
     } catch (error) {
       console.error('Failed to load recent merchants:', error);
@@ -50,7 +54,11 @@ export default function HomePage() {
       ]);
       
       if (merchantResult.data) {
-        setMerchants(merchantResult.data.merchants);
+        // Filter out draft merchants from public display
+        const publicMerchants = merchantResult.data.merchants.filter(
+          merchant => merchant.status !== 'draft'
+        );
+        setMerchants(publicMerchants);
       }
       
       if (reviewResult.data) {
@@ -71,7 +79,11 @@ export default function HomePage() {
     try {
       const result = await api.getMerchants({ search: searchQuery, limit: 50 });
       if (result.data) {
-        setMerchants(result.data.merchants);
+        // Filter out draft merchants from search results
+        const publicMerchants = result.data.merchants.filter(
+          merchant => merchant.status !== 'draft'
+        );
+        setMerchants(publicMerchants);
       }
     } catch (error) {
       console.error('Search failed:', error);

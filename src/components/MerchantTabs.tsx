@@ -26,11 +26,14 @@ export default function MerchantTabs({ merchants }: MerchantTabsProps) {
   const itemsPerPage = 15;
 
   const filterMerchants = (status: string) => {
+    // Always exclude draft merchants from public display
+    const publicMerchants = merchants.filter(merchant => merchant.status !== 'draft');
+    
     if (status === 'recent') {
-      return merchants
+      return publicMerchants
         .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     }
-    return merchants.filter(merchant => merchant.status === status);
+    return publicMerchants.filter(merchant => merchant.status === status);
   };
 
   const filteredMerchants = filterMerchants(activeTab);
