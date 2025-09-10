@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Merchant, Review } from '@/types/api';
+import { Merchant, Review, ReviewComment } from '@/types/api';
 
 // Query Keys
 export const merchantKeys = {
@@ -10,6 +10,12 @@ export const merchantKeys = {
   details: () => [...merchantKeys.all, 'detail'] as const,
   detail: (slug: string) => [...merchantKeys.details(), slug] as const,
   reviews: (slug: string) => [...merchantKeys.all, 'reviews', slug] as const,
+};
+
+export const commentKeys = {
+  all: ['comments'] as const,
+  lists: () => [...commentKeys.all, 'list'] as const,
+  list: (reviewId: string) => [...commentKeys.lists(), reviewId] as const,
 };
 
 // Hook to fetch a single merchant
@@ -183,4 +189,83 @@ export function saveToRecentlyViewed(merchant: Merchant) {
   } catch (error) {
     console.error('Failed to save to recently viewed:', error);
   }
+}
+
+// ==== COMMENT HOOKS ====
+
+// Hook to fetch comments for a review
+export function useComments(reviewId: string) {
+  return useQuery({
+    queryKey: commentKeys.list(reviewId),
+    queryFn: async () => {
+      const response = await api.getComments(reviewId);
+      if (response.error) throw new Error(response.error);
+      return response.data?.comments || [];
+    },
+    enabled: !!reviewId,
+  });
+}
+
+// Hook to update a comment
+export function useUpdateComment() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ 
+      commentId, 
+      reviewId,
+      data 
+    }: { 
+      commentId: string;
+      reviewId: string;
+      data: {
+        reaction?: '❤️' | '😢' | '😡';
+        content?: string;
+      };
+    }) => {
+      const response = await api.updateComment(commentId, data);
+      if (response.error) throw new Error(response.error);
+      return { comment: response.data?.comment, reviewId };
+    },
+    onSuccess: (data) => {
+      if (data?.reviewId) {
+        // Invalidate comments for this review
+        queryClient.invalidateQueries({ queryKey: commentKeys.list(data.reviewId) });
+        // Also invalidate reviews to show updated comment counts
+        queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      }
+    },
+  });
+}
+
+// Hook to delete a comment
+export function useDeleteComment() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ commentId, reviewId }: { commentId: string; reviewId: string }) => {
+      const response = await api.deleteComment(commentId);
+      if (response.error) throw new Error(response.error);
+      return { reviewId };
+    },
+    onSuccess: (data) => {
+      if (data?.reviewId) {
+        // Invalidate comments for this review
+        queryClient.invalidateQueries({ queryKey: commentKeys.list(data.reviewId) });
+        // Also invalidate reviews to show updated comment counts
+        queryClient.invalidateQueries({ queryKey: merchantKeys.all });
+      }
+    },
+  });
+}
+
+// Hook to report a comment
+export function useReportComment() {
+  return useMutation({
+    mutationFn: async ({ commentId, reason }: { commentId: string; reason?: string }) => {
+      const response = await api.reportComment(commentId, reason);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+  });
 }

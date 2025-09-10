@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Review } from '@/types/api';
 import { formatDistanceToNow } from 'date-fns';
 import RatingStars from './RatingStars';
+import CommentDisplay from './CommentDisplay';
 
 interface RecentReviewsProps {
   reviews: Review[];
@@ -64,7 +65,7 @@ export default function RecentReviews({ reviews }: RecentReviewsProps) {
                 </div>
                 
                 {/* Review content */}
-                <p className="text-sm text-gray-700 leading-relaxed break-words overflow-hidden">
+                <p className="text-sm text-gray-700 leading-relaxed break-words overflow-hidden mb-3">
                   <span className="block overflow-hidden text-ellipsis" style={{
                     display: '-webkit-box',
                     WebkitLineClamp: 3,
@@ -76,6 +77,11 @@ export default function RecentReviews({ reviews }: RecentReviewsProps) {
                       : review.content}
                   </span>
                 </p>
+
+                {/* Comments Section */}
+                {review.comments && review.comments.length > 0 && (
+                  <CommentDisplay comments={review.comments} maxDisplay={2} />
+                )}
               </div>
             </div>
           </div>

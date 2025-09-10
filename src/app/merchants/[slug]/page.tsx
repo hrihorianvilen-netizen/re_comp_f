@@ -8,7 +8,8 @@ import { Merchant, Review, ReviewComment, FAQ } from '@/types/api';
 import RatingStars from '@/components/RatingStars';
 import InteractiveRatingStars from '@/components/InteractiveRatingStars';
 import ReviewFormModal, { ReviewFormData } from '@/components/ReviewFormModal';
-import CommentForm, { CommentFormData } from '@/components/CommentForm';
+import AddCommentButton from '@/components/AddCommentButton';
+import CommentsView from '@/components/CommentsView';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation } from 'swiper/modules';
 import { getApiReaction } from '@/lib/reactions';
@@ -32,12 +33,10 @@ export default function MerchantDetailPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [replyToReviewId, setReplyToReviewId] = useState<string | null>(null);
   const [currentReviewPage, setCurrentReviewPage] = useState(1);
   const reviewsPerPage = 5;
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
   const [selectedRatingFilters, setSelectedRatingFilters] = useState<Set<number>>(new Set());
 
   // Load merchant and reviews from backend
@@ -148,17 +147,6 @@ export default function MerchantDetailPage() {
     });
   };
 
-  const toggleCommentExpansion = (commentId: string) => {
-    setExpandedComments(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(commentId)) {
-        newSet.delete(commentId);
-      } else {
-        newSet.add(commentId);
-      }
-      return newSet;
-    });
-  };
 
   const toggleRatingFilter = (rating: number) => {
     setSelectedRatingFilters(prev => {
@@ -218,45 +206,6 @@ export default function MerchantDetailPage() {
     }
   };
 
-  const handleCommentSubmit = async (reviewId: string, data: CommentFormData) => {
-    try {
-      // Convert emotion reaction to the format expected by the API
-      const reaction = data.selectedReaction ? getApiReaction(data.selectedReaction) : '❤️';
-      
-      const response = await api.addComment(reviewId, {
-        reaction,
-        content: data.content,
-        displayName: data.title || 'Anonymous User' // Use title as display name
-      });
-      
-      if (response.error) {
-        alert(`Failed to submit comment: ${response.error}`);
-        return;
-      }
-      
-      if (response.data) {
-        // Use the comment returned from the backend
-        const newComment: ReviewComment = response.data.comment;
-        
-        // Update the review with new comment locally
-        setReviews(reviews.map(review => {
-          if (review.id === reviewId) {
-            return {
-              ...review,
-              comments: [...(review.comments || []), newComment]
-            };
-          }
-          return review;
-        }));
-        
-        setReplyToReviewId(null);
-        alert('Comment submitted successfully!');
-      }
-    } catch (error) {
-      console.error('Failed to submit comment:', error);
-      alert('Failed to submit comment. Please try again.');
-    }
-  };
 
   const handleReportReview = async (reviewId: string) => {
     try {
@@ -681,124 +630,24 @@ export default function MerchantDetailPage() {
                                     <span className="text-lg">😡</span>
                                     <span>{emoticonCounts.angry}</span>
                                   </button>
+                                  {/* Add Comment Button next to reactions */}
+                                  <AddCommentButton
+                                    reviewId={review.id}
+                                    merchantSlug={merchant.slug}
+                                  />
                                 </>
                               );
                             })()}
-                            <button 
-                              className="hover:text-blue-600 ml-2 outline-none cursor-pointer"
-                              onClick={() => setReplyToReviewId(replyToReviewId === review.id ? null : review.id)}
-                            >
-                              Reply
-                            </button>
                           </div>
                           
-                          {review.comments && review.comments.length > 0 && (
-                            <div className="ml-4 sm:ml-[52px] pl-4 border-l-2 border-gray-200 space-y-3">
-                              {review.comments.map((comment) => (
-                                <div key={comment.id} className="bg-gray-50 rounded-lg p-3">
-                                  <div className="flex items-start gap-3 mb-2">
-                                    {/* User Avatar */}
-                                    <div className="flex-shrink-0">
-                                      {comment.user?.avatar ? (
-                                        <Image
-                                          src={getImageUrl(comment.user.avatar)}
-                                          alt={comment.displayName || 'User'}
-                                          width={32}
-                                          height={32}
-                                          className="w-8 h-8 rounded-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                                          <span className="text-xs font-medium text-gray-600">
-                                            {(comment.displayName || 'A').charAt(0).toUpperCase()}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                    
-                                    {/* Comment Header Info */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-medium text-sm text-gray-900">
-                                          {comment.displayName || 'Anonymous'}
-                                        </span>
-                                        {/* Show emoticon reaction */}
-                                        {comment.reaction && (
-                                          <span className="text-sm">
-                                            {comment.reaction}
-                                          </span>
-                                        )}
-                                        <span className="text-xs text-gray-500">
-                                          {formatTimeAgo(comment.createdAt)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="overflow-hidden">
-                                    <p className="text-sm text-gray-700 break-words overflow-wrap-anywhere leading-relaxed">
-                                      {/* Mobile: shorter limit (80 chars), Desktop: longer limit (150 chars) */}
-                                      {comment.content && (
-                                        <>
-                                          {/* Mobile version */}
-                                          <span className="block sm:hidden">
-                                            {comment.content.length > 80 && !expandedComments.has(comment.id)
-                                              ? `${comment.content.substring(0, 80)}...`
-                                              : comment.content
-                                            }
-                                          </span>
-                                          {/* Desktop version */}
-                                          <span className="hidden sm:block">
-                                            {comment.content.length > 150 && !expandedComments.has(comment.id)
-                                              ? `${comment.content.substring(0, 150)}...`
-                                              : comment.content
-                                            }
-                                          </span>
-                                        </>
-                                      )}
-                                    </p>
-                                    {comment.content && (
-                                      <>
-                                        {/* Mobile show more/less button */}
-                                        {comment.content.length > 80 && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              toggleCommentExpansion(comment.id);
-                                            }}
-                                            className="sm:hidden text-blue-600 hover:text-blue-800 text-xs font-medium mt-1 outline-none cursor-pointer"
-                                          >
-                                            {expandedComments.has(comment.id) ? 'Show less' : 'Show more'}
-                                          </button>
-                                        )}
-                                        {/* Desktop show more/less button */}
-                                        {comment.content.length > 150 && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.preventDefault();
-                                              toggleCommentExpansion(comment.id);
-                                            }}
-                                            className="hidden sm:block text-blue-600 hover:text-blue-800 text-xs font-medium mt-1 outline-none cursor-pointer"
-                                          >
-                                            {expandedComments.has(comment.id) ? 'Show less' : 'Show more'}
-                                          </button>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          {/* Comments Section */}
+                          <div className="ml-4 sm:ml-[52px]">
+                            <CommentsView
+                              reviewId={review.id}
+                              initialComments={review.comments || []}
+                            />
+                          </div>
                           
-                          {replyToReviewId === review.id && (
-                            <div className="ml-4 sm:ml-[52px]">
-                              <CommentForm
-                                reviewId={review.id}
-                                onSubmit={(data) => handleCommentSubmit(review.id, data)}
-                                onCancel={() => setReplyToReviewId(null)}
-                              />
-                            </div>
-                          )}
                         </div>
                       ));
                       })()}

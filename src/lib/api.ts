@@ -215,6 +215,33 @@ class ApiClient {
     });
   }
 
+  async getComments(reviewId: string) {
+    return this.request<{ comments: ReviewComment[] }>(`/reviews/${reviewId}/comments`);
+  }
+
+  async updateComment(commentId: string, commentData: {
+    reaction?: '❤️' | '😢' | '😡';
+    content?: string;
+  }) {
+    return this.request<{ comment: ReviewComment; message: string }>(`/comments/${commentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(commentData),
+    });
+  }
+
+  async deleteComment(commentId: string) {
+    return this.request<{ message: string }>(`/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async reportComment(commentId: string, reason?: string) {
+    return this.request<{ message: string }>(`/comments/${commentId}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ reason: reason || 'Comment reported by user for review' }),
+    });
+  }
+
   // Posts endpoints
   async getPosts(params?: {
     page?: number;
