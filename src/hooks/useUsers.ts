@@ -18,7 +18,7 @@ export function useUsers(params?: {
   sort?: 'newest' | 'oldest' | 'name';
 }) {
   return useQuery({
-    queryKey: userKeys.list(params),
+    queryKey: userKeys.list(params || {}),
     queryFn: async () => {
       const response = await api.getUsers(params);
       if (response.error) throw new Error(response.error);

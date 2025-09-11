@@ -5,11 +5,11 @@ import { useMerchants, useReviews } from '@/hooks/useMerchants';
 import { Review } from '@/types/api';
 import Link from 'next/link';
 
-type ReviewStatus = 'all' | 'approved' | 'pending' | 'rejected';
+type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
 type SortOption = 'newest' | 'oldest' | 'rating-high' | 'rating-low';
 
 export default function ReviewsManagement() {
-  const [statusFilter, setStatusFilter] = useState<ReviewStatus>('all');
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,15 +27,7 @@ export default function ReviewsManagement() {
   const reviews = reviewsData?.reviews || [];
   const totalPages = Math.ceil((reviewsData?.pagination?.total || 0) / 20);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
+  // Helper function to format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -46,10 +38,7 @@ export default function ReviewsManagement() {
     });
   };
 
-  const handleStatusChange = (reviewId: string, newStatus: string) => {
-    // TODO: Implement status change API call
-    console.log('Changing status for review', reviewId, 'to', newStatus);
-  };
+  // Removed handleStatusChange as reviews don't have status
 
   const handleDeleteReview = (reviewId: string) => {
     if (window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
@@ -61,12 +50,12 @@ export default function ReviewsManagement() {
   const filteredReviews = reviews.filter(review => {
     const matchesSearch = searchTerm === '' || 
       review.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      review.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       review.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || review.status === statusFilter;
+    const matchesRating = ratingFilter === 'all' || review.rating === parseInt(ratingFilter);
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesRating;
   });
 
   if (isLoading) {
@@ -111,21 +100,23 @@ export default function ReviewsManagement() {
             />
           </div>
 
-          {/* Status Filter */}
+          {/* Rating Filter */}
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+            <label htmlFor="rating" className="block text-sm font-medium text-gray-700 mb-1">
+              Rating
             </label>
             <select
-              id="status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as ReviewStatus)}
+              id="rating"
+              value={ratingFilter}
+              onChange={(e) => setRatingFilter(e.target.value as RatingFilter)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
             >
-              <option value="all">All Reviews</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
+              <option value="all">All Ratings</option>
+              <option value="5">5 Stars</option>
+              <option value="4">4 Stars</option>
+              <option value="3">3 Stars</option>
+              <option value="2">2 Stars</option>
+              <option value="1">1 Star</option>
             </select>
           </div>
 
@@ -157,21 +148,21 @@ export default function ReviewsManagement() {
             </div>
             <div className="text-center">
               <div className="text-2xl font-semibold text-green-600">
-                {reviews.filter(r => r.status === 'approved').length}
+                {reviews.filter(r => r.rating >= 4).length}
               </div>
-              <div className="text-sm text-gray-600">Approved</div>
+              <div className="text-sm text-gray-600">High Rated (4-5⭐)</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-semibold text-yellow-600">
-                {reviews.filter(r => r.status === 'pending').length}
+                {reviews.filter(r => r.rating === 3).length}
               </div>
-              <div className="text-sm text-gray-600">Pending</div>
+              <div className="text-sm text-gray-600">Average (3⭐)</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-semibold text-red-600">
-                {reviews.filter(r => r.status === 'rejected').length}
+                {reviews.filter(r => r.rating <= 2).length}
               </div>
-              <div className="text-sm text-gray-600">Rejected</div>
+              <div className="text-sm text-gray-600">Low Rated (1-2⭐)</div>
             </div>
           </div>
         </div>
@@ -193,7 +184,7 @@ export default function ReviewsManagement() {
                   Rating
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
+                  Rating
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -217,7 +208,7 @@ export default function ReviewsManagement() {
                       <div>
                         <div className="text-sm font-medium text-gray-900">{review.title}</div>
                         <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                          {review.description}
+                          {review.content}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
                           by {review.displayName || 'Anonymous'}
@@ -247,41 +238,39 @@ export default function ReviewsManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(review.status || 'pending')}`}>
-                        {review.status || 'pending'}
-                      </span>
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <svg
+                            key={i}
+                            className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                          </svg>
+                        ))}
+                        <span className="ml-1 text-sm text-gray-600">{review.rating}/5</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {formatDate(review.createdAt)}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
-                        {/* Status Change Buttons */}
-                        {review.status !== 'approved' && (
-                          <button
-                            onClick={() => handleStatusChange(review.id, 'approved')}
-                            className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
-                            title="Approve"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {review.status !== 'rejected' && (
-                          <button
-                            onClick={() => handleStatusChange(review.id, 'rejected')}
-                            className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                            title="Reject"
-                          >
-                            Reject
-                          </button>
-                        )}
-                        
                         {/* View Details */}
                         <Link
                           href={`/admin/reviews/${review.id}`}
                           className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                         >
                           View
+                        </Link>
+                        
+                        {/* Edit Review */}
+                        <Link
+                          href={`/admin/reviews/${review.id}/edit`}
+                          className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
+                        >
+                          Edit
                         </Link>
                         
                         {/* Delete */}
