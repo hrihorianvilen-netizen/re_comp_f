@@ -11,11 +11,6 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-interface NavChildItem {
-  name: string;
-  href: string;
-}
-
 const adminNavItems = [
   {
     name: 'Dashboard',
