@@ -34,7 +34,7 @@ export default function SimpleCaptcha({ onVerify, reset }: SimpleCaptchaProps) {
       setError('');
       onVerify(false);
     }
-  }, [reset]);
+  }, [reset, onVerify]);
 
   const handleInputChange = (value: string) => {
     setUserInput(value);

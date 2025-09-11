@@ -168,13 +168,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     );
   };
 
-  const isItemActive = (item: NavItem) => {
-    if (pathname === item.href) return true;
-    if (item.children) {
-      return item.children.some((child: NavChildItem) => pathname === child.href);
-    }
-    return item.href !== '/admin' && item.href && pathname.startsWith(item.href);
-  };
 
   const isChildActive = (childHref: string) => {
     return pathname === childHref;
