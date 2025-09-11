@@ -16,13 +16,6 @@ interface NavChildItem {
   href: string;
 }
 
-interface NavItem {
-  name: string;
-  href?: string;
-  icon: React.ReactNode;
-  children?: NavChildItem[];
-}
-
 const adminNavItems = [
   {
     name: 'Dashboard',
