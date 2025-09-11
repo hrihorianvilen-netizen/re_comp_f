@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { RecentlyViewedSwiper, MerchantTabs } from '@/components/merchants';
 import { NewsSection } from '@/components/news';
@@ -254,14 +253,6 @@ const mockReviews = [
 export default function TinTucPage() {
   const [activeTab, setActiveTab] = useState<'brands' | 'reviews' | 'news'>('news');
   
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">

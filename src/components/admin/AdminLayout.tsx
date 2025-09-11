@@ -222,7 +222,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex-1 overflow-y-auto">
           <nav className="mt-5 px-2 pb-6">
           {adminNavItems.map((item) => {
-            const isActive = isItemActive(item);
             const isExpanded = expandedItems.includes(item.name);
             const hasChildren = item.children && item.children.length > 0;
             

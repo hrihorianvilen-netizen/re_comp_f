@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -9,8 +9,6 @@ import { useInView } from 'react-intersection-observer';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { RatingStars } from '@/components/ui';
-import { merchantKeys } from '@/hooks/useMerchants';
-import { Merchant } from '@/types/api';
 
 export default function MerchantsContentWithQuery() {
   const searchParams = useSearchParams();

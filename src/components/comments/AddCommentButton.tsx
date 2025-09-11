@@ -86,7 +86,7 @@ export default function AddCommentButton({ reviewId, merchantSlug }: AddCommentB
                     Your reaction *
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {Object.entries(reactionEmojis).map(([key, { emoji, label }]) => (
+                    {Object.entries(reactionEmojis).map(([key, { emoji }]) => (
                       <button
                         key={key}
                         type="button"

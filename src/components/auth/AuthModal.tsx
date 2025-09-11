@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { ForgotPasswordModal } from '@/components/auth';
 import { CongratulationsModal } from '@/components/modals';
 import { useLogin, useRegister } from '@/hooks/useAuth';

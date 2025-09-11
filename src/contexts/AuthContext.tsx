@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         return { success: false, error: result.error || 'Login failed' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Network error' };
     }
   };
@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         return { success: false, error: result.error || 'Registration failed' };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Network error' };
     }
   };

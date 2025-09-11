@@ -130,14 +130,6 @@ export default function NewsSection({
   const endIndex = startIndex + itemsPerPage;
   const currentNews = filteredNews.slice(startIndex, endIndex);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  };
 
   // Reset page when category changes
   const handleCategoryChange = (category: string) => {

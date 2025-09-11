@@ -98,8 +98,7 @@ export default function ReviewDetailPage() {
   const [showFullContent, setShowFullContent] = useState(false);
   const [reportReason, setReportReason] = useState<string>('');
   const [showReportModal, setShowReportModal] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [shareUrl, setShareUrl] = useState('');
+  const [shareUrl] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
 
   const formatDate = (date: string | Date) => {
@@ -182,16 +181,6 @@ export default function ReviewDetailPage() {
     }
   };
 
-  const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked);
-    // In a real app, this would save to user's bookmarks
-  };
-
-  const handleShare = () => {
-    const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
-    setShareUrl(currentUrl);
-    setShowShareModal(true);
-  };
 
   const copyToClipboard = async () => {
     try {

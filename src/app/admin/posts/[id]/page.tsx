@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import AdminHeader from '@/components/admin/shared/AdminHeader';

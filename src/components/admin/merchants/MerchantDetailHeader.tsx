@@ -17,7 +17,6 @@ interface MerchantDetailHeaderProps {
 
 export default function MerchantDetailHeader({ 
   isEditMode, 
-  isDraft,
   merchantName,
   merchantStatus,
   onEditClick,

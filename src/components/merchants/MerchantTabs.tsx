@@ -58,18 +58,6 @@ export default function MerchantTabs({ merchants }: MerchantTabsProps) {
     }
   };
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <span
-        key={i}
-        className={`text-lg ${
-          i < Math.floor(rating) ? 'text-yellow-400' : 'text-gray-300'
-        }`}
-      >
-        ★
-      </span>
-    ));
-  };
 
   return (
     <section className="py-4 w-full bg-white">

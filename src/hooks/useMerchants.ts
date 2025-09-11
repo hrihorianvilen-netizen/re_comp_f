@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
-import { Merchant, Review, ReviewComment } from '@/types/api';
+import { Merchant } from '@/types/api';
 
 // Query Keys
 interface MerchantFilters {

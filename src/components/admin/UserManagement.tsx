@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useUsers, useUpdateUserStatus, useDeleteUser, useBulkActionUsers } from '@/hooks/useUsers';
-import { User } from '@/types/api';
 import Image from 'next/image';
 import { getImageUrl } from '@/lib/utils';
 

@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useMerchants, useReviews } from '@/hooks/useMerchants';
-import { Review } from '@/types/api';
+import { useReviews } from '@/hooks/useMerchants';
 import Link from 'next/link';
 
 type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';

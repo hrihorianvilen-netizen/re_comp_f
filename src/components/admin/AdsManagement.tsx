@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface Ad {
   id: string;
@@ -205,9 +206,11 @@ export default function AdsManagement() {
 
               {ad.imageUrl && (
                 <div className="mb-4">
-                  <img 
+                  <Image 
                     src={ad.imageUrl} 
                     alt={ad.title}
+                    width={384}
+                    height={128}
                     className="w-full h-32 object-cover rounded-md border"
                   />
                 </div>

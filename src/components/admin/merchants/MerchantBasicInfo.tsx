@@ -31,7 +31,6 @@ export default function MerchantBasicInfo({
   setLogoPreview,
   onInputChange,
   onLogoChange,
-  disabled = false
 }: MerchantBasicInfoProps) {
   return (
     <div className="bg-white shadow rounded-lg">

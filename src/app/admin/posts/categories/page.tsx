@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import moment from 'moment';
 
 // Mock data for categories
 const mockCategories = [
@@ -129,16 +128,6 @@ export default function CategoriesPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published':
-        return 'bg-green-100 text-green-800';
-      case 'trash':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   // Get parent categories for dropdown (categories without parent)
   const parentCategories = mockCategories.filter(cat => cat.parent === null && cat.status === 'published');

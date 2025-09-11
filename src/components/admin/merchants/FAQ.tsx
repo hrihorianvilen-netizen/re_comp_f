@@ -79,7 +79,7 @@ export default function FAQ({ onFAQChange }: FAQProps = {}) {
       </div>
       
       <div className="px-6 py-4 space-y-6">
-        {faqs.map((faq, index) => (
+        {faqs.map((faq) => (
           <div key={faq.id} className="border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-medium text-gray-900">

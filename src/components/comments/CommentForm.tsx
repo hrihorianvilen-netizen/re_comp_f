@@ -18,7 +18,7 @@ export interface CommentFormData {
 }
 
 
-export default function CommentForm({ reviewId, onSubmit, onCancel }: CommentFormProps) {
+export default function CommentForm({ reviewId, onSubmit }: CommentFormProps) {
   const { user, isAuthenticated } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');

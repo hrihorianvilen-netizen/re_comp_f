@@ -47,7 +47,7 @@ export default function UtmTracking({ onUtmChange }: UtmTrackingProps = {}) {
         if (utmData.term) url.searchParams.set('utm_term', utmData.term);
         
         setPreviewUrl(url.toString());
-      } catch (e) {
+      } catch {
         // Invalid URL, just show the base URL
         setPreviewUrl(utmData.targetUrl);
       }
