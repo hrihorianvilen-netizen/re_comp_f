@@ -397,6 +397,33 @@ export function useBulkActionReviews() {
   });
 }
 
+// Hook to update admin review content
+export function useUpdateAdminReview() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { title: string; content: string } }) => {
+      const response = await api.updateAdminReview(id, data);
+      if (!response) {
+        throw new Error('No response received from server');
+      }
+      if (response.error) {
+        const errorMessage = typeof response.error === 'string' 
+          ? response.error 
+          : (response.error as { message?: string })?.message || 'Failed to update review';
+        throw new Error(errorMessage);
+      }
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      // Invalidate admin reviews list
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.lists() });
+      // Invalidate specific review detail
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.detail(id) });
+    },
+  });
+}
+
 // Hook to delete admin review
 export function useDeleteAdminReview() {
   const queryClient = useQueryClient();

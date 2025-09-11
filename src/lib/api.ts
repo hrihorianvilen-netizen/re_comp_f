@@ -61,19 +61,37 @@ class ApiClient {
         headers,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses (like 404 HTML pages)
+      const contentType = response.headers.get('content-type');
+      let data: Record<string, unknown> = {};
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        // If not JSON, try to read as text
+        const text = await response.text();
+        console.error('Non-JSON response from API:', { url, status: response.status, text });
+        data = { message: `Server returned non-JSON response (status: ${response.status})` };
+      }
 
       if (!response.ok) {
+        // console.error('API request failed:', { url, status: response.status, data });
+        const errorMessage = typeof data === 'object' && data !== null && 
+                            ('error' in data || 'message' in data) 
+          ? String((data as { error?: unknown; message?: unknown }).error || (data as { error?: unknown; message?: unknown }).message)
+          : `Request failed with status ${response.status}: ${response.statusText}`;
+        
         return {
-          error: data.error || data.message || 'An error occurred',
+          error: errorMessage,
           data: undefined
         };
       }
 
-      return { data };
-    } catch {
+      return { data: data as T };
+    } catch (error) {
+      console.error('API request error:', { url, error });
       return {
-        error: 'Network error. Please check your connection.',
+        error: error instanceof Error ? error.message : 'Network error. Please check your connection.',
         data: undefined
       };
     }
@@ -516,7 +534,13 @@ class ApiClient {
     }
 
     const query = searchParams.toString();
-    return this.request<{
+    const endpoint = `/admin/reviews${query ? `?${query}` : ''}`;
+    
+    console.log('getAdminReviews - calling endpoint:', endpoint);
+    console.log('getAdminReviews - params:', params);
+    console.log('getAdminReviews - token present:', !!this.token);
+    
+    const result = await this.request<{
       reviews: Review[];
       pagination: {
         page: number;
@@ -524,7 +548,10 @@ class ApiClient {
         total: number;
         pages: number;
       };
-    }>(`/admin/reviews${query ? `?${query}` : ''}`);
+    }>(endpoint);
+    
+    console.log('getAdminReviews - result:', result);
+    return result;
   }
 
   async getAdminReview(id: string) {
@@ -558,6 +585,47 @@ class ApiClient {
     });
   }
 
+  async updateAdminReview(id: string, reviewData: { title: string; content: string }) {
+    console.log('updateAdminReview called with:', { id, reviewData });
+    
+    // Try both PATCH and PUT methods
+    const methods = ['PATCH', 'PUT'];
+    let result: { error?: string; data?: unknown } | null = null;
+    
+    for (const method of methods) {
+      console.log(`Trying ${method} method...`);
+      result = await this.request<{ message: string; review: Review }>(`/admin/reviews/${id}`, {
+        method,
+        body: JSON.stringify(reviewData),
+      });
+      
+      // If successful, return the result
+      if (!result.error) {
+        console.log(`${method} method successful!`);
+        return result;
+      }
+      
+      // Log the error for debugging
+      console.log(`${method} method failed:`, result.error);
+      
+      // If it's not a method not allowed error, break (probably endpoint doesn't exist)
+      if (!result.error.includes('405') && !result.error.includes('Method Not Allowed')) {
+        break;
+      }
+    }
+    
+    // If we get here, the endpoint probably doesn't exist
+    // Provide a more helpful error message
+    if (result?.error?.includes('404') || result?.error?.includes('Not Found')) {
+      return {
+        error: 'Backend API endpoint for updating review content is not implemented yet. Please contact the backend developer to add PUT or PATCH /admin/reviews/{id} endpoint.',
+        data: undefined
+      };
+    }
+    
+    console.log('updateAdminReview final response:', result);
+    return result;
+  }
   async deleteAdminReview(id: string) {
     return this.request<{ message: string }>(`/admin/reviews/${id}`, {
       method: 'DELETE',

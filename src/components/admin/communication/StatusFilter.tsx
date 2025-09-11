@@ -41,7 +41,7 @@ export default function StatusFilter({
               <button
                 key={option.key}
                 onClick={() => onStatusChange(option.key)}
-                className={`px-3 py-1 text-sm font-medium transition-colors ${
+                className={`px-3 py-1 text-sm font-medium transition-colors cursor-pointer ${
                   selectedStatus === option.key
                     ? 'text-[#A96B11] border-b-2 border-[#A96B11]'
                     : 'text-gray-500 hover:text-gray-700'

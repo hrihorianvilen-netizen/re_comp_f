@@ -3,6 +3,7 @@
 interface ActionFilterProps {
   actionFilter: string;
   onActionChange: (action: string) => void;
+  onApply?: () => void;
   
   // Additional filter props - these are optional and depend on the page
   merchantSearch?: string;
@@ -32,6 +33,7 @@ interface ActionFilterProps {
 export default function ActionFilter({
   actionFilter,
   onActionChange,
+  onApply,
   merchantSearch,
   onMerchantSearchChange,
   typeFilter,
@@ -83,7 +85,9 @@ export default function ActionFilter({
               </select>
               <button
                 type="button"
-                className="inline-flex items-center px-4 py-2 border border-[#A96B11] rounded-md shadow-sm text-sm font-medium text-[#A96B11] bg-white hover:bg-[#A96B11] hover:text-white focus:outline-none transition-colors"
+                onClick={onApply}
+                disabled={!actionFilter}
+                className="inline-flex items-center px-4 py-2 border border-[#A96B11] rounded-md shadow-sm text-sm font-medium text-[#A96B11] bg-white hover:bg-[#A96B11] hover:text-white focus:outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Apply
               </button>
