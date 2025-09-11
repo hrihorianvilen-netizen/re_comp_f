@@ -92,9 +92,27 @@ export function useUpdateProfile() {
       name?: string;
       displayName?: string;
       phone?: string;
-      avatar?: File;
+      email?: string;
     }) => {
       const response = await api.updateProfile(userData);
+      if (response.error) throw new Error(response.error);
+      return response.data?.user;
+    },
+    onSuccess: (updatedUser) => {
+      if (updatedUser) {
+        queryClient.setQueryData(authKeys.user(), updatedUser);
+      }
+      queryClient.invalidateQueries({ queryKey: authKeys.user() });
+    },
+  });
+}
+
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (avatar: File) => {
+      const response = await api.uploadAvatar(avatar);
       if (response.error) throw new Error(response.error);
       return response.data?.user;
     },
@@ -112,6 +130,7 @@ export function useChangePassword() {
     mutationFn: async (data: {
       currentPassword: string;
       newPassword: string;
+      confirmPassword: string;
     }) => {
       const response = await api.changePassword(data);
       if (response.error) throw new Error(response.error);

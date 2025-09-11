@@ -4,11 +4,25 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/hooks/useAuth';
 
 export default function Navigation() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, loading, logout } = useAuth();
+  const { data: reactQueryUser } = useUser();
+  
+  // Use React Query user data if available, fallback to Auth context
+  const currentUser = reactQueryUser || user;
+
+  // Helper function to get full avatar URL
+  const getAvatarUrl = (avatar: string | null | undefined) => {
+    if (!avatar) return null;
+    if (avatar.startsWith('http')) return avatar;
+    // If it's a relative URL, prepend the API base URL
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-backend-2zkw.onrender.com';
+    return `${baseUrl.replace('/api', '')}${avatar}`;
+  };
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
@@ -60,17 +74,6 @@ export default function Navigation() {
                   <Link href="/tin-tuc" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                     News
                   </Link>
-                  {!user && (
-                    <>
-                      <div className="border-t border-gray-100"></div>
-                      <Link href="/auth/login" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Login
-                      </Link>
-                      <Link href="/auth/signup" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Sign Up
-                      </Link>
-                    </>
-                  )}
                 </div>
               )}
             </div>
@@ -91,29 +94,31 @@ export default function Navigation() {
             <div className="flex items-center">
               {!loading && (
                 <>
-                  {user ? (
+                  {currentUser ? (
                     <div className="relative">
                       <button
                         onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                         className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 p-2 rounded-full hover:bg-gray-100 transition-colors"
                       >
-                        {user.avatar ? (
-                          <Image
-                            src={user.avatar}
-                            alt={user.displayName || user.name || 'User'}
-                            width={32}
-                            height={32}
-                            className="rounded-full border border-gray-200"
-                          />
+                        {getAvatarUrl(currentUser.avatar) ? (
+                          <div className="w-8 h-8 relative">
+                            <Image
+                              src={getAvatarUrl(currentUser.avatar) || ''}
+                              alt={currentUser.displayName || currentUser.name || 'User'}
+                              width={32}
+                              height={32}
+                              className="rounded-full border border-gray-200 object-cover w-full h-full"
+                            />
+                          </div>
                         ) : (
                           <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                             <span className="text-gray-600 text-sm font-medium">
-                              {(user.displayName || user.name || user.email)?.[0]?.toUpperCase()}
+                              {(currentUser.displayName || currentUser.name || currentUser.email)?.[0]?.toUpperCase()}
                             </span>
                           </div>
                         )}
                         <span className="hidden sm:block text-sm font-medium">
-                          {user.displayName || user.name || 'User'}
+                          {currentUser.displayName || currentUser.name || 'User'}
                         </span>
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -124,9 +129,9 @@ export default function Navigation() {
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                           <div className="px-4 py-2 border-b border-gray-100">
                             <p className="text-sm font-medium text-gray-900">
-                              {user.displayName || user.name}
+                              {currentUser.displayName || currentUser.name}
                             </p>
-                            <p className="text-xs text-gray-500">{user.email}</p>
+                            <p className="text-xs text-gray-500">{currentUser.email}</p>
                           </div>
                           <Link 
                             href="/account" 

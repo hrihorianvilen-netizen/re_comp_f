@@ -1,11 +1,7 @@
-import { AdminLayout, UserManagement } from "@/components/admin";
+import { UserManagement } from "@/components/admin";
 
 export default function AdminUsersPage() {
-  return (
-    <AdminLayout>
-      <UserManagement />
-    </AdminLayout>
-  );
+  return <UserManagement />;
 }
 
 export const metadata = {

@@ -13,6 +13,7 @@ export interface User {
   commentCount?: number;
   createdAt: string;
   updatedAt: string;
+  role?: 'user' | 'merchant_admin' | 'moderator' | 'admin';
 }
 
 export interface Merchant {

@@ -1,11 +1,7 @@
-import { AdminLayout, CommentsManagement } from "@/components/admin";
+import { CommentsManagement } from "@/components/admin";
 
 export default function AdminCommentsPage() {
-  return (
-    <AdminLayout>
-      <CommentsManagement />
-    </AdminLayout>
-  );
+  return <CommentsManagement />;
 }
 
 export const metadata = {

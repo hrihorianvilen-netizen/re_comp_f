@@ -92,6 +92,19 @@ class ApiClient {
     });
   }
 
+  async registerAdmin(userData: {
+    email: string;
+    password: string;
+    name?: string;
+    displayName?: string;
+    adminSecret: string;
+  }) {
+    return this.request<AuthResponse>('/auth/register-admin', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
   async login(credentials: { email: string; password: string }) {
     return this.request<AuthResponse>('/auth/login', {
       method: 'POST',
@@ -113,26 +126,38 @@ class ApiClient {
     name?: string;
     displayName?: string;
     phone?: string;
-    avatar?: File;
+    email?: string;
   }) {
-    const formData = new FormData();
-    if (userData.name) formData.append('name', userData.name);
-    if (userData.displayName) formData.append('displayName', userData.displayName);
-    if (userData.phone) formData.append('phone', userData.phone);
-    if (userData.avatar) formData.append('avatar', userData.avatar);
-
-    return this.request<{ user: User }>('/auth/profile', {
+    return this.request<{ user: User; message: string }>('/user/profile', {
       method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async uploadAvatar(avatar: File) {
+    const formData = new FormData();
+    formData.append('avatar', avatar);
+
+    return this.request<{ user: User; message: string }>('/user/avatar/upload', {
+      method: 'POST',
       body: formData,
+    });
+  }
+
+  async updateAvatarUrl(avatarUrl: string) {
+    return this.request<{ user: User; message: string }>('/user/avatar', {
+      method: 'PUT',
+      body: JSON.stringify({ avatar: avatarUrl }),
     });
   }
 
   async changePassword(data: {
     currentPassword: string;
     newPassword: string;
+    confirmPassword: string;
   }) {
-    return this.request('/auth/change-password', {
-      method: 'POST',
+    return this.request('/user/change-password', {
+      method: 'PUT',
       body: JSON.stringify(data),
     });
   }

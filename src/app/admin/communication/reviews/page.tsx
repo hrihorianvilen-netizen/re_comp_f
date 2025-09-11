@@ -1,11 +1,7 @@
-import { AdminLayout, ReviewsManagement } from "@/components/admin";
+import { ReviewsManagement } from "@/components/admin";
 
 export default function AdminReviewsPage() {
-  return (
-    <AdminLayout>
-      <ReviewsManagement />
-    </AdminLayout>
-  );
+  return <ReviewsManagement />;
 }
 
 export const metadata = {

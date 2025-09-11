@@ -110,8 +110,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const { data: user, isLoading } = useUser();
 
-  // Check if user is admin (you'll need to add role field to User type)
-  const isAdmin = user && 'role' in user && (user as User & { role: string }).role === 'admin';
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin';
+
+  // Helper function to get full avatar URL
+  const getAvatarUrl = (avatar: string | null | undefined) => {
+    if (!avatar) return null;
+    if (avatar.startsWith('http')) return avatar;
+    // If it's a relative URL, prepend the API base URL
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-backend-2zkw.onrender.com';
+    return `${baseUrl.replace('/api', '')}${avatar}`;
+  };
 
   if (isLoading) {
     return (
@@ -347,13 +356,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <div className="ml-3 bg-white">
                 <div className="flex items-center">
                   <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-                    <Image
-                      src="/images/avatar/admin.png"
-                      alt="admin"
-                      width={40}
-                      height={40}
-                      className="rounded-full object-cover"
-                    />
+                    {getAvatarUrl(user?.avatar) ? (
+                      <Image
+                        src={getAvatarUrl(user?.avatar) || ''}
+                        alt={user?.displayName || user?.name || 'Admin'}
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover w-full h-full"
+                      />
+                    ) : (
+                      <span className="text-gray-600 text-sm font-medium">
+                        {(user?.displayName || user?.name || user?.email)?.[0]?.toUpperCase() || 'A'}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

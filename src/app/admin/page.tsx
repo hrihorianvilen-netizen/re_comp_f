@@ -1,11 +1,7 @@
-import { AdminLayout, AdminDashboard } from '@/components/admin';
+import { AdminDashboard } from '@/components/admin';
 
 export default function AdminPage() {
-  return (
-    <AdminLayout>
-      <AdminDashboard />
-    </AdminLayout>
-  );
+  return <AdminDashboard />;
 }
 
 export const metadata = {

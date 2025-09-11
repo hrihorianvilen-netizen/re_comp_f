@@ -1,11 +1,7 @@
-import { AdminLayout, AdsManagement } from "@/components/admin";
+import { AdsManagement } from "@/components/admin";
 
 export default function AdminAdsPage() {
-  return (
-    <AdminLayout>
-      <AdsManagement />
-    </AdminLayout>
-  );
+  return <AdsManagement />;
 }
 
 export const metadata = {
