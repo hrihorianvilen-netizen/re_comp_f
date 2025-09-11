@@ -62,6 +62,7 @@ export default function ChangePasswordForm() {
       await changePasswordMutation.mutateAsync({
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
       });
       
       // Reset form on success

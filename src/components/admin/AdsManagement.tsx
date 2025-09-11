@@ -1,43 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useAds, useCreateAd, useUpdateAd, useDeleteAd } from '@/hooks/useAds';
+import { Advertisement } from '@/types/api';
 import Image from 'next/image';
-
-interface Ad {
-  id: string;
-  title: string;
-  description?: string;
-  imageUrl?: string;
-  link?: string;
-  type: 'banner' | 'sidebar' | 'popup';
-  status: 'active' | 'inactive' | 'pending';
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Mock data - replace with actual API call
-const mockAds: Ad[] = [
-  {
-    id: '1',
-    title: 'Summer Sale Banner',
-    description: 'Promote summer deals',
-    imageUrl: '/images/ads/summer-banner.jpg',
-    link: 'https://example.com/summer-sale',
-    type: 'banner',
-    status: 'active',
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z'
-  },
-  {
-    id: '2',
-    title: 'Newsletter Signup',
-    description: 'Encourage newsletter subscriptions',
-    type: 'sidebar',
-    status: 'active',
-    createdAt: '2024-01-14T15:45:00Z',
-    updatedAt: '2024-01-14T15:45:00Z'
-  }
-];
 
 type AdStatus = 'all' | 'active' | 'inactive' | 'pending';
 type AdType = 'all' | 'banner' | 'sidebar' | 'popup';
@@ -46,9 +12,22 @@ export default function AdsManagement() {
   const [statusFilter, setStatusFilter] = useState<AdStatus>('all');
   const [typeFilter, setTypeFilter] = useState<AdType>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [isLoading] = useState(false);
+  const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
+  
+  const createAdMutation = useCreateAd();
+  const updateAdMutation = useUpdateAd();
+  const deleteAdMutation = useDeleteAd();
+  
+  const { 
+    data: adsData, 
+    isLoading, 
+    error 
+  } = useAds({
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    type: typeFilter === 'all' ? undefined : typeFilter,
+  });
 
-  const ads = mockAds;
+  const ads = (adsData?.ads || []) as Advertisement[];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -76,16 +55,56 @@ export default function AdsManagement() {
     });
   };
 
-  const filteredAds = ads.filter(ad => {
-    const matchesStatus = statusFilter === 'all' || ad.status === statusFilter;
-    const matchesType = typeFilter === 'all' || ad.type === typeFilter;
-    return matchesStatus && matchesType;
-  });
+  const handleCreateAd = async (adData: {
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    link?: string;
+    type: 'banner' | 'sidebar' | 'popup';
+    status: 'active' | 'inactive' | 'pending';
+  }) => {
+    try {
+      await createAdMutation.mutateAsync(adData);
+      setShowCreateForm(false);
+    } catch (error) {
+      console.error('Failed to create ad:', error);
+    }
+  };
+
+  const handleUpdateAd = async (id: string, data: Partial<Advertisement>) => {
+    try {
+      await updateAdMutation.mutateAsync({ id, data });
+      setEditingAd(null);
+    } catch (error) {
+      console.error('Failed to update ad:', error);
+    }
+  };
+
+  const handleDeleteAd = async (adId: string, adTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete "${adTitle}"? This action cannot be undone.`)) {
+      try {
+        await deleteAdMutation.mutateAsync(adId);
+      } catch (error) {
+        console.error('Failed to delete ad:', error);
+      }
+    }
+  };
+
+  // Since we're now fetching filtered data from the server, we don't need client-side filtering
+  const filteredAds = ads;
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#198639]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <p className="text-red-800">Failed to load ads. Please try again.</p>
       </div>
     );
   }
@@ -150,7 +169,7 @@ export default function AdsManagement() {
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-semibold text-[#198639]">{ads.length}</div>
+              <div className="text-2xl font-semibold text-[#198639]">{adsData?.total || 0}</div>
               <div className="text-sm text-gray-600">Total Ads</div>
             </div>
             <div className="text-center">
@@ -238,13 +257,14 @@ export default function AdsManagement() {
                 <div className="flex space-x-2">
                   <button
                     className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                    onClick={() => console.log('Edit ad:', ad.id)}
+                    onClick={() => setEditingAd(ad)}
                   >
                     Edit
                   </button>
                   <button
-                    className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                    onClick={() => console.log('Delete ad:', ad.id)}
+                    className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                    onClick={() => handleDeleteAd(ad.id, ad.title)}
+                    disabled={deleteAdMutation.isPending}
                   >
                     Delete
                   </button>
@@ -255,38 +275,182 @@ export default function AdsManagement() {
         )}
       </div>
 
-      {/* Create Ad Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-lg w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Create New Ad</h2>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className="text-gray-400 hover:text-gray-600"
+      {/* Create/Edit Ad Modal */}
+      {(showCreateForm || editingAd) && (
+        <AdFormModal
+          ad={editingAd}
+          onClose={() => {
+            setShowCreateForm(false);
+            setEditingAd(null);
+          }}
+          onSubmit={editingAd ? 
+            (data) => handleUpdateAd(editingAd.id, data) : 
+            handleCreateAd
+          }
+          isLoading={createAdMutation.isPending || updateAdMutation.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+// AdFormModal component
+function AdFormModal({ 
+  ad, 
+  onClose, 
+  onSubmit, 
+  isLoading 
+}: {
+  ad?: Advertisement | null;
+  onClose: () => void;
+  onSubmit: (data: {
+    title: string;
+    description?: string;
+    imageUrl?: string;
+    link?: string;
+    type: 'banner' | 'sidebar' | 'popup';
+    status: 'active' | 'inactive' | 'pending';
+  }) => Promise<void>;
+  isLoading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    title: ad?.title || '',
+    description: ad?.description || '',
+    imageUrl: ad?.imageUrl || '',
+    link: ad?.link || '',
+    type: ad?.type || 'banner' as const,
+    status: ad?.status || 'pending' as const,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onSubmit(formData);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg max-w-lg w-full p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">
+            {ad ? 'Edit Ad' : 'Create New Ad'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+              Title
+            </label>
+            <input
+              type="text"
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              Image URL
+            </label>
+            <input
+              type="url"
+              id="imageUrl"
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="link" className="block text-sm font-medium text-gray-700 mb-1">
+              Link
+            </label>
+            <input
+              type="url"
+              id="link"
+              value={formData.link}
+              onChange={(e) => setFormData({ ...formData, link: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                Type
+              </label>
+              <select
+                id="type"
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value as 'banner' | 'sidebar' | 'popup' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <option value="banner">Banner</option>
+                <option value="sidebar">Sidebar</option>
+                <option value="popup">Popup</option>
+              </select>
             </div>
 
-            <div className="text-center py-12">
-              <div className="text-gray-500 mb-4">🚧</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Coming Soon</h3>
-              <p className="text-gray-600">
-                The ad creation form is under development. You can currently view and manage existing ads.
-              </p>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className="mt-4 px-4 py-2 bg-[#198639] text-white rounded-md hover:bg-[#15732f]"
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                id="status"
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'pending' })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
               >
-                Close
-              </button>
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
             </div>
           </div>
-        </div>
-      )}
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#198639] border border-transparent rounded-md hover:bg-[#15732f] disabled:opacity-50"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Saving...' : (ad ? 'Update Ad' : 'Create Ad')}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

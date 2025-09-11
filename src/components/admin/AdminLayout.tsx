@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useUser } from '@/hooks/useAuth';
-import { User } from '@/types/api';
 
 interface AdminLayoutProps {
   children: React.ReactNode;

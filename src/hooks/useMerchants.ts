@@ -297,3 +297,119 @@ export function useReportComment() {
     },
   });
 }
+
+// ==== ADMIN REVIEW HOOKS ====
+
+export const adminReviewKeys = {
+  all: ['admin', 'reviews'] as const,
+  lists: () => [...adminReviewKeys.all, 'list'] as const,
+  list: (filters: Record<string, unknown>) => [...adminReviewKeys.lists(), filters] as const,
+  details: () => [...adminReviewKeys.all, 'detail'] as const,
+  detail: (id: string) => [...adminReviewKeys.details(), id] as const,
+};
+
+// Hook to fetch admin reviews
+export function useAdminReviews(params?: {
+  page?: number;
+  limit?: number;
+  query?: string;
+  merchant?: string;
+  rating?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  status?: 'published' | 'spam' | 'trash' | 'pending';
+}) {
+  return useQuery({
+    queryKey: adminReviewKeys.list(params || {}),
+    queryFn: async () => {
+      const response = await api.getAdminReviews(params);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+  });
+}
+
+// Hook to fetch single admin review
+export function useAdminReview(id: string) {
+  return useQuery({
+    queryKey: adminReviewKeys.detail(id),
+    queryFn: async () => {
+      const response = await api.getAdminReview(id);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+}
+
+// Hook to update review status
+export function useUpdateReviewStatus() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'published' | 'spam' | 'trash' | 'pending' }) => {
+      const response = await api.updateReviewStatus(id, status);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      // Invalidate admin reviews list
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.lists() });
+      // Invalidate specific review detail
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.detail(id) });
+    },
+  });
+}
+
+// Hook to toggle review feature
+export function useToggleReviewFeature() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.toggleReviewFeature(id);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+    onSuccess: (_, id) => {
+      // Invalidate admin reviews list
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.lists() });
+      // Invalidate specific review detail
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.detail(id) });
+    },
+  });
+}
+
+// Hook for bulk actions on reviews
+export function useBulkActionReviews() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ action, ids }: { action: 'publish' | 'spam' | 'trash'; ids: string[] }) => {
+      const response = await api.bulkActionReviews(action, ids);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate admin reviews list
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.lists() });
+    },
+  });
+}
+
+// Hook to delete admin review
+export function useDeleteAdminReview() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.deleteAdminReview(id);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+    onSuccess: () => {
+      // Invalidate admin reviews list
+      queryClient.invalidateQueries({ queryKey: adminReviewKeys.lists() });
+    },
+  });
+}

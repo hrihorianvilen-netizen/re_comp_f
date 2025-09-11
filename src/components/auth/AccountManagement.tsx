@@ -69,6 +69,7 @@ export default function AccountManagement() {
       }
 
       // Update profile data (exclude status as it's disabled)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { status, ...profileData } = formData;
       const result = await updateProfileMutation.mutateAsync(profileData);
       console.log('Profile update result:', result);

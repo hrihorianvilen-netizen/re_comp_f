@@ -25,24 +25,28 @@ export default function Advertisement({ advertisement, className = '' }: Adverti
               {advertisement.description}
             </p>
           )}
-          <Link
-            href={advertisement.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors font-medium"
-          >
-            Learn More
-          </Link>
+          {advertisement.link && (
+            <Link
+              href={advertisement.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 transition-colors font-medium"
+            >
+              Learn More
+            </Link>
+          )}
         </div>
-        <div className="ml-6">
-          <Image
-            src={advertisement.imageUrl}
-            alt={advertisement.title}
-            width={120}
-            height={80}
-            className="rounded-lg object-cover"
-          />
-        </div>
+        {advertisement.imageUrl && (
+          <div className="ml-6">
+            <Image
+              src={advertisement.imageUrl}
+              alt={advertisement.title}
+              width={120}
+              height={80}
+              className="rounded-lg object-cover"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

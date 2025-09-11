@@ -1,30 +1,49 @@
 'use client';
 
 import { useState } from 'react';
-import { useReviews } from '@/hooks/useMerchants';
+import { 
+  useAdminReviews, 
+  useUpdateReviewStatus, 
+  useBulkActionReviews, 
+  useDeleteAdminReview 
+} from '@/hooks/useMerchants';
+import { Review } from '@/types/api';
 import Link from 'next/link';
 
+interface ReviewWithStatus extends Review {
+  status?: 'published' | 'spam' | 'trash' | 'pending';
+}
+
 type RatingFilter = 'all' | '5' | '4' | '3' | '2' | '1';
+type StatusFilter = 'all' | 'published' | 'spam' | 'trash' | 'pending';
 type SortOption = 'newest' | 'oldest' | 'rating-high' | 'rating-low';
 
 export default function ReviewsManagement() {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedReviews, setSelectedReviews] = useState<string[]>([]);
+  
+  const updateReviewStatusMutation = useUpdateReviewStatus();
+  const bulkActionMutation = useBulkActionReviews();
+  const deleteReviewMutation = useDeleteAdminReview();
   
   const { 
     data: reviewsData, 
     isLoading,
     error 
-  } = useReviews({
+  } = useAdminReviews({
     page: currentPage,
     limit: 20,
-    sort: sortBy,
+    query: searchTerm || undefined,
+    rating: ratingFilter === 'all' ? undefined : parseInt(ratingFilter),
+    status: statusFilter === 'all' ? undefined : statusFilter,
   });
 
-  const reviews = reviewsData?.reviews || [];
-  const totalPages = Math.ceil((reviewsData?.pagination?.total || 0) / 20);
+  const reviews = (reviewsData?.reviews || []) as ReviewWithStatus[];
+  const totalPages = reviewsData?.pagination?.pages || 1;
 
   // Helper function to format date
   const formatDate = (dateString: string) => {
@@ -37,25 +56,67 @@ export default function ReviewsManagement() {
     });
   };
 
-  // Removed handleStatusChange as reviews don't have status
-
-  const handleDeleteReview = (reviewId: string) => {
-    if (window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
-      // TODO: Implement delete API call
-      console.log('Deleting review', reviewId);
+  // Helper function to get status color
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'published': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'spam': return 'bg-red-100 text-red-800';
+      case 'trash': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-blue-100 text-blue-800';
     }
   };
 
-  const filteredReviews = reviews.filter(review => {
-    const matchesSearch = searchTerm === '' || 
-      review.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      review.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      review.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleStatusChange = async (reviewId: string, newStatus: 'published' | 'spam' | 'trash' | 'pending') => {
+    try {
+      await updateReviewStatusMutation.mutateAsync({ id: reviewId, status: newStatus });
+    } catch (error) {
+      console.error('Failed to update review status:', error);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string, reviewTitle: string) => {
+    if (window.confirm(`Are you sure you want to delete review "${reviewTitle}"? This action cannot be undone.`)) {
+      try {
+        await deleteReviewMutation.mutateAsync(reviewId);
+      } catch (error) {
+        console.error('Failed to delete review:', error);
+      }
+    }
+  };
+
+  const handleSelectReview = (reviewId: string) => {
+    setSelectedReviews(prev => 
+      prev.includes(reviewId) 
+        ? prev.filter(id => id !== reviewId)
+        : [...prev, reviewId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectedReviews.length === reviews.length) {
+      setSelectedReviews([]);
+    } else {
+      setSelectedReviews(reviews.map(review => review.id));
+    }
+  };
+
+  const handleBulkAction = async (action: 'publish' | 'spam' | 'trash') => {
+    if (selectedReviews.length === 0) return;
     
-    const matchesRating = ratingFilter === 'all' || review.rating === parseInt(ratingFilter);
-    
-    return matchesSearch && matchesRating;
-  });
+    const actionText = action === 'publish' ? 'publish' : action === 'spam' ? 'mark as spam' : 'move to trash';
+    if (window.confirm(`Are you sure you want to ${actionText} ${selectedReviews.length} review(s)?`)) {
+      try {
+        await bulkActionMutation.mutateAsync({ action, ids: selectedReviews });
+        setSelectedReviews([]);
+      } catch (error) {
+        console.error('Failed to perform bulk action:', error);
+      }
+    }
+  };
+
+  // Since we're now fetching admin reviews, we don't need client-side filtering
+  const filteredReviews = reviews;
 
   if (isLoading) {
     return (
@@ -85,7 +146,7 @@ export default function ReviewsManagement() {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {/* Search */}
-          <div className="md:col-span-2">
+          <div>
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
               Search Reviews
             </label>
@@ -95,8 +156,27 @@ export default function ReviewsManagement() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-              placeholder="Search by title, description, or reviewer..."
+              placeholder="Search reviews..."
             />
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              id="status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
+            >
+              <option value="all">All Statuses</option>
+              <option value="published">Published</option>
+              <option value="pending">Pending</option>
+              <option value="spam">Spam</option>
+              <option value="trash">Trash</option>
+            </select>
           </div>
 
           {/* Rating Filter */}
@@ -138,6 +218,37 @@ export default function ReviewsManagement() {
           </div>
         </div>
 
+        {/* Bulk Actions */}
+        {selectedReviews.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">
+                {selectedReviews.length} review(s) selected
+              </span>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleBulkAction('publish')}
+                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200"
+                >
+                  Publish
+                </button>
+                <button
+                  onClick={() => handleBulkAction('spam')}
+                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+                >
+                  Mark as Spam
+                </button>
+                <button
+                  onClick={() => handleBulkAction('trash')}
+                  className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+                >
+                  Move to Trash
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Stats */}
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -163,6 +274,12 @@ export default function ReviewsManagement() {
               </div>
               <div className="text-sm text-gray-600">Low Rated (1-2⭐)</div>
             </div>
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-gray-600">
+                {reviews.filter(r => r.status === 'pending').length}
+              </div>
+              <div className="text-sm text-gray-600">Pending Review</div>
+            </div>
           </div>
         </div>
       </div>
@@ -170,25 +287,33 @@ export default function ReviewsManagement() {
       {/* Reviews Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 table-fixed w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-12 px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selectedReviews.length === reviews.length && reviews.length > 0}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-[#198639] focus:ring-[#198639]"
+                  />
+                </th>
+                <th className="w-2/5 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Review
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-32 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Merchant
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-24 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Rating
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Rating
+                <th className="w-24 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-28 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="w-40 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -196,35 +321,43 @@ export default function ReviewsManagement() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredReviews.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="text-gray-500">No reviews found matching your criteria.</div>
                   </td>
                 </tr>
               ) : (
                 filteredReviews.map((review) => (
                   <tr key={review.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedReviews.includes(review.id)}
+                        onChange={() => handleSelectReview(review.id)}
+                        className="rounded border-gray-300 text-[#198639] focus:ring-[#198639]"
+                      />
+                    </td>
+                    <td className="px-6 py-4 max-w-xs">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{review.title}</div>
-                        <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                          {review.content}
+                        <div className="text-sm font-medium text-gray-900 truncate">{review.title}</div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {review.content.length > 100 ? `${review.content.substring(0, 100)}...` : review.content}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
                           by {review.displayName || 'Anonymous'}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{review.merchantId}</div>
+                    <td className="px-6 py-4 max-w-32">
+                      <div className="text-sm text-gray-900 truncate">{review.merchant?.name || review.merchantId}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">{review.rating}</span>
-                        <div className="flex ml-1">
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex items-center justify-center">
+                        <span className="text-sm font-medium text-gray-900 mr-1">{review.rating}</span>
+                        <div className="flex">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <svg
                               key={star}
-                              className={`w-4 h-4 ${
+                              className={`w-3 h-3 ${
                                 star <= review.rating ? 'text-yellow-400' : 'text-gray-300'
                               }`}
                               fill="currentColor"
@@ -236,49 +369,46 @@ export default function ReviewsManagement() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <svg
-                            key={i}
-                            className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                          </svg>
-                        ))}
-                        <span className="ml-1 text-sm text-gray-600">{review.rating}/5</span>
-                      </div>
+                    <td className="px-4 py-4 text-center">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(review.status)}`}>
+                        {review.status || 'published'}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">
                       {formatDate(review.createdAt)}
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center space-x-1">
+                        {/* Status Change */}
+                        <select
+                          value={review.status || 'published'}
+                          onChange={(e) => handleStatusChange(review.id, e.target.value as 'published' | 'spam' | 'trash' | 'pending')}
+                          disabled={updateReviewStatusMutation.isPending}
+                          className="text-xs border-gray-300 rounded focus:ring-[#198639] focus:border-[#198639] disabled:opacity-50 py-1 px-1"
+                        >
+                          <option value="published">Published</option>
+                          <option value="pending">Pending</option>
+                          <option value="spam">Spam</option>
+                          <option value="trash">Trash</option>
+                        </select>
+                        
                         {/* View Details */}
                         <Link
                           href={`/admin/reviews/${review.id}`}
                           className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                          title="View Details"
                         >
-                          View
-                        </Link>
-                        
-                        {/* Edit Review */}
-                        <Link
-                          href={`/admin/reviews/${review.id}/edit`}
-                          className="px-2 py-1 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
-                        >
-                          Edit
+                          👁️
                         </Link>
                         
                         {/* Delete */}
                         <button
-                          onClick={() => handleDeleteReview(review.id)}
-                          className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200"
-                          title="Delete"
+                          onClick={() => handleDeleteReview(review.id, review.title)}
+                          disabled={deleteReviewMutation.isPending}
+                          className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
+                          title="Delete Review"
                         >
-                          Delete
+                          🗑️
                         </button>
                       </div>
                     </td>

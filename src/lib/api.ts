@@ -494,6 +494,75 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Admin Reviews endpoints
+  async getAdminReviews(params?: {
+    page?: number;
+    limit?: number;
+    query?: string;
+    merchant?: string;
+    rating?: number;
+    dateFrom?: string;
+    dateTo?: string;
+    status?: 'published' | 'spam' | 'trash' | 'pending';
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+
+    const query = searchParams.toString();
+    return this.request<{
+      reviews: Review[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+      };
+    }>(`/admin/reviews${query ? `?${query}` : ''}`);
+  }
+
+  async getAdminReview(id: string) {
+    return this.request<{
+      review: Review;
+      reports: Array<{
+        metadata: Record<string, unknown>;
+        ipAddress: string;
+        createdAt: string;
+      }>;
+    }>(`/admin/reviews/${id}`);
+  }
+
+  async updateReviewStatus(id: string, status: 'published' | 'spam' | 'trash' | 'pending') {
+    return this.request<{ message: string; review: Review }>(`/admin/reviews/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async toggleReviewFeature(id: string) {
+    return this.request<{ message: string; isFeatured: boolean }>(`/admin/reviews/${id}/feature`, {
+      method: 'PUT',
+    });
+  }
+
+  async bulkActionReviews(action: 'publish' | 'spam' | 'trash', ids: string[]) {
+    return this.request<{ message: string; updatedCount: number }>('/admin/reviews/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ action, ids }),
+    });
+  }
+
+  async deleteAdminReview(id: string) {
+    return this.request<{ message: string }>(`/admin/reviews/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

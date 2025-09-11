@@ -169,8 +169,10 @@ export interface Advertisement {
   id: string;
   title: string;
   description?: string;
-  imageUrl: string;
-  link: string;
-  position: 'top' | 'sidebar' | 'bottom';
-  active: boolean;
+  imageUrl?: string;
+  link?: string;
+  type: 'banner' | 'sidebar' | 'popup';
+  status: 'active' | 'inactive' | 'pending';
+  createdAt: string;
+  updatedAt: string;
 }
