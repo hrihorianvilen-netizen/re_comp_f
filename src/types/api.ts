@@ -14,6 +14,9 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   role?: 'user' | 'merchant_admin' | 'moderator' | 'admin';
+  // Suspension fields
+  suspendedUntil?: string;
+  suspendedReason?: string;
 }
 
 export interface Merchant {

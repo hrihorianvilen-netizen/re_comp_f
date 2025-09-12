@@ -50,8 +50,16 @@ export function useUpdateUserStatus() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: 'active' | 'suspended' }) => {
-      const response = await api.updateUserStatus(id, status);
+    mutationFn: async ({ id, data }: { 
+      id: string; 
+      data: {
+        status: 'active' | 'inactive' | 'suspended';
+        suspensionType?: 'account' | 'email';
+        suspensionReason?: string;
+        suspensionDuration?: number;
+      }
+    }) => {
+      const response = await api.updateUserStatus(id, data);
       if (response.error) throw new Error(response.error);
       return response.data;
     },
@@ -60,6 +68,34 @@ export function useUpdateUserStatus() {
       if (data?.user) {
         queryClient.setQueryData(userKeys.detail(variables.id), data.user);
       }
+      // Invalidate users list to refresh
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+    },
+  });
+}
+
+export function useCreateUser() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (userData: {
+      displayName: string;
+      email: string;
+      phone?: string;
+      password: string;
+      role?: 'user' | 'merchant_admin' | 'moderator' | 'admin';
+      merchantId?: string;
+      requirePasswordReset?: boolean;
+      status?: 'active' | 'inactive' | 'suspended';
+      suspensionType?: 'account' | 'email';
+      suspensionReason?: string;
+      suspensionDuration?: number;
+    }) => {
+      const response = await api.createUser(userData);
+      if (response.error) throw new Error(response.error);
+      return response.data;
+    },
+    onSuccess: () => {
       // Invalidate users list to refresh
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
     },

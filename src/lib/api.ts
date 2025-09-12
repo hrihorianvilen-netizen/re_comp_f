@@ -456,10 +456,34 @@ class ApiClient {
     return this.request<{ user: User }>(`/admin/users/${id}`);
   }
 
-  async updateUserStatus(id: string, status: 'active' | 'suspended') {
+  async createUser(userData: {
+    displayName: string;
+    email: string;
+    phone?: string;
+    password: string;
+    role?: 'user' | 'merchant_admin' | 'moderator' | 'admin';
+    merchantId?: string;
+    requirePasswordReset?: boolean;
+    status?: 'active' | 'inactive' | 'suspended';
+    suspensionType?: 'account' | 'email';
+    suspensionReason?: string;
+    suspensionDuration?: number;
+  }) {
+    return this.request<{ user: User; message: string; requirePasswordReset: boolean }>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async updateUserStatus(id: string, data: {
+    status: 'active' | 'inactive' | 'suspended';
+    suspensionType?: 'account' | 'email';
+    suspensionReason?: string;
+    suspensionDuration?: number;
+  }) {
     return this.request<{ user: User; message: string }>(`/admin/users/${id}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(data),
     });
   }
 
