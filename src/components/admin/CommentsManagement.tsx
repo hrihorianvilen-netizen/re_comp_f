@@ -1,272 +1,542 @@
 'use client';
 
 import { useState } from 'react';
-import { ReviewComment } from '@/types/api';
+import moment from 'moment';
+import CommunicationHeader from '@/components/admin/communication/CommunicationHeader';
+import StatusFilter from '@/components/admin/communication/StatusFilter';
+import ActionFilter from '@/components/admin/communication/ActionFilter';
+import CommunicationPagination from '@/components/admin/communication/CommunicationPagination';
+import { 
+  useAdminComments, 
+  useUpdateAdminComment,
+  useUpdateCommentStatus, 
+  useBulkActionComments 
+} from '@/hooks/useAdminComments';
 
-// Mock data - replace with actual API call
-const mockComments: ReviewComment[] = [
-  {
-    id: '1',
-    reviewId: 'rev-1',
-    userId: 'user-1',
-    displayName: 'John Doe',
-    content: 'Great review! I had a similar experience with this merchant.',
-    reaction: '❤️',
-    isReported: false,
-    reportCount: 0,
-    status: 'published',
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z'
-  },
-  {
-    id: '2',
-    reviewId: 'rev-2',
-    userId: 'user-2',
-    displayName: 'Jane Smith',
-    content: 'This is very helpful information, thank you for sharing!',
-    reaction: '❤️',
-    isReported: false,
-    reportCount: 0,
-    status: 'published',
-    createdAt: '2024-01-14T15:45:00Z',
-    updatedAt: '2024-01-14T15:45:00Z'
-  }
-];
+// Reaction emojis - same as the reviews system
+const reactionEmojis = {
+  '❤️': { emoji: '❤️', label: 'Love' },
+  '😢': { emoji: '😢', label: 'Sad' },
+  '😡': { emoji: '😡', label: 'Angry' }
+};
 
-type CommentStatus = 'all' | 'approved' | 'pending' | 'flagged';
+interface CommentWithDetails {
+  id: string;
+  reviewId: string;
+  userId?: string;
+  displayName?: string;
+  reaction: '❤️' | '😢' | '😡';
+  content?: string;
+  isReported: boolean;
+  reportCount: number;
+  status: 'published' | 'pending' | 'hidden';
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name?: string;
+    displayName?: string;
+    email: string;
+    avatar?: string;
+  };
+  review?: {
+    id: string;
+    title: string;
+    slug: string;
+    merchant?: {
+      name: string;
+      slug: string;
+    };
+  };
+}
 
 export default function CommentsManagement() {
-  const [statusFilter, setStatusFilter] = useState<CommentStatus>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [reactionFilter, setReactionFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedComments, setSelectedComments] = useState<string[]>([]);
+  const [expandedComment, setExpandedComment] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // Mock loading state
-  const [isLoading] = useState(false);
-  
-  const comments = mockComments;
-  const totalPages = Math.ceil(comments.length / 10);
+  const itemsPerPage = 20;
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  // API hooks
+  const updateCommentMutation = useUpdateAdminComment();
+  const updateCommentStatusMutation = useUpdateCommentStatus();
+  const bulkActionMutation = useBulkActionComments();
 
-  const handleApproveComment = (commentId: string) => {
-    console.log('Approving comment', commentId);
-    // TODO: Implement API call
-  };
-
-  const handleFlagComment = (commentId: string) => {
-    console.log('Flagging comment', commentId);
-    // TODO: Implement API call
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    if (window.confirm('Are you sure you want to delete this comment? This action cannot be undone.')) {
-      console.log('Deleting comment', commentId);
-      // TODO: Implement API call
+  // Map UI status names to actual comment statuses
+  const getActualStatus = (uiStatus: string) => {
+    switch (uiStatus) {
+      case 'spam': return 'hidden';
+      case 'trash': return 'pending'; 
+      case 'published': return 'published';
+      case 'all': return undefined;
+      default: return uiStatus;
     }
   };
 
-  const filteredComments = comments.filter(comment => {
-    const matchesSearch = searchTerm === '' || 
-      comment.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      comment.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // For now, all comments are considered 'approved' since we don't have status field
-    const matchesStatus = statusFilter === 'all' || statusFilter === 'approved';
-    
-    return matchesSearch && matchesStatus;
+  // Get filtered comments for the current page
+  const { 
+    data: commentsData, 
+    isLoading,
+    error 
+  } = useAdminComments({
+    page: currentPage,
+    limit: itemsPerPage,
+    query: searchQuery || undefined,
+    status: getActualStatus(selectedStatus),
+    reaction: reactionFilter || undefined,
+    dateFrom: startDate || undefined,
+    dateTo: endDate || undefined,
   });
 
+  const commentsList = (commentsData?.comments || []) as CommentWithDetails[];
+
+  // Calculate status counts
+  const { data: statusCountsData } = useAdminComments({
+    page: 1,
+    limit: 50,
+  });
+
+  const getAllComments = () => statusCountsData?.comments || [];
+  const statusCounts = {
+    all: statusCountsData?.pagination?.total || commentsData?.pagination?.total || 0,
+    published: getAllComments().filter(c => c.status === 'published').length,
+    spam: getAllComments().filter(c => c.status === 'hidden').length, // Map 'hidden' to 'spam' for UI
+    trash: getAllComments().filter(c => c.status === 'pending').length, // Map 'pending' to 'trash' for UI
+  };
+
+  const handleSelectAll = () => {
+    if (selectedComments.length === commentsList.length) {
+      setSelectedComments([]);
+    } else {
+      setSelectedComments(commentsList.map(c => c.id));
+    }
+  };
+
+  const handleSelectComment = (commentId: string) => {
+    if (selectedComments.includes(commentId)) {
+      setSelectedComments(selectedComments.filter(id => id !== commentId));
+    } else {
+      setSelectedComments([...selectedComments, commentId]);
+    }
+  };
+
+  const formatTimeAgo = (date: Date | string) => {
+    return moment(date).fromNow();
+  };
+
+  const handleRowClick = (commentId: string) => {
+    setExpandedComment(expandedComment === commentId ? null : commentId);
+  };
+
+  const getReactionEmoji = (reaction: string) => {
+    return reactionEmojis[reaction as keyof typeof reactionEmojis]?.emoji || reaction;
+  };
+
+  const getReactionLabel = (reaction: string) => {
+    return reactionEmojis[reaction as keyof typeof reactionEmojis]?.label || reaction;
+  };
+
+  // API operation handlers
+  const handleUpdateComment = async (commentId: string) => {
+    try {
+      const form = document.querySelector(`#comment-form-${commentId}`) as HTMLFormElement;
+      
+      if (!form) {
+        console.error('Form not found for comment:', commentId);
+        return;
+      }
+      
+      const formData = new FormData(form);
+      const updateData = {
+        content: formData.get('content') as string,
+        displayName: formData.get('displayName') as string,
+        reaction: formData.get('reaction') as string,
+      };
+      
+      await updateCommentMutation.mutateAsync({
+        id: commentId,
+        data: updateData
+      });
+      
+      setExpandedComment(null);
+    } catch (error) {
+      console.error('Failed to update comment:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      alert(`Failed to update comment: ${errorMessage}`);
+    }
+  };
+
+  const handleStatusChange = async (commentId: string, newStatus: string) => {
+    try {
+      await updateCommentStatusMutation.mutateAsync({ 
+        id: commentId, 
+        status: newStatus
+      });
+    } catch (error) {
+      console.error('Failed to update comment status:', error);
+    }
+  };
+
+  const handleBulkAction = async (action: string) => {
+    if (selectedComments.length === 0) {
+      alert('Please select comments to apply the action to.');
+      return;
+    }
+    
+    try {
+      const actionMap: Record<string, string> = {
+        'approve': 'publish',
+        'hide': 'hide',
+        'pending': 'pending'
+      };
+      
+      if (actionMap[action]) {
+        await bulkActionMutation.mutateAsync({ 
+          action: actionMap[action], 
+          ids: selectedComments 
+        });
+        setSelectedComments([]);
+      } else {
+        console.error('Unknown bulk action:', action);
+      }
+    } catch (error) {
+      console.error('Failed to perform bulk action:', error);
+    }
+  };
+
+  // Helper functions
+  const getAuthorName = (comment: CommentWithDetails) => {
+    // Priority: user.displayName (current) > user.name > displayName (at creation time) > fallback
+    return comment.user?.displayName || comment.user?.name || comment.displayName || 'Anonymous';
+  };
+
+  const getAuthorEmail = (comment: CommentWithDetails) => {
+    return comment.user?.email || 'N/A';
+  };
+
+  const getActualAuthorId = (comment: CommentWithDetails) => {
+    return comment.userId || 'N/A';
+  };
+
+  const getReviewTitle = (comment: CommentWithDetails) => {
+    return comment.review?.title || 'Unknown Review';
+  };
+
+  const getMerchantName = (comment: CommentWithDetails) => {
+    return comment.review?.merchant?.name || 'Unknown Merchant';
+  };
+
+  // Loading and error states
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#198639]"></div>
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CommunicationHeader title="Comments" />
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#198639]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error('Comments page error:', error);
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CommunicationHeader title="Comments" />
+          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Failed to load comments</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>
+                    {error.message.includes('401') || error.message.includes('403') 
+                      ? 'Authentication error: Please make sure you are logged in as an admin.' 
+                      : error.message.includes('404') 
+                        ? 'Admin comments endpoint not found. The backend may not have the /admin/comments endpoint implemented.'
+                        : `Error: ${error.message}`
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Comments Management</h1>
-        <p className="text-gray-600 mt-1">Manage and moderate user comments on reviews</p>
-      </div>
+    <div className="py-6 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
+        <CommunicationHeader title="Comments" />
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
-          <div className="md:col-span-2">
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
-              Search Comments
-            </label>
-            <input
-              type="text"
-              id="search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-              placeholder="Search by content or commenter name..."
-            />
+        <StatusFilter
+          selectedStatus={selectedStatus}
+          statusCounts={statusCounts}
+          searchQuery={searchQuery}
+          onStatusChange={setSelectedStatus}
+          onSearchChange={setSearchQuery}
+        />
+
+        <ActionFilter
+          actionFilter={actionFilter}
+          onActionChange={setActionFilter}
+          reactingFilter={reactionFilter}
+          onReactingChange={setReactionFilter}
+          startDate={startDate}
+          endDate={endDate}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          filteredCount={commentsList.length}
+          showReactingFilter={true}
+          onApply={() => handleBulkAction(actionFilter)}
+        />
+
+        {/* Comment List Section */}
+        <div className="bg-white shadow rounded-t-lg overflow-hidden">
+          {/* Table Header */}
+          <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <div className="grid grid-cols-12 gap-2 sm:gap-4 items-center min-w-0">
+              <div className="col-span-1 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selectedComments.length === commentsList.length && commentsList.length > 0}
+                  onChange={handleSelectAll}
+                  className="h-4 w-4 text-[#198639] focus:ring-[#198639] border-gray-300 rounded"
+                />
+              </div>
+              <div className="col-span-2 sm:col-span-2 text-sm font-medium text-gray-700 truncate">Author</div>
+              <div className="col-span-1 sm:col-span-1 text-sm font-medium text-gray-700 truncate">Reaction</div>
+              <div className="col-span-3 sm:col-span-3 text-sm font-medium text-gray-700 truncate">Comment</div>
+              <div className="col-span-3 sm:col-span-3 text-sm font-medium text-gray-700 truncate">Review</div>
+              <div className="col-span-2 sm:col-span-2 text-sm font-medium text-gray-700 truncate">Date</div>
+            </div>
           </div>
 
-          {/* Status Filter */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              id="status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as CommentStatus)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-            >
-              <option value="all">All Comments</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="flagged">Flagged</option>
-            </select>
-          </div>
-        </div>
+          {/* Comment List */}
+          <div className="divide-y divide-gray-200">
+            {commentsList.map((comment) => (
+              <div key={comment.id}>
+                <div className="px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors duration-150 cursor-pointer" onClick={() => handleRowClick(comment.id)}>
+                  <div className="grid grid-cols-12 gap-2 sm:gap-4 items-start min-w-0">
+                    {/* Checkbox */}
+                    <div className="col-span-1 flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedComments.includes(comment.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectComment(comment.id);
+                        }}
+                        className="h-4 w-4 text-[#198639] focus:ring-[#198639] border-gray-300 rounded"
+                      />
+                    </div>
 
-        {/* Stats */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-[#198639]">{comments.length}</div>
-              <div className="text-sm text-gray-600">Total Comments</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-green-600">{comments.length}</div>
-              <div className="text-sm text-gray-600">Approved</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-yellow-600">0</div>
-              <div className="text-sm text-gray-600">Pending</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-red-600">0</div>
-              <div className="text-sm text-gray-600">Flagged</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Comments List */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6">
-          {filteredComments.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-500 text-xl mb-4">No comments found</div>
-              <p className="text-gray-400">Try adjusting your search criteria to see more results.</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {filteredComments.map((comment) => (
-                <div key={comment.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  {/* Comment Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                        {comment.displayName?.charAt(0) || '?'}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {comment.displayName || 'Anonymous'}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {formatDate(comment.createdAt)}
-                        </div>
+                    {/* Author */}
+                    <div className="col-span-2 sm:col-span-2 min-w-0">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{getAuthorName(comment)}</p>
+                        <p className="text-xs text-gray-500 truncate">{getAuthorEmail(comment)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {comment.reaction && (
-                        <span className="text-lg" title="Reaction">
-                          {comment.reaction}
+
+                    {/* Reaction */}
+                    <div className="col-span-1 sm:col-span-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="text-lg">{getReactionEmoji(comment.reaction)}</span>
+                        <span className="text-xs text-gray-600 capitalize">{getReactionLabel(comment.reaction)}</span>
+                      </div>
+                    </div>
+
+                    {/* Comment Content */}
+                    <div className="col-span-3 sm:col-span-3 min-w-0">
+                      <p className="text-sm text-gray-900 overflow-hidden" style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        wordBreak: 'break-word'
+                      }}>{comment.content || 'No text content'}</p>
+                    </div>
+
+                    {/* Review Info */}
+                    <div className="col-span-3 sm:col-span-3 min-w-0">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">{getReviewTitle(comment)}</p>
+                        <p className="text-xs text-gray-500 truncate">{getMerchantName(comment)}</p>
+                      </div>
+                    </div>
+
+                    {/* Date and Status */}
+                    <div className="col-span-2 sm:col-span-2 min-w-0">
+                      <div className="space-y-1">
+                        <p className="text-xs text-gray-500">{formatTimeAgo(comment.createdAt)}</p>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          comment.status === 'published'
+                            ? 'bg-green-100 text-green-800'
+                            : comment.status === 'hidden'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {comment.status}
                         </span>
-                      )}
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Approved
-                      </span>
+                      </div>
                     </div>
-                  </div>
-
-                  {/* Comment Content */}
-                  <div className="mb-3">
-                    <p className="text-gray-900 text-sm leading-relaxed">{comment.content}</p>
-                  </div>
-
-                  {/* Review Context */}
-                  <div className="bg-gray-50 rounded-md p-3 mb-3">
-                    <div className="text-xs text-gray-500 mb-1">Comment on Review:</div>
-                    <div className="text-sm font-medium text-gray-700">Review ID: {comment.reviewId}</div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center space-x-3 pt-3 border-t border-gray-200">
-                    <button
-                      onClick={() => handleApproveComment(comment.id)}
-                      className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      onClick={() => handleFlagComment(comment.id)}
-                      className="px-3 py-1 text-xs bg-yellow-100 text-yellow-700 rounded-md hover:bg-yellow-200 transition-colors"
-                    >
-                      🚩 Flag
-                    </button>
-                    <button
-                      onClick={() => handleDeleteComment(comment.id)}
-                      className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
-                    >
-                      🗑️ Delete
-                    </button>
-                    <button
-                      className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-                    >
-                      👁️ View Review
-                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+
+                {/* Collapsible Edit Section */}
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  expandedComment === comment.id ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                  <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200">
+                    <form id={`comment-form-${comment.id}`} className="space-y-4">
+                      <h3 className="text-lg font-medium text-gray-900">Edit Comment</h3>
+                      
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {/* Left Column */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Actual Author (Current User Info)</label>
+                            <input
+                              type="text"
+                              value={getAuthorName(comment)}
+                              disabled
+                              readOnly
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              User ID: {getActualAuthorId(comment)} | Email: {getAuthorEmail(comment)}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Display Name (editable)</label>
+                            <input
+                              type="text"
+                              name="displayName"
+                              defaultValue={comment.displayName || 'Anonymous'}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              This display name is shown publicly on the comment and can be edited
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Email</label>
+                            <input
+                              type="email"
+                              value={getAuthorEmail(comment)}
+                              disabled
+                              readOnly
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Reaction</label>
+                            <select
+                              name="reaction"
+                              defaultValue={comment.reaction}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent"
+                            >
+                              {Object.entries(reactionEmojis).map(([key, { emoji, label }]) => (
+                                <option key={key} value={key}>
+                                  {emoji} {label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Status</label>
+                            <select
+                              defaultValue={comment.status}
+                              onChange={(e) => handleStatusChange(comment.id, e.target.value)}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent"
+                            >
+                              <option value="published">Published</option>
+                              <option value="pending">Pending</option>
+                              <option value="hidden">Hidden</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Right Column */}
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Comment Content</label>
+                            <textarea
+                              rows={6}
+                              name="content"
+                              defaultValue={comment.content || ''}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent"
+                              placeholder="Enter comment content"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedComment(null)}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                          Discard
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateComment(comment.id)}
+                          disabled={updateCommentMutation.isPending}
+                          className="px-4 py-2 text-sm font-medium text-white bg-[#A96B11] border border-transparent rounded-md hover:bg-[#8b5a0e] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {updateCommentMutation.isPending ? 'Updating...' : 'Update Comment'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-700">
-                Showing page {currentPage} of {totalPages}
-              </div>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
-                >
-                  Previous
-                </button>
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
+        {/* Empty State */}
+        {commentsList.length === 0 && !isLoading && (
+          <div className="text-center py-12 bg-white shadow rounded-lg">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No comments found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Try adjusting your search criteria or filters.
+            </p>
           </div>
+        )}
+
+        {commentsData && (
+          <CommunicationPagination
+            currentPage={currentPage}
+            totalPages={commentsData?.pagination?.pages || Math.ceil((commentsData?.pagination?.total || 0) / itemsPerPage)}
+            onPageChange={setCurrentPage}
+            totalItems={commentsData?.pagination?.total || 0}
+            itemsPerPage={itemsPerPage}
+          />
         )}
       </div>
     </div>

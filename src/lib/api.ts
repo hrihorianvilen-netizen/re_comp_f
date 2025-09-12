@@ -660,6 +660,76 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Admin Comments Management
+  async getAdminComments(params?: {
+    page?: number;
+    limit?: number;
+    query?: string;
+    status?: string;
+    reaction?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    reviewId?: string;
+  }) {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+
+    const query = searchParams.toString();
+    return this.request<{
+      comments: ReviewComment[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+      };
+    }>(`/admin/comments${query ? `?${query}` : ''}`);
+  }
+
+  async getAdminComment(id: string) {
+    return this.request<{
+      comment: ReviewComment;
+      reports: Array<{
+        metadata: Record<string, unknown>;
+        ipAddress: string;
+        createdAt: string;
+      }>;
+    }>(`/admin/comments/${id}`);
+  }
+
+  async updateAdminComment(id: string, data: { content?: string; displayName?: string; reaction?: string }) {
+    return this.request<{ message: string; comment: ReviewComment }>(`/admin/comments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCommentStatus(id: string, status: string) {
+    return this.request<{ message: string; comment: ReviewComment }>(`/admin/comments/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async bulkActionComments(action: string, ids: string[]) {
+    return this.request<{ message: string; updatedCount: number }>('/admin/comments/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ action, ids }),
+    });
+  }
+
+  async deleteAdminComment(id: string) {
+    return this.request<{ message: string }>(`/admin/comments/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

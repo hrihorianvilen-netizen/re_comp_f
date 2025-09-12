@@ -192,11 +192,16 @@ export default function CommunicationReviewsPage() {
 
   // Helper functions to map real data to display format
   const getAuthorName = (review: ReviewWithStatus) => {
-    return review.displayName || review.user?.displayName || 'Anonymous';
+    // Priority: user.displayName (current) > user.name > displayName (at creation time) > fallback
+    return review.user?.displayName || review.user?.name || review.displayName || 'Anonymous';
   };
 
   const getAuthorEmail = (review: ReviewWithStatus) => {
     return review.user?.email || 'N/A';
+  };
+
+  const getActualAuthorId = (review: ReviewWithStatus) => {
+    return review.userId || 'N/A';
   };
 
   const getMerchantName = (review: ReviewWithStatus) => {
@@ -426,14 +431,31 @@ export default function CommunicationReviewsPage() {
                         {/* Left Column */}
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700">Author Name</label>
+                            <label className="block text-sm font-medium text-gray-700">Actual Author (Current User Info)</label>
                             <input
                               type="text"
-                              value={(review.displayName || review.user?.displayName || review.user?.name || 'Anonymous') ?? ''}
+                              value={getAuthorName(review)}
                               disabled
                               readOnly
                               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                              User ID: {getActualAuthorId(review)} | Email: {getAuthorEmail(review)}
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Display Name (shown on review)</label>
+                            <input
+                              type="text"
+                              value={review.displayName || 'Anonymous'}
+                              disabled
+                              readOnly
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                              This is the display name shown publicly on the review (set when review was created)
+                            </p>
                           </div>
                           
                           <div>
