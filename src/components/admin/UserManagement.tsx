@@ -41,7 +41,7 @@ export default function UserManagement() {
 
   // Calculate status counts from current data
   const statusCounts = {
-    all: totalUsers,
+    all: users.filter(user => user).length,
     active: users.filter(user => user.status === 'active').length,
     inactive: users.filter(user => user.status === 'inactive' || !user.status).length,
     suspended: users.filter(user => user.status === 'suspended').length,
