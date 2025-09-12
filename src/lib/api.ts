@@ -1,7 +1,7 @@
 import { User, Merchant, Review, Post, AuthResponse, MerchantsResponse, ReviewsResponse, PostsResponse, ReviewComment, Advertisement } from '@/types/api';
 
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-backend-2zkw.onrender.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-backend-2zkw.onrender.com/api';
 
 export interface ApiResponse<T> {
   data?: T;
@@ -68,18 +68,40 @@ class ApiClient {
       if (contentType && contentType.includes('application/json')) {
         data = await response.json();
       } else {
-        // If not JSON, try to read as text
-        const text = await response.text();
-        console.error('Non-JSON response from API:', { url, status: response.status, text });
+        // If not JSON, try to read as text for debugging
+        await response.text(); // Read and discard text content
         data = { message: `Server returned non-JSON response (status: ${response.status})` };
       }
 
       if (!response.ok) {
-        // console.error('API request failed:', { url, status: response.status, data });
-        const errorMessage = typeof data === 'object' && data !== null && 
-                            ('error' in data || 'message' in data) 
-          ? String((data as { error?: unknown; message?: unknown }).error || (data as { error?: unknown; message?: unknown }).message)
-          : `Request failed with status ${response.status}: ${response.statusText}`;
+        
+        let errorMessage = `Request failed with status ${response.status}: ${response.statusText}`;
+        
+        // Handle specific HTTP status codes with user-friendly messages
+        if (response.status === 429) {
+          errorMessage = 'Rate limit exceeded. Please wait a moment before trying again.';
+        } else if (response.status === 401) {
+          errorMessage = 'Authentication required. Please log in again.';
+        } else if (response.status === 403) {
+          errorMessage = 'Access denied. You do not have permission to perform this action.';
+        } else if (response.status === 404) {
+          errorMessage = 'The requested resource was not found.';
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (typeof data === 'object' && data !== null) {
+          if ('error' in data) {
+            const error = (data as { error?: unknown }).error;
+            if (typeof error === 'string') {
+              errorMessage = error;
+            } else if (typeof error === 'object' && error !== null && 'message' in error) {
+              errorMessage = String((error as { message?: unknown }).message);
+            } else {
+              errorMessage = JSON.stringify(error);
+            }
+          } else if ('message' in data) {
+            errorMessage = String((data as { message?: unknown }).message);
+          }
+        }
         
         return {
           error: errorMessage,
@@ -565,6 +587,10 @@ class ApiClient {
     }>(`/admin/reviews/${id}`);
   }
 
+  async getReviewStatus(id: string) {
+    return this.request<{ status: 'published' | 'spam' | 'trash' | 'pending' }>(`/admin/reviews/${id}/status`);
+  }
+
   async updateReviewStatus(id: string, status: 'published' | 'spam' | 'trash' | 'pending') {
     return this.request<{ message: string; review: Review }>(`/admin/reviews/${id}/status`, {
       method: 'PUT',
@@ -616,7 +642,10 @@ class ApiClient {
     
     // If we get here, the endpoint probably doesn't exist
     // Provide a more helpful error message
-    if (result?.error?.includes('404') || result?.error?.includes('Not Found')) {
+    if (result?.error?.includes('404') || 
+        result?.error?.includes('Not Found') || 
+        result?.error?.includes('not found') || 
+        result?.error?.includes('Route') && result?.error?.includes('not found')) {
       return {
         error: 'Backend API endpoint for updating review content is not implemented yet. Please contact the backend developer to add PUT or PATCH /admin/reviews/{id} endpoint.',
         data: undefined

@@ -403,17 +403,32 @@ export function useUpdateAdminReview() {
   
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: { title: string; content: string } }) => {
-      const response = await api.updateAdminReview(id, data);
-      if (!response) {
-        throw new Error('No response received from server');
+      console.log('useUpdateAdminReview: Starting mutation with:', { id, data });
+      
+      try {
+        const response = await api.updateAdminReview(id, data);
+        console.log('useUpdateAdminReview: API response received:', response);
+        
+        if (!response) {
+          console.error('useUpdateAdminReview: No response received from server');
+          throw new Error('No response received from server');
+        }
+        
+        if (response.error) {
+          console.error('useUpdateAdminReview: API returned error:', response.error);
+          // The error should always be a string now from the API client
+          const errorMessage = typeof response.error === 'string' 
+            ? response.error 
+            : 'Failed to update review';
+          throw new Error(errorMessage);
+        }
+        
+        console.log('useUpdateAdminReview: Success, returning data:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('useUpdateAdminReview: Caught error:', error);
+        throw error; // Re-throw to let the component handle it
       }
-      if (response.error) {
-        const errorMessage = typeof response.error === 'string' 
-          ? response.error 
-          : (response.error as { message?: string })?.message || 'Failed to update review';
-        throw new Error(errorMessage);
-      }
-      return response.data;
     },
     onSuccess: (_, { id }) => {
       // Invalidate admin reviews list
