@@ -46,7 +46,7 @@ export default function AdminDashboard() {
           <div className="flex items-center">
             <div className="flex-1">
               <h3 className="text-sm font-medium text-gray-500">Total Merchants</h3>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{stats.totalMerchants.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{(stats.totalMerchants || 0).toLocaleString()}</div>
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
               <span className="text-2xl">🏪</span>
@@ -61,7 +61,7 @@ export default function AdminDashboard() {
           <div className="flex items-center">
             <div className="flex-1">
               <h3 className="text-sm font-medium text-gray-500">Total Reviews</h3>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{stats.totalReviews.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{(stats.totalReviews || 0).toLocaleString()}</div>
             </div>
             <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
               <span className="text-2xl">⭐</span>
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
           <div className="flex items-center">
             <div className="flex-1">
               <h3 className="text-sm font-medium text-gray-500">Total Comments</h3>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{stats.totalComments.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{(stats.totalComments || 0).toLocaleString()}</div>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
               <span className="text-2xl">💬</span>
@@ -91,7 +91,7 @@ export default function AdminDashboard() {
           <div className="flex items-center">
             <div className="flex-1">
               <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-              <div className="text-2xl font-bold text-gray-900 mt-1">{stats.totalUsers.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-gray-900 mt-1">{(stats.totalUsers || 0).toLocaleString()}</div>
             </div>
             <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
               <span className="text-2xl">👥</span>

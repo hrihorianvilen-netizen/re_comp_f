@@ -128,7 +128,7 @@ export default function MerchantTabs({ merchants }: MerchantTabsProps) {
                         <div className="flex items-center gap-1">
                           <span className="text-yellow-400">⭐</span>
                           <span className="text-sm text-gray-600">
-                            {merchant.reviewCount.toLocaleString()} reviews
+                            {(merchant.reviewCount || 0).toLocaleString()} reviews
                           </span>
                         </div>
                         

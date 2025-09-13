@@ -257,7 +257,7 @@ export default function ReviewDetailPage() {
                     <div className="hidden sm:flex items-center gap-2 ml-4">
                       <span className="text-yellow-400">⭐</span>
                       <span className="text-gray-600">
-                        {review.merchant?.reviewCount?.toLocaleString()} reviews
+                        {(review.merchant?.reviewCount || 0).toLocaleString()} reviews
                       </span>
                     </div>
                   </div>

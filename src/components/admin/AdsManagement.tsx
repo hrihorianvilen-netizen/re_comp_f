@@ -298,14 +298,14 @@ export default function AdsManagement() {
                     {/* Impressions */}
                     <div className="col-span-1 text-center">
                       <p className="text-sm font-medium text-gray-900">
-                        {ad.impressions.toLocaleString()}
+                        {(ad.impressions || 0).toLocaleString()}
                       </p>
                     </div>
 
                     {/* Clicks */}
                     <div className="col-span-1 text-center">
                       <p className="text-sm font-medium text-gray-900">
-                        {ad.clicks.toLocaleString()}
+                        {(ad.clicks || 0).toLocaleString()}
                       </p>
                     </div>
 
