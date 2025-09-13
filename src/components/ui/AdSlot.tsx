@@ -7,9 +7,10 @@ interface AdSlotProps {
   slot: 'top' | 'sidebar' | 'footer' | 'inline';
   merchantId?: string;
   className?: string;
+  maxAds?: number;
 }
 
-export default function AdSlot({ slot, merchantId, className = '' }: AdSlotProps) {
+export default function AdSlot({ slot, merchantId, className = '', maxAds }: AdSlotProps) {
   const { data, isLoading } = useDisplayAds(slot, merchantId);
   const trackClick = useTrackClick();
 
@@ -32,33 +33,66 @@ export default function AdSlot({ slot, merchantId, className = '' }: AdSlotProps
     }
   };
 
-  // Get slot-specific styling
-  const getSlotStyles = () => {
+  // Get slot-specific grid configuration
+  const getSlotConfig = () => {
     switch (slot) {
       case 'top':
-        return 'w-full max-w-7xl mx-auto px-4 py-4';
+        return {
+          containerClass: 'w-full max-w-7xl mx-auto px-4 py-4',
+          gridClass: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4',
+          maxAds: maxAds || 4,
+        };
       case 'sidebar':
-        return 'w-full';
+        return {
+          containerClass: 'w-full',
+          gridClass: 'flex flex-col gap-4 lg:gap-4',
+          maxAds: maxAds || 3,
+        };
       case 'footer':
-        return 'w-full max-w-7xl mx-auto px-4 py-6';
+        return {
+          containerClass: 'w-full bg-gray-50 py-8',
+          gridClass: 'max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4',
+          maxAds: maxAds || 4,
+        };
       case 'inline':
-        return 'w-full my-6';
+        return {
+          containerClass: 'w-full my-8',
+          gridClass: 'max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6',
+          maxAds: maxAds || 4,
+        };
       default:
-        return '';
+        return {
+          containerClass: '',
+          gridClass: 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4',
+          maxAds: maxAds || 4,
+        };
     }
   };
 
+  const config = getSlotConfig();
+  const adsToDisplay = data.ads.slice(0, config.maxAds);
+
   return (
-    <div className={`ad-slot ad-slot-${slot} ${getSlotStyles()} ${className}`}>
-      {data.ads.map((ad) => (
-        <div
-          key={ad.id}
-          onClick={() => handleAdClick(ad.id, ad.link)}
-          className="cursor-pointer"
-        >
-          <Advertisement advertisement={ad} />
+    <div className={`ad-slot ad-slot-${slot} ${config.containerClass} ${className}`}>
+      {slot === 'footer' && (
+        <div className="max-w-7xl mx-auto px-4 mb-4">
+          <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Sponsored Content</h3>
         </div>
-      ))}
+      )}
+      <div className={config.gridClass}>
+        {adsToDisplay.map((ad) => (
+          <div
+            key={ad.id}
+            onClick={() => handleAdClick(ad.id, ad.link)}
+            className="cursor-pointer transform transition-all duration-200 hover:scale-[1.02]"
+          >
+            <Advertisement
+              advertisement={ad}
+              variant={slot}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
