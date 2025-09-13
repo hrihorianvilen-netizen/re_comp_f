@@ -45,7 +45,8 @@ export function useAd(id: string) {
     queryFn: async () => {
       const response = await api.getAd(id);
       if (response.error) throw new Error(response.error);
-      return response.data?.ad as (Advertisement & { recentMetrics?: Array<{ date: string; impressions: number; clicks: number }> });
+      if (!response.data?.ad) throw new Error('Advertisement not found');
+      return response.data.ad as (Advertisement & { recentMetrics?: Array<{ date: string; impressions: number; clicks: number }> });
     },
     enabled: !!id,
   });
@@ -69,11 +70,29 @@ interface CreateAdData {
   status?: 'draft' | 'published';
 }
 
+interface UpdateAdData {
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+  targetUrl?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmContent?: string;
+  merchantId?: string;
+  slot?: 'top' | 'sidebar' | 'footer' | 'inline';
+  order?: number;
+  duration?: '1d' | '3d' | '7d' | '2w' | '1m' | '2m' | '3m' | 'custom';
+  startDate?: string;
+  endDate?: string;
+  status?: 'draft' | 'published' | 'archive' | 'trash';
+}
+
 export function useCreateAd() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async (adData: CreateAdData) => {
+    mutationFn: async (adData: CreateAdData | FormData) => {
       const response = await api.createAd(adData);
       if (response.error) throw new Error(response.error);
       return response.data;
@@ -86,9 +105,9 @@ export function useCreateAd() {
 
 export function useUpdateAd() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateAdData> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: UpdateAdData | FormData }) => {
       const response = await api.updateAd(id, data);
       if (response.error) throw new Error(response.error);
       return response.data;

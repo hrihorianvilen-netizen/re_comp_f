@@ -528,7 +528,7 @@ class ApiClient {
     }>(`/admin/ads${query ? `?${query}` : ''}`);
   }
 
-  async createAd(adData: {
+  async createAd(adData: FormData | {
     title: string;
     description?: string;
     imageUrl?: string;
@@ -545,9 +545,10 @@ class ApiClient {
     endDate?: string;
     status?: 'draft' | 'published';
   }) {
+    const isFormData = adData instanceof FormData;
     return this.request<{ ad: Advertisement; message: string }>('/admin/ads', {
       method: 'POST',
-      body: JSON.stringify(adData),
+      body: isFormData ? adData : JSON.stringify(adData),
     });
   }
 
@@ -555,7 +556,7 @@ class ApiClient {
     return this.request<{ ad: Advertisement }>(`/admin/ads/${id}`);
   }
 
-  async updateAd(id: string, adData: {
+  async updateAd(id: string, adData: FormData | {
     title?: string;
     description?: string;
     imageUrl?: string;
@@ -574,7 +575,7 @@ class ApiClient {
   }) {
     return this.request<{ ad: Advertisement; message: string }>(`/admin/ads/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(adData),
+      body: adData instanceof FormData ? adData : JSON.stringify(adData),
     });
   }
 

@@ -9,6 +9,7 @@ import { useCreateAd } from '@/hooks/useAds';
 export default function NewAdvertisementPage() {
   const router = useRouter();
   const createAdMutation = useCreateAd();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     merchantId: '',
     merchantSearch: '',
@@ -140,30 +141,41 @@ export default function NewAdvertisementPage() {
 
   const handleSave = async () => {
     if (!validateForm()) return;
-    
-    try {
-      // Prepare the ad data
-      const adData = {
-        merchantId: formData.merchantId || undefined,
-        title: formData.adName,
-        description: '',
-        imageUrl: imagePreview || '', // In production, upload image first
-        targetUrl: formData.targetUrl,
-        slot: formData.slot as 'top' | 'sidebar' | 'footer' | 'inline',
-        order: parseInt(formData.order),
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
-        duration: formData.duration as '1d' | '3d' | '7d' | '2w' | '1m' | '2m' | '3m' | 'custom',
-        utmSource: formData.utmSource,
-        utmCampaign: formData.utmCampaign,
-        utmContent: formData.utmContent,
-        status: 'draft' as const
-      };
+    if (isLoading) return; // Prevent double-click
 
-      await createAdMutation.mutateAsync(adData);
+    setIsLoading(true);
+
+    try {
+      // Create FormData for multipart upload
+      const formDataToSend = new FormData();
+
+      // Add text fields
+      formDataToSend.append('title', formData.adName);
+      formDataToSend.append('description', '');
+      if (formData.merchantId) formDataToSend.append('merchantId', formData.merchantId);
+      formDataToSend.append('targetUrl', formData.targetUrl);
+      formDataToSend.append('slot', formData.slot);
+      formDataToSend.append('order', formData.order);
+      formDataToSend.append('duration', formData.duration);
+      formDataToSend.append('startDate', new Date(formData.startDate).toISOString());
+      formDataToSend.append('endDate', new Date(formData.endDate).toISOString());
+      formDataToSend.append('utmSource', formData.utmSource);
+      formDataToSend.append('utmCampaign', formData.utmCampaign);
+      if (formData.utmContent) formDataToSend.append('utmContent', formData.utmContent);
+      formDataToSend.append('status', 'draft');
+
+      // Add image file if exists
+      if (formData.bannerImage) {
+        formDataToSend.append('image', formData.bannerImage);
+      }
+
+      await createAdMutation.mutateAsync(formDataToSend);
       router.push('/admin/advertisement');
     } catch (error) {
       console.error('Failed to create advertisement:', error);
+      alert('Failed to create advertisement. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -188,15 +200,17 @@ export default function NewAdvertisementPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleDiscard}
-              className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-500 border border-gray-300 hover:bg-gray-50"
+              disabled={isLoading}
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-500 border border-gray-300 hover:bg-gray-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Discard
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-white bg-[#A96B11] hover:bg-[#8b5a0e]"
+              disabled={isLoading}
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors text-white bg-[#A96B11] hover:bg-[#8b5a0e] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save
+              {isLoading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>

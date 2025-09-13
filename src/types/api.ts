@@ -186,7 +186,8 @@ export interface Advertisement {
   utmSource?: string;
   utmMedium?: string;
   utmCampaign?: string;
-  
+  utmContent?: string;
+
   // Positioning
   slot: 'top' | 'sidebar' | 'footer' | 'inline';
   order: number;
