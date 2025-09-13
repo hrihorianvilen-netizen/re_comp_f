@@ -8,6 +8,7 @@ import { Merchant, Review, FAQ } from '@/types/api';
 import { RatingStars, InteractiveRatingStars } from '@/components/ui';
 import { ReviewFormModal, ReviewFormData } from '@/components/reviews';
 import { AddCommentButton, CommentsView } from '@/components/comments';
+import { GiftCodeSection } from '@/components/merchants';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation } from 'swiper/modules';
 import api from '@/lib/api';
@@ -456,6 +457,13 @@ export default function MerchantDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Gift Code Section */}
+            <GiftCodeSection
+              merchantSlug={slug}
+              merchantId={merchant.id}
+              merchantName={merchant.name}
+            />
+
             {/* Reviews Section */}
             <div className="bg-white rounded-lg shadow-sm">
               <div className="p-6">

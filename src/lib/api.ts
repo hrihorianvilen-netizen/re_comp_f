@@ -621,6 +621,77 @@ class ApiClient {
     });
   }
 
+  // Gift Code API Methods
+  async getAvailableGiftCodes(merchantSlug: string) {
+    return this.request<{
+      merchant: { id: string; name: string };
+      promotions: Array<{
+        id: string;
+        title: string;
+        description: string;
+        type: string;
+        loginRequired: boolean;
+        reviewRequired: boolean;
+        isAvailable: boolean;
+        hasUserClaimed: boolean;
+        remainingCodes: number | null;
+        startDate: string | null;
+        endDate: string | null;
+      }>;
+    }>(`/giftcodes/available/${merchantSlug}`);
+  }
+
+  async claimGiftCode(promotionId: string, displayName?: string) {
+    return this.request<{
+      success: boolean;
+      code: string;
+      promotion: {
+        title: string;
+        description: string;
+        merchant: string;
+      };
+      claimId: string;
+    }>('/giftcodes/claim', {
+      method: 'POST',
+      body: JSON.stringify({ promotionId, displayName }),
+    });
+  }
+
+  async getMyClaimedGiftCodes() {
+    return this.request<{
+      claims: Array<{
+        id: string;
+        claimedAt: string;
+        code: string;
+        promotion: {
+          title: string;
+          description: string;
+          merchant: {
+            name: string;
+            slug: string;
+            logo?: string;
+          };
+        };
+      }>;
+    }>('/giftcodes/my-claims');
+  }
+
+  async validateGiftCodeClaim(promotionId: string) {
+    return this.request<{
+      canClaim: boolean;
+      reasons: string[];
+      requirements: {
+        loginRequired: boolean;
+        reviewRequired: boolean;
+        isLoggedIn: boolean;
+        hasReview: boolean;
+      };
+    }>('/giftcodes/validate', {
+      method: 'POST',
+      body: JSON.stringify({ promotionId }),
+    });
+  }
+
   // Admin Reviews endpoints
   async getAdminReviews(params?: {
     page?: number;
