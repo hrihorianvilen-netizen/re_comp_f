@@ -1,455 +1,375 @@
 'use client';
 
 import { useState } from 'react';
-import { useAds, useCreateAd, useUpdateAd, useDeleteAd } from '@/hooks/useAds';
+import Link from 'next/link';
+import { 
+  useAds, 
+  useDeleteAd, 
+  usePublishAd, 
+  useArchiveAd, 
+  useRestoreAd,
+  usePermanentDeleteAd 
+} from '@/hooks/useAds';
 import { Advertisement } from '@/types/api';
-import Image from 'next/image';
-
-type AdStatus = 'all' | 'active' | 'inactive' | 'pending';
-type AdType = 'all' | 'banner' | 'sidebar' | 'popup';
+import AdvertisementHeader from '@/components/admin/advertisement/AdvertisementHeader';
+import AdvertisementStatusFilter from '@/components/admin/advertisement/AdvertisementStatusFilter';
+import AdvertisementActionFilter from '@/components/admin/advertisement/AdvertisementActionFilter';
+import AdvertisementStatusBadge from '@/components/admin/advertisement/AdvertisementStatusBadge';
+import AdvertisementSlotBadge from '@/components/admin/advertisement/AdvertisementSlotBadge';
+import AdvertisementPagination from '@/components/admin/advertisement/AdvertisementPagination';
 
 export default function AdsManagement() {
-  const [statusFilter, setStatusFilter] = useState<AdStatus>('all');
-  const [typeFilter, setTypeFilter] = useState<AdType>('all');
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [editingAd, setEditingAd] = useState<Advertisement | null>(null);
-  
-  const createAdMutation = useCreateAd();
-  const updateAdMutation = useUpdateAd();
-  const deleteAdMutation = useDeleteAd();
-  
-  const { 
-    data: adsData, 
-    isLoading, 
-    error 
-  } = useAds({
-    status: statusFilter === 'all' ? undefined : statusFilter,
-    type: typeFilter === 'all' ? undefined : typeFilter,
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [slotFilter, setSlotFilter] = useState('');
+  const [timeFilter, setTimeFilter] = useState('');
+  const [selectedAds, setSelectedAds] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDeleteModal, setShowDeleteModal] = useState<string | null>(null);
+  const itemsPerPage = 20;
+
+  // Fetch ads data
+  const { data, isLoading } = useAds({
+    page: currentPage,
+    limit: itemsPerPage,
+    status: selectedStatus === 'all' ? undefined : selectedStatus as 'draft' | 'published' | 'archive' | 'trash',
+    slot: slotFilter ? slotFilter as 'top' | 'sidebar' | 'footer' | 'inline' : undefined,
   });
 
-  const ads = (adsData?.ads || []) as Advertisement[];
+  const deleteAdMutation = useDeleteAd();
+  const publishAdMutation = usePublishAd();
+  const archiveAdMutation = useArchiveAd();
+  const restoreAdMutation = useRestoreAd();
+  const permanentDeleteMutation = usePermanentDeleteAd();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'inactive': return 'bg-gray-100 text-gray-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Calculate status counts
+  const statusCounts = {
+    all: data?.total || 0,
+    published: data?.ads.filter(ad => ad.status === 'published').length || 0,
+    draft: data?.ads.filter(ad => ad.status === 'draft').length || 0,
+    archived: data?.ads.filter(ad => ad.status === 'archive').length || 0,
+    trash: data?.ads.filter(ad => ad.status === 'trash').length || 0,
+  };
+
+  // Filter ads based on search
+  const filteredAdvertisements = data?.ads.filter(ad => {
+    const matchesSearch = searchQuery === '' || 
+      ad.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ad.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ad.merchant?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSlot = !slotFilter || ad.slot === slotFilter;
+    return matchesSearch && matchesSlot;
+  }) || [];
+
+  const handleSelectAll = () => {
+    if (selectedAds.length === filteredAdvertisements.length) {
+      setSelectedAds([]);
+    } else {
+      setSelectedAds(filteredAdvertisements.map(ad => ad.id));
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'banner': return '🏷️';
-      case 'sidebar': return '📱';
-      case 'popup': return '💬';
-      default: return '📢';
+  const handleSelectAd = (adId: string) => {
+    if (selectedAds.includes(adId)) {
+      setSelectedAds(selectedAds.filter(id => id !== adId));
+    } else {
+      setSelectedAds([...selectedAds, adId]);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const handleCreateAd = async (adData: {
-    title: string;
-    description?: string;
-    imageUrl?: string;
-    link?: string;
-    type: 'banner' | 'sidebar' | 'popup';
-    status: 'active' | 'inactive' | 'pending';
-  }) => {
+  const handleStatusChange = async (ad: Advertisement, action: 'publish' | 'archive' | 'restore' | 'delete' | 'permanent') => {
     try {
-      await createAdMutation.mutateAsync(adData);
-      setShowCreateForm(false);
-    } catch (error) {
-      console.error('Failed to create ad:', error);
-    }
-  };
-
-  const handleUpdateAd = async (id: string, data: Partial<Advertisement>) => {
-    try {
-      await updateAdMutation.mutateAsync({ id, data });
-      setEditingAd(null);
-    } catch (error) {
-      console.error('Failed to update ad:', error);
-    }
-  };
-
-  const handleDeleteAd = async (adId: string, adTitle: string) => {
-    if (window.confirm(`Are you sure you want to delete "${adTitle}"? This action cannot be undone.`)) {
-      try {
-        await deleteAdMutation.mutateAsync(adId);
-      } catch (error) {
-        console.error('Failed to delete ad:', error);
+      switch (action) {
+        case 'publish':
+          await publishAdMutation.mutateAsync(ad.id);
+          break;
+        case 'archive':
+          await archiveAdMutation.mutateAsync(ad.id);
+          break;
+        case 'restore':
+          await restoreAdMutation.mutateAsync(ad.id);
+          break;
+        case 'delete':
+          await deleteAdMutation.mutateAsync(ad.id);
+          break;
+        case 'permanent':
+          await permanentDeleteMutation.mutateAsync(ad.id);
+          setShowDeleteModal(null);
+          break;
       }
+    } catch (error) {
+      console.error(`Failed to ${action} ad:`, error);
     }
   };
 
-  // Since we're now fetching filtered data from the server, we don't need client-side filtering
-  const filteredAds = ads;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#198639]"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-md p-4">
-        <p className="text-red-800">Failed to load ads. Please try again.</p>
-      </div>
-    );
-  }
+  const formatDuration = (ad: Advertisement) => {
+    const start = new Date(ad.startDate);
+    const end = new Date(ad.endDate);
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return `${days} days`;
+  };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ads Management</h1>
-          <p className="text-gray-600 mt-1">Manage advertisements and promotional content</p>
-        </div>
-        <button
-          onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-[#198639] text-white rounded-md hover:bg-[#15732f] transition-colors"
-        >
-          + Create Ad
-        </button>
-      </div>
+    <div className="py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <AdvertisementHeader
+          title="Advertisements"
+          addButtonText="Add Advertisement"
+          addButtonHref="/admin/advertisement/new"
+        />
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Status Filter */}
-          <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
-            </label>
-            <select
-              id="status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as AdStatus)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
+        <AdvertisementStatusFilter
+          selectedStatus={selectedStatus}
+          statusCounts={statusCounts}
+          searchQuery={searchQuery}
+          onStatusChange={setSelectedStatus}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder="Search advertisements"
+        />
 
-          {/* Type Filter */}
-          <div>
-            <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-              Type
-            </label>
-            <select
-              id="type"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as AdType)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-            >
-              <option value="all">All Types</option>
-              <option value="banner">Banner</option>
-              <option value="sidebar">Sidebar</option>
-              <option value="popup">Popup</option>
-            </select>
-          </div>
-        </div>
+        <AdvertisementActionFilter
+          actionFilter={actionFilter}
+          slotFilter={slotFilter}
+          timeFilter={timeFilter}
+          onActionChange={setActionFilter}
+          onSlotChange={setSlotFilter}
+          onTimeChange={setTimeFilter}
+          filteredCount={filteredAdvertisements.length}
+        />
 
-        {/* Stats */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-[#198639]">{adsData?.total || 0}</div>
-              <div className="text-sm text-gray-600">Total Ads</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-green-600">
-                {ads.filter(a => a.status === 'active').length}
+        {/* Advertisements List Section */}
+        <div className="bg-white shadow rounded-lg">
+          {/* Table Header */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="grid grid-cols-12 gap-4 items-center">
+              <div className="col-span-1 flex justify-center">
+                <input
+                  type="checkbox"
+                  checked={selectedAds.length === filteredAdvertisements.length && filteredAdvertisements.length > 0}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                />
               </div>
-              <div className="text-sm text-gray-600">Active</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-gray-600">
-                {ads.filter(a => a.status === 'inactive').length}
-              </div>
-              <div className="text-sm text-gray-600">Inactive</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-semibold text-yellow-600">
-                {ads.filter(a => a.status === 'pending').length}
-              </div>
-              <div className="text-sm text-gray-600">Pending</div>
+              <div className="col-span-2 text-sm font-medium text-gray-700 text-center">Advertisement</div>
+              <div className="col-span-2 text-sm font-medium text-gray-700 text-center">Ad Name</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Merchant</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Slot</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Order</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Duration</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Impr.</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Click</div>
+              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">CTR</div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Ads Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredAds.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <div className="text-gray-500 text-xl mb-4">No ads found</div>
-            <p className="text-gray-400">Create your first advertisement to get started.</p>
-          </div>
-        ) : (
-          filteredAds.map((ad) => (
-            <div key={ad.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              {/* Ad Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
-                  <span className="text-2xl">{getTypeIcon(ad.type)}</span>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{ad.title}</h3>
-                    <span className="text-sm text-gray-500 capitalize">{ad.type} Ad</span>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="px-6 py-12 text-center">
+              <p className="text-gray-500">Loading advertisements...</p>
+            </div>
+          )}
+
+          {/* Advertisements List */}
+          {!isLoading && (
+            <div className="divide-y divide-gray-200">
+              {filteredAdvertisements.map((ad) => (
+                <div key={ad.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
+                  <div className="grid grid-cols-12 gap-4 items-center">
+                    {/* Checkbox */}
+                    <div className="col-span-1 flex justify-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedAds.includes(ad.id)}
+                        onChange={() => handleSelectAd(ad.id)}
+                        className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                      />
+                    </div>
+                    
+                    {/* Advertisement Image & Status */}
+                    <div className="col-span-2 flex justify-center">
+                      <div className="relative">
+                        {ad.imageUrl ? (
+                          <>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={ad.imageUrl}
+                              alt={ad.title}
+                              className="w-16 h-12 object-cover rounded border border-gray-200"
+                            />
+                          </>
+                        ) : (
+                          <div className="w-16 h-12 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">No Image</span>
+                          </div>
+                        )}
+                        <div className="absolute -top-1 -right-1">
+                          <AdvertisementStatusBadge status={ad.status} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Ad Name with Actions */}
+                    <div className="col-span-2 text-center">
+                      <div className="space-y-1">
+                        <Link
+                          href={`/admin/advertisement/${ad.id}`}
+                          className="text-sm font-medium text-gray-900 hover:text-[#A96B11] cursor-pointer"
+                        >
+                          {ad.title}
+                        </Link>
+                        <div className="flex justify-center gap-2 text-xs">
+                          <Link
+                            href={`/admin/advertisement/${ad.id}/edit`}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            Edit
+                          </Link>
+                          {ad.status === 'draft' && (
+                            <button
+                              onClick={() => handleStatusChange(ad, 'publish')}
+                              className="text-green-600 hover:text-green-800"
+                            >
+                              Publish
+                            </button>
+                          )}
+                          {ad.status === 'published' && (
+                            <button
+                              onClick={() => handleStatusChange(ad, 'archive')}
+                              className="text-yellow-600 hover:text-yellow-800"
+                            >
+                              Archive
+                            </button>
+                          )}
+                          {ad.status === 'trash' ? (
+                            <>
+                              <button
+                                onClick={() => handleStatusChange(ad, 'restore')}
+                                className="text-green-600 hover:text-green-800"
+                              >
+                                Restore
+                              </button>
+                              <button
+                                onClick={() => setShowDeleteModal(ad.id)}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleStatusChange(ad, 'delete')}
+                              className="text-red-600 hover:text-red-800"
+                            >
+                              Trash
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Merchant */}
+                    <div className="col-span-1 text-center">
+                      <p className="text-sm text-gray-900">
+                        {ad.merchant ? ad.merchant.name : 'Platform'}
+                      </p>
+                    </div>
+
+                    {/* Slot */}
+                    <div className="col-span-1 flex justify-center">
+                      <AdvertisementSlotBadge slot={ad.slot} />
+                    </div>
+
+                    {/* Order */}
+                    <div className="col-span-1 flex justify-center">
+                      <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 text-gray-800 text-xs font-medium rounded-full">
+                        {ad.order}
+                      </span>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="col-span-1 text-center">
+                      <p className="text-sm text-gray-700">{formatDuration(ad)}</p>
+                    </div>
+
+                    {/* Impressions */}
+                    <div className="col-span-1 text-center">
+                      <p className="text-sm font-medium text-gray-900">
+                        {ad.impressions.toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Clicks */}
+                    <div className="col-span-1 text-center">
+                      <p className="text-sm font-medium text-gray-900">
+                        {ad.clicks.toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* CTR */}
+                    <div className="col-span-1 text-center">
+                      <p className={`text-sm font-medium ${
+                        ad.ctr > 2 ? 'text-green-600' : 
+                        ad.ctr > 1 ? 'text-yellow-600' : 'text-red-600'
+                      }`}>
+                        {ad.ctr.toFixed(2)}%
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(ad.status)}`}>
-                  {ad.status}
-                </span>
-              </div>
-
-              {/* Ad Content */}
-              {ad.description && (
-                <p className="text-sm text-gray-700 mb-4">{ad.description}</p>
-              )}
-
-              {ad.imageUrl && (
-                <div className="mb-4">
-                  <Image 
-                    src={ad.imageUrl} 
-                    alt={ad.title}
-                    width={384}
-                    height={128}
-                    className="w-full h-32 object-cover rounded-md border"
-                  />
-                </div>
-              )}
-
-              {ad.link && (
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Link:</label>
-                  <a 
-                    href={ad.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-[#198639] hover:underline break-all"
-                  >
-                    {ad.link}
-                  </a>
-                </div>
-              )}
-
-              {/* Ad Footer */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                <div className="text-xs text-gray-500">
-                  Created: {formatDate(ad.createdAt)}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                    onClick={() => setEditingAd(ad)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50"
-                    onClick={() => handleDeleteAd(ad.id, ad.title)}
-                    disabled={deleteAdMutation.isPending}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-          ))
-        )}
-      </div>
-
-      {/* Create/Edit Ad Modal */}
-      {(showCreateForm || editingAd) && (
-        <AdFormModal
-          ad={editingAd}
-          onClose={() => {
-            setShowCreateForm(false);
-            setEditingAd(null);
-          }}
-          onSubmit={editingAd ? 
-            (data) => handleUpdateAd(editingAd.id, data) : 
-            handleCreateAd
-          }
-          isLoading={createAdMutation.isPending || updateAdMutation.isPending}
-        />
-      )}
-    </div>
-  );
-}
-
-// AdFormModal component
-function AdFormModal({ 
-  ad, 
-  onClose, 
-  onSubmit, 
-  isLoading 
-}: {
-  ad?: Advertisement | null;
-  onClose: () => void;
-  onSubmit: (data: {
-    title: string;
-    description?: string;
-    imageUrl?: string;
-    link?: string;
-    type: 'banner' | 'sidebar' | 'popup';
-    status: 'active' | 'inactive' | 'pending';
-  }) => Promise<void>;
-  isLoading: boolean;
-}) {
-  const [formData, setFormData] = useState({
-    title: ad?.title || '',
-    description: ad?.description || '',
-    imageUrl: ad?.imageUrl || '',
-    link: ad?.link || '',
-    type: ad?.type || 'banner' as const,
-    status: ad?.status || 'pending' as const,
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSubmit(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
-            {ad ? 'Edit Ad' : 'Create New Ad'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-              required
-            />
+        {/* Empty State */}
+        {!isLoading && filteredAdvertisements.length === 0 && (
+          <div className="text-center py-12 bg-white shadow rounded-lg">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No advertisements found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Try adjusting your search criteria or filters.
+            </p>
           </div>
+        )}
 
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-              rows={3}
-            />
-          </div>
+        <AdvertisementPagination
+          currentPage={currentPage}
+          totalPages={data?.totalPages || 1}
+          onPageChange={setCurrentPage}
+          totalItems={data?.total || 0}
+          itemsPerPage={itemsPerPage}
+        />
 
-          <div>
-            <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-1">
-              Image URL
-            </label>
-            <input
-              type="url"
-              id="imageUrl"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="link" className="block text-sm font-medium text-gray-700 mb-1">
-              Link
-            </label>
-            <input
-              type="url"
-              id="link"
-              value={formData.link}
-              onChange={(e) => setFormData({ ...formData, link: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                Type
-              </label>
-              <select
-                id="type"
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value as 'banner' | 'sidebar' | 'popup' })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-              >
-                <option value="banner">Banner</option>
-                <option value="sidebar">Sidebar</option>
-                <option value="popup">Popup</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                id="status"
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' | 'pending' })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639]"
-              >
-                <option value="pending">Pending</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Permanently Delete Ad?
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                This action cannot be undone. The ad and all its metrics will be permanently deleted.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleStatusChange({ id: showDeleteModal } as Advertisement, 'permanent')}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                >
+                  Delete Permanently
+                </button>
+              </div>
             </div>
           </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-              disabled={isLoading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-[#198639] border border-transparent rounded-md hover:bg-[#15732f] disabled:opacity-50"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Saving...' : (ad ? 'Update Ad' : 'Create Ad')}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   );

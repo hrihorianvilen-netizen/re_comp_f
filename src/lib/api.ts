@@ -504,8 +504,11 @@ class ApiClient {
   async getAds(params?: {
     page?: number;
     limit?: number;
-    status?: 'active' | 'inactive' | 'pending';
-    type?: 'banner' | 'sidebar' | 'popup';
+    status?: 'draft' | 'published' | 'archive' | 'trash';
+    slot?: 'top' | 'sidebar' | 'footer' | 'inline';
+    merchantId?: string;
+    sortBy?: 'createdAt' | 'order' | 'impressions' | 'clicks' | 'ctr';
+    sortOrder?: 'asc' | 'desc';
   }) {
     const searchParams = new URLSearchParams();
     if (params) {
@@ -529,9 +532,18 @@ class ApiClient {
     title: string;
     description?: string;
     imageUrl?: string;
-    link?: string;
-    type: 'banner' | 'sidebar' | 'popup';
-    status: 'active' | 'inactive' | 'pending';
+    targetUrl?: string;
+    utmSource?: string;
+    utmMedium?: string;
+    utmCampaign?: string;
+    utmContent?: string;
+    merchantId?: string;
+    slot: 'top' | 'sidebar' | 'footer' | 'inline';
+    order?: number;
+    duration: '1d' | '3d' | '7d' | '2w' | '1m' | '2m' | '3m' | 'custom';
+    startDate?: string;
+    endDate?: string;
+    status?: 'draft' | 'published';
   }) {
     return this.request<{ ad: Advertisement; message: string }>('/admin/ads', {
       method: 'POST',
@@ -539,13 +551,26 @@ class ApiClient {
     });
   }
 
+  async getAd(id: string) {
+    return this.request<{ ad: Advertisement }>(`/admin/ads/${id}`);
+  }
+
   async updateAd(id: string, adData: {
     title?: string;
     description?: string;
     imageUrl?: string;
-    link?: string;
-    type?: 'banner' | 'sidebar' | 'popup';
-    status?: 'active' | 'inactive' | 'pending';
+    targetUrl?: string;
+    utmSource?: string;
+    utmMedium?: string;
+    utmCampaign?: string;
+    utmContent?: string;
+    merchantId?: string;
+    slot?: 'top' | 'sidebar' | 'footer' | 'inline';
+    order?: number;
+    duration?: '1d' | '3d' | '7d' | '2w' | '1m' | '2m' | '3m' | 'custom';
+    startDate?: string;
+    endDate?: string;
+    status?: 'draft' | 'published' | 'archive' | 'trash';
   }) {
     return this.request<{ ad: Advertisement; message: string }>(`/admin/ads/${id}`, {
       method: 'PUT',
@@ -556,6 +581,42 @@ class ApiClient {
   async deleteAd(id: string) {
     return this.request<{ message: string }>(`/admin/ads/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async publishAd(id: string) {
+    return this.request<{ ad: Advertisement; message: string }>(`/admin/ads/${id}/publish`, {
+      method: 'POST',
+    });
+  }
+
+  async archiveAd(id: string) {
+    return this.request<{ ad: Advertisement; message: string }>(`/admin/ads/${id}/archive`, {
+      method: 'POST',
+    });
+  }
+
+  async restoreAd(id: string) {
+    return this.request<{ ad: Advertisement; message: string }>(`/admin/ads/${id}/restore`, {
+      method: 'POST',
+    });
+  }
+
+  async permanentDeleteAd(id: string) {
+    return this.request<{ message: string }>(`/admin/ads/${id}/permanent`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getDisplayAds(slot: string, merchantId?: string) {
+    const params = new URLSearchParams({ slot });
+    if (merchantId) params.append('merchantId', merchantId);
+    return this.request<{ ads: Advertisement[] }>(`/ads/display?${params.toString()}`);
+  }
+
+  async trackAdClick(adId: string) {
+    return this.request<{ targetUrl: string }>(`/ads/${adId}/click`, {
+      method: 'POST',
     });
   }
 

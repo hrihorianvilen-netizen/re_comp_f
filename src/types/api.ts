@@ -170,12 +170,51 @@ export interface FAQ {
 
 export interface Advertisement {
   id: string;
+  merchantId?: string;
+  merchant?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo?: string;
+  };
+  
+  // Content
   title: string;
   description?: string;
   imageUrl?: string;
   link?: string;
-  type: 'banner' | 'sidebar' | 'popup';
-  status: 'active' | 'inactive' | 'pending';
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  
+  // Positioning
+  slot: 'top' | 'sidebar' | 'footer' | 'inline';
+  order: number;
+  
+  // Duration
+  startDate: string;
+  endDate: string;
+  duration: '1d' | '3d' | '7d' | '2w' | '1m' | '2m' | '3m' | 'custom';
+  
+  // Metrics
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  
+  // Lifecycle
+  status: 'draft' | 'published' | 'archive' | 'trash';
+  trashedAt?: string;
+  
+  // Meta
+  createdBy: string;
+  createdByUser?: {
+    id: string;
+    name?: string;
+    email: string;
+  };
   createdAt: string;
   updatedAt: string;
+  
+  // Frontend specific
+  clickUrl?: string;
 }

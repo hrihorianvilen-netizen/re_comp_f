@@ -83,7 +83,7 @@ const adminNavItems = [
     ),
     children: [
       { name: 'Advertisements', href: '/admin/advertisement' },
-      { name: 'Add Advertisement', href: '/admin/advertisement/add' }
+      { name: 'Add Advertisement', href: '/admin/advertisement/new' }
     ]
   },
   {

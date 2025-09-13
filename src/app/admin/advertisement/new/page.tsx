@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useMerchants } from '@/hooks/useMerchants';
+import { useCreateAd } from '@/hooks/useAds';
 
 export default function NewAdvertisementPage() {
   const router = useRouter();
+  const createAdMutation = useCreateAd();
   const [formData, setFormData] = useState({
+    merchantId: '',
     merchantSearch: '',
     slot: '',
     order: '',
@@ -24,6 +28,65 @@ export default function NewAdvertisementPage() {
 
   const [imagePreview, setImagePreview] = useState<string>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showMerchantDropdown, setShowMerchantDropdown] = useState(false);
+  const [selectedMerchant, setSelectedMerchant] = useState<{ id: string; name: string } | null>(null);
+  const [searchDebounce, setSearchDebounce] = useState<NodeJS.Timeout | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch merchants based on search
+  const { data: merchantsData, isLoading: merchantsLoading } = useMerchants({
+    search: formData.merchantSearch,
+    limit: 10,
+    excludeDrafts: true
+  });
+
+  // Handle clicks outside dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowMerchantDropdown(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounce merchant search
+  const handleMerchantSearch = (value: string) => {
+    setFormData(prev => ({ ...prev, merchantSearch: value }));
+    setSelectedMerchant(null);
+    setFormData(prev => ({ ...prev, merchantId: '' }));
+    
+    if (searchDebounce) {
+      clearTimeout(searchDebounce);
+    }
+
+    if (value.trim()) {
+      setShowMerchantDropdown(true);
+      const timeout = setTimeout(() => {
+        // Search will be triggered automatically by the useMerchants hook
+      }, 300);
+      setSearchDebounce(timeout);
+    } else {
+      setShowMerchantDropdown(false);
+    }
+  };
+
+  const selectMerchant = (merchant: { id: string; name: string }) => {
+    setSelectedMerchant(merchant);
+    setFormData(prev => ({
+      ...prev,
+      merchantId: merchant.id,
+      merchantSearch: merchant.name
+    }));
+    setShowMerchantDropdown(false);
+    
+    // Clear error when merchant is selected
+    if (errors.merchantSearch) {
+      setErrors(prev => ({ ...prev, merchantSearch: '' }));
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -58,7 +121,7 @@ export default function NewAdvertisementPage() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.merchantSearch.trim()) newErrors.merchantSearch = 'Merchant is required';
+    if (!formData.merchantId) newErrors.merchantSearch = 'Please select a merchant';
     if (!formData.slot) newErrors.slot = 'Slot is required';
     if (!formData.order.trim()) newErrors.order = 'Order is required';
     if (!formData.adName.trim()) newErrors.adName = 'Ad name is required';
@@ -75,12 +138,33 @@ export default function NewAdvertisementPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
     
-    console.log('Saving advertisement:', formData);
-    // In a real app, this would save to the backend
-    router.push('/admin/advertisement');
+    try {
+      // Prepare the ad data
+      const adData = {
+        merchantId: formData.merchantId || undefined,
+        title: formData.adName,
+        description: '',
+        imageUrl: imagePreview || '', // In production, upload image first
+        targetUrl: formData.targetUrl,
+        slot: formData.slot as 'top' | 'sidebar' | 'footer' | 'inline',
+        order: parseInt(formData.order),
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        duration: formData.duration as '1d' | '3d' | '7d' | '2w' | '1m' | '2m' | '3m' | 'custom',
+        utmSource: formData.utmSource,
+        utmCampaign: formData.utmCampaign,
+        utmContent: formData.utmContent,
+        status: 'draft' as const
+      };
+
+      await createAdMutation.mutateAsync(adData);
+      router.push('/admin/advertisement');
+    } catch (error) {
+      console.error('Failed to create advertisement:', error);
+    }
   };
 
   const handleDiscard = () => {
@@ -128,21 +212,89 @@ export default function NewAdvertisementPage() {
               {/* Left Column */}
               <div className="space-y-6">
                 {/* Merchant Search */}
-                <div>
+                <div className="relative" ref={dropdownRef}>
                   <label htmlFor="merchantSearch" className="block text-sm font-medium text-gray-700 mb-2">
                     Merchant <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    id="merchantSearch"
-                    name="merchantSearch"
-                    value={formData.merchantSearch}
-                    onChange={handleInputChange}
-                    placeholder="Search for merchant..."
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11] ${
-                      errors.merchantSearch ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      id="merchantSearch"
+                      name="merchantSearch"
+                      value={formData.merchantSearch}
+                      onChange={(e) => handleMerchantSearch(e.target.value)}
+                      onFocus={() => formData.merchantSearch && setShowMerchantDropdown(true)}
+                      placeholder="Search for merchant..."
+                      autoComplete="off"
+                      className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11] ${
+                        errors.merchantSearch ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    />
+                    {/* Search icon or loading spinner */}
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      {merchantsLoading ? (
+                        <svg className="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      ) : (
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Merchant dropdown */}
+                  {showMerchantDropdown && (
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                      {merchantsLoading ? (
+                        <div className="px-4 py-2 text-gray-500">Searching...</div>
+                      ) : merchantsData?.merchants && merchantsData.merchants.length > 0 ? (
+                        merchantsData.merchants.map((merchant) => (
+                          <div
+                            key={merchant.id}
+                            onClick={() => selectMerchant({ id: merchant.id, name: merchant.name })}
+                            className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-[#A96B11] hover:text-white"
+                          >
+                            <div className="flex items-center">
+                              <span className="font-normal block truncate">
+                                {merchant.name}
+                              </span>
+                              {merchant.category && (
+                                <span className="ml-2 text-xs opacity-75">
+                                  ({merchant.category})
+                                </span>
+                              )}
+                            </div>
+                            {selectedMerchant?.id === merchant.id && (
+                              <span className="absolute inset-y-0 right-0 flex items-center pr-4">
+                                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </span>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-2 text-gray-500">
+                          {formData.merchantSearch ? 'No merchants found' : 'Type to search merchants'}
+                        </div>
+                      )}
+                      {/* Option to create without merchant (platform-wide ad) */}
+                      <div
+                        onClick={() => selectMerchant({ id: '', name: 'Platform-wide (No specific merchant)' })}
+                        className="cursor-pointer select-none relative py-2 pl-3 pr-9 border-t hover:bg-[#A96B11] hover:text-white"
+                      >
+                        <div className="flex items-center">
+                          <span className="font-normal block truncate">
+                            Platform-wide (No specific merchant)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   {errors.merchantSearch && (
                     <p className="mt-1 text-sm text-red-600">{errors.merchantSearch}</p>
                   )}
@@ -165,11 +317,10 @@ export default function NewAdvertisementPage() {
                       }`}
                     >
                       <option value="">Select slot</option>
-                      <option value="header">Header</option>
+                      <option value="top">Top</option>
                       <option value="sidebar">Sidebar</option>
                       <option value="footer">Footer</option>
-                      <option value="content">Content</option>
-                      <option value="popup">Popup</option>
+                      <option value="inline">Inline</option>
                     </select>
                     {errors.slot && (
                       <p className="mt-1 text-sm text-red-600">{errors.slot}</p>
@@ -262,13 +413,13 @@ export default function NewAdvertisementPage() {
                       }`}
                     >
                       <option value="">Select duration</option>
-                      <option value="7">7 days</option>
-                      <option value="14">14 days</option>
-                      <option value="21">21 days</option>
-                      <option value="30">30 days</option>
-                      <option value="45">45 days</option>
-                      <option value="60">60 days</option>
-                      <option value="90">90 days</option>
+                      <option value="1d">1 day</option>
+                      <option value="3d">3 days</option>
+                      <option value="7d">7 days</option>
+                      <option value="2w">2 weeks</option>
+                      <option value="1m">1 month</option>
+                      <option value="2m">2 months</option>
+                      <option value="3m">3 months</option>
                       <option value="custom">Custom</option>
                     </select>
                     {errors.duration && (
