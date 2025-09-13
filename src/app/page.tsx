@@ -10,6 +10,7 @@ import api from '@/lib/api';
 import { MerchantTabs, RecentlyViewedSwiper } from '@/components/merchants';
 import { RecentReviews } from '@/components/reviews';
 import { MobileTabSection } from '@/components/shared';
+import AdSlot from '@/components/ui/AdSlot';
 
 export default function HomePage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
@@ -170,6 +171,9 @@ export default function HomePage() {
         <RecentlyViewedSwiper items={recentlyViewedItems} />
       </div>
 
+      {/* Inline Ad After Recently Viewed */}
+      <AdSlot slot="inline" className="max-w-7xl mx-auto px-4 py-4" />
+
       {/* Mobile Tab Section - Only visible on mobile */}
       <MobileTabSection merchants={merchants} reviews={reviews} />
 
@@ -191,9 +195,16 @@ export default function HomePage() {
             <div className="bg-white rounded-lg shadow-sm">
               <RecentReviews reviews={reviews} />
             </div>
+            {/* Sidebar Ad */}
+            <div className="mt-6">
+              <AdSlot slot="sidebar" />
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Inline Ad Before Quick Actions */}
+      <AdSlot slot="inline" className="max-w-7xl mx-auto px-4 py-4" />
 
       {/* Quick Actions */}
       <div className="bg-white border-t border-gray-200">

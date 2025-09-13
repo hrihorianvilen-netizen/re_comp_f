@@ -12,6 +12,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation } from 'swiper/modules';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
+import AdSlot from '@/components/ui/AdSlot';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
@@ -444,6 +445,13 @@ export default function MerchantDetailPage() {
         </div>
       </div>
 
+      {/* Inline Ad After Description - Only show if merchant allows ads */}
+      {!merchant.hideAds && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <AdSlot slot="inline" merchantId={merchant.id} />
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -773,6 +781,11 @@ export default function MerchantDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Sidebar Ad - Only show if merchant allows ads */}
+            {!merchant.hideAds && (
+              <AdSlot slot="sidebar" merchantId={merchant.id} />
+            )}
 
           </div>
         </div>
