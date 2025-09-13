@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { useAd, useUpdateAd, usePublishAd, useArchiveAd, useDeleteAd } from '@/hooks/useAds';
+import { getImageUrl } from '@/lib/utils';
 
 export default function AdvertisementDetailPage() {
   const router = useRouter();
@@ -58,7 +60,8 @@ export default function AdvertisementDetailPage() {
         utmCampaign: ad.utmCampaign || '',
         utmContent: ad.utmContent || '',
       });
-      setImagePreview(ad.imageUrl || '');
+      const imageUrl = ad.imageUrl && ad.imageUrl !== '' ? getImageUrl(ad.imageUrl) : '';
+      setImagePreview(imageUrl);
     }
   }, [ad]);
 
@@ -205,7 +208,8 @@ export default function AdvertisementDetailPage() {
         utmCampaign: ad.utmCampaign || '',
         utmContent: ad.utmContent || '',
       });
-      setImagePreview(ad.imageUrl || '');
+      const imageUrl = ad.imageUrl && ad.imageUrl !== '' ? getImageUrl(ad.imageUrl) : '';
+      setImagePreview(imageUrl);
     }
   };
 
@@ -494,12 +498,13 @@ export default function AdvertisementDetailPage() {
                 </label>
                 <div className="space-y-4">
                   {/* Image Preview */}
-                  {imagePreview ? (
+                  {imagePreview && imagePreview !== '' ? (
                     <div className="relative">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imagePreview}
+                      <Image
+                        src={imagePreview || '/images/placeholder.jpg'}
                         alt="Banner preview"
+                        width={400}
+                        height={256}
                         className="w-full h-64 object-cover rounded-lg border border-gray-300"
                       />
                       {isEditing && (

@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { 
-  useAds, 
-  useDeleteAd, 
-  usePublishAd, 
-  useArchiveAd, 
+import Image from 'next/image';
+import { getImageUrl } from '@/lib/utils';
+import {
+  useAds,
+  useDeleteAd,
+  usePublishAd,
+  useArchiveAd,
   useRestoreAd,
   usePermanentDeleteAd 
 } from '@/hooks/useAds';
@@ -192,13 +194,14 @@ export default function AdsManagement() {
                     {/* Advertisement Image & Status */}
                     <div className="col-span-2 flex justify-center">
                       <div className="relative">
-                        {ad.imageUrl ? (
+                        {ad.imageUrl && ad.imageUrl !== '' ? (
                           <>
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={ad.imageUrl}
+                            <Image
+                              src={getImageUrl(ad.imageUrl, '/images/placeholder.jpg')}
                               alt={ad.title}
-                              className="w-16 h-12 object-cover rounded border border-gray-200"
+                              width={64}
+                              height={48}
+                              className="object-cover rounded border border-gray-200"
                             />
                           </>
                         ) : (

@@ -9,16 +9,21 @@
  */
 export function getAssetUrl(path: string | null | undefined): string {
   if (!path) return '';
-  
-  // If it's already a full URL, return as is
+
+  // If it's already a full URL (including Supabase URLs), return as is
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  
+
+  // If it starts with data: (base64 image), return as is
+  if (path.startsWith('data:')) {
+    return path;
+  }
+
   // Get the backend base URL (without /api)
   // const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'https://reviews-backend-2zkw.onrender.com';
-  
+
   // Construct and return the full URL
   return `${baseUrl}${path}`;
 }
@@ -30,6 +35,20 @@ export function getAssetUrl(path: string | null | undefined): string {
  * @returns The full image URL or fallback
  */
 export function getImageUrl(path: string | null | undefined, fallback: string = '/images/placeholder.jpg'): string {
-  if (!path) return fallback;
-  return getAssetUrl(path);
+  if (!path || path === '') return fallback;
+
+  try {
+    const url = getAssetUrl(path);
+    // Validate the URL
+    if (url && url !== '') {
+      // Check if it's a valid URL or a local path
+      if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/')) {
+        return url;
+      }
+    }
+    return fallback;
+  } catch (error) {
+    console.error('Error processing image URL:', path, error);
+    return fallback;
+  }
 }
