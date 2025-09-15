@@ -10,6 +10,7 @@ import type { Category } from '@/lib/api/content';
 export default function NewCategoryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -34,13 +35,31 @@ export default function NewCategoryPage() {
   // Fetch categories for parent selection on mount
   useEffect(() => {
     const fetchCategories = async () => {
+      setCategoriesLoading(true);
       try {
-        const response = await contentApi.getCategories();
+        const response = await contentApi.getCategories(true); // Include inactive categories too
         if (response.data) {
-          setCategories(response.data);
+          // Flatten nested categories for dropdown
+          const flattenCategories = (cats: Category[], level = 0): Category[] => {
+            let result: Category[] = [];
+            for (const cat of cats) {
+              result.push({
+                ...cat,
+                name: level > 0 ? `${'— '.repeat(level)}${cat.name}` : cat.name
+              });
+              if (cat.children && cat.children.length > 0) {
+                result = result.concat(flattenCategories(cat.children, level + 1));
+              }
+            }
+            return result;
+          };
+
+          setCategories(flattenCategories(response.data));
         }
       } catch (error) {
         console.error('Failed to fetch categories:', error);
+      } finally {
+        setCategoriesLoading(false);
       }
     };
 
@@ -103,6 +122,9 @@ export default function NewCategoryPage() {
       if (response.data) {
         toast.success('Category saved as draft successfully!');
         router.push('/admin/posts/categories');
+      } else {
+        console.error('Failed to save draft:', response.error);
+        toast.error(response.error || 'Failed to save category as draft');
       }
     } catch (error) {
       console.error('Failed to save draft:', error);
@@ -132,6 +154,9 @@ export default function NewCategoryPage() {
       if (response.data) {
         toast.success('Category published successfully!');
         router.push('/admin/posts/categories');
+      } else {
+        console.error('Failed to publish:', response.error);
+        toast.error(response.error || 'Failed to publish category');
       }
     } catch (error) {
       console.error('Failed to publish:', error);
@@ -375,14 +400,19 @@ export default function NewCategoryPage() {
                     name="parentId"
                     value={formData.parentId}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    disabled={categoriesLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11] disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">None (Root Category)</option>
-                    {categories.filter(cat => cat.parentId === null).map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
+                    {categoriesLoading ? (
+                      <option disabled>Loading categories...</option>
+                    ) : (
+                      categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))
+                    )}
                   </select>
                 </div>
 

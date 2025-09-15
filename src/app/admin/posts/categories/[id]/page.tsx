@@ -1,87 +1,244 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 import AdminHeader from '@/components/admin/shared/AdminHeader';
-import SEOSettingsCard from '@/components/admin/shared/SEOSettingsCard';
-
-// Mock category data - in real app this would come from API
-const mockCategory = {
-  id: '1',
-  name: 'Technology',
-  slug: 'technology',
-  description: 'Latest tech news, reviews, and innovations covering everything from smartphones to artificial intelligence.',
-  status: 'published',
-  parent: null,
-  parentName: '-',
-  position: 1,
-  postCount: 45,
-  canonicalUrl: 'https://example.com/category/technology',
-  schemaType: 'Category',
-  seoTitle: 'Technology News & Reviews - TechBlog',
-  seoDescription: 'Stay updated with the latest technology news, product reviews, and industry insights.',
-  seoImage: '/api/placeholder/1200/630',
-  allowComments: true,
-  hideAdvertisements: false,
-  createdAt: '2024-12-01T10:30:00',
-  updatedAt: '2025-01-02T14:20:00'
-};
+import { contentApi, Category } from '@/lib/api/content';
 
 export default function CategoryDetailPage() {
   const params = useParams();
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(mockCategory);
+  const router = useRouter();
+  const categoryId = params.id as string;
 
-  const handleFieldChange = (name: string, value: string | boolean) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [category, setCategory] = useState<Category | null>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    parentId: '',
+    displayOrder: 0,
+    isActive: true,
+    allowComments: true,
+    hideAds: false,
+    metaTitle: '',
+    metaDescription: '',
+  });
+
+  // Fetch category data and all categories for parent dropdown
+  useEffect(() => {
+    fetchCategoryData();
+  }, [categoryId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchCategoryData = async () => {
+    setLoading(true);
+    try {
+      // Fetch the specific category
+      const categoryResponse = await contentApi.getCategories(true);
+      if (categoryResponse.data) {
+        // Find the specific category from the list
+        const foundCategory = findCategoryById(categoryResponse.data, categoryId);
+        if (foundCategory) {
+          setCategory(foundCategory);
+          setFormData({
+            name: foundCategory.name,
+            slug: foundCategory.slug,
+            description: foundCategory.description || '',
+            parentId: foundCategory.parentId || '',
+            displayOrder: foundCategory.displayOrder || 0,
+            isActive: foundCategory.isActive !== false,
+            allowComments: foundCategory.allowComments !== false,
+            hideAds: foundCategory.hideAds || false,
+            metaTitle: foundCategory.metaTitle || '',
+            metaDescription: foundCategory.metaDescription || '',
+          });
+        } else {
+          toast.error('Category not found');
+          router.push('/admin/posts/categories');
+        }
+
+        // Flatten categories for dropdown
+        const flattenCategories = (cats: Category[], level = 0): Category[] => {
+          let result: Category[] = [];
+          for (const cat of cats) {
+            // Don't include the current category or its children in parent options
+            if (cat.id !== categoryId) {
+              result.push({
+                ...cat,
+                name: level > 0 ? `${'— '.repeat(level)}${cat.name}` : cat.name
+              });
+              if (cat.children && cat.children.length > 0) {
+                result = result.concat(flattenCategories(cat.children, level + 1));
+              }
+            }
+          }
+          return result;
+        };
+
+        setAllCategories(flattenCategories(categoryResponse.data));
+      } else {
+        toast.error('Failed to fetch category');
+        router.push('/admin/posts/categories');
+      }
+    } catch (error) {
+      console.error('Error fetching category:', error);
+      toast.error('Failed to fetch category');
+      router.push('/admin/posts/categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to find category by ID in nested structure
+  const findCategoryById = (categories: Category[], id: string): Category | null => {
+    for (const cat of categories) {
+      if (cat.id === id) {
+        return cat;
+      }
+      if (cat.children && cat.children.length > 0) {
+        const found = findCategoryById(cat.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const handleFieldChange = (name: string, value: string | boolean | number) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
 
-  const handleSave = () => {
-    console.log('Saving category:', formData);
-    setIsEditing(false);
-  };
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
 
-  const handleDiscard = () => {
-    setFormData(mockCategory);
-    setIsEditing(false);
-  };
+    setSaving(true);
+    try {
+      const updateData = {
+        name: formData.name,
+        description: formData.description,
+        parentId: formData.parentId || undefined,
+        displayOrder: formData.displayOrder,
+        isActive: formData.isActive,
+        allowComments: formData.allowComments,
+        hideAds: formData.hideAds,
+        metaTitle: formData.metaTitle,
+        metaDescription: formData.metaDescription,
+      };
 
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      console.log('Deleting category:', params.id);
-      window.location.href = '/admin/posts/categories';
+      const response = await contentApi.updateCategory(categoryId, updateData);
+      if (response.data) {
+        toast.success('Category updated successfully');
+        setCategory(response.data);
+        setIsEditing(false);
+        // Refresh the data
+        fetchCategoryData();
+      } else {
+        toast.error(response.error || 'Failed to update category');
+      }
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast.error('Failed to update category');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      published: { text: 'Published', color: 'green' as const },
-      draft: { text: 'Draft', color: 'gray' as const },
-      trash: { text: 'Trash', color: 'red' as const },
-    };
-    return statusMap[status as keyof typeof statusMap] || statusMap.draft;
+  const handleDiscard = () => {
+    if (category) {
+      setFormData({
+        name: category.name,
+        slug: category.slug,
+        description: category.description || '',
+        parentId: category.parentId || '',
+        displayOrder: category.displayOrder || 0,
+        isActive: category.isActive !== false,
+        allowComments: category.allowComments !== false,
+        hideAds: category.hideAds || false,
+        metaTitle: category.metaTitle || '',
+        metaDescription: category.metaDescription || '',
+      });
+    }
+    setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this category? Posts in this category will need to be reassigned.')) {
+      try {
+        const response = await contentApi.deleteCategory(categoryId);
+        if (response.data) {
+          toast.success('Category deleted successfully');
+          router.push('/admin/posts/categories');
+        } else {
+          toast.error(response.error || 'Failed to delete category');
+        }
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        toast.error('Failed to delete category');
+      }
+    }
+  };
+
+  const getStatusBadge = () => {
+    if (formData.isActive) {
+      return { text: 'Active', color: 'green' as const };
+    }
+    return { text: 'Inactive', color: 'gray' as const };
   };
 
   const headerActions = [
-    { text: 'Back to Categories', onClick: () => window.location.href = '/admin/posts/categories', variant: 'secondary' as const },
+    { text: 'Back to Categories', onClick: () => router.push('/admin/posts/categories'), variant: 'secondary' as const },
     ...(isEditing ? [
-      { text: 'Discard', onClick: handleDiscard, variant: 'secondary' as const },
-      { text: 'Save Changes', onClick: handleSave, variant: 'primary' as const }
+      { text: 'Discard', onClick: handleDiscard, variant: 'secondary' as const, disabled: saving },
+      { text: saving ? 'Saving...' : 'Save Changes', onClick: handleSave, variant: 'primary' as const, disabled: saving }
     ] : [
       { text: 'Edit', onClick: () => setIsEditing(true), variant: 'primary' as const },
       { text: 'Delete', onClick: handleDelete, variant: 'danger' as const }
     ])
   ];
 
+  if (loading) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A96B11]"></div>
+            <div className="text-gray-500">Loading category...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!category) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <p className="text-gray-500">Category not found</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Find parent category name for display
+  const parentCategory = formData.parentId ? allCategories.find(cat => cat.id === formData.parentId) : null;
+
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdminHeader
           title={isEditing ? 'Edit Category' : 'Category Details'}
-          badge={getStatusBadge(formData.status)}
+          badge={getStatusBadge()}
           actions={headerActions}
         />
 
@@ -112,17 +269,7 @@ export default function CategoryDetailPage() {
                   <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
                     Slug
                   </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      id="slug"
-                      value={formData.slug}
-                      onChange={(e) => handleFieldChange('slug', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-600 font-mono">/{formData.slug}</p>
-                  )}
+                  <p className="text-sm text-gray-600 font-mono">/{formData.slug}</p>
                 </div>
 
                 <div>
@@ -132,100 +279,110 @@ export default function CategoryDetailPage() {
                   {isEditing ? (
                     <select
                       id="parent"
-                      value={formData.parent || ''}
-                      onChange={(e) => handleFieldChange('parent', e.target.value)}
+                      value={formData.parentId}
+                      onChange={(e) => handleFieldChange('parentId', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                     >
                       <option value="">None (Root Category)</option>
-                      <option value="1">Technology</option>
-                      <option value="2">Fashion</option>
-                      <option value="3">Lifestyle</option>
-                      <option value="4">Business</option>
+                      {allCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
                     </select>
                   ) : (
-                    <p className="text-sm text-gray-900">{formData.parentName || 'None (Root Category)'}</p>
+                    <p className="text-sm text-gray-900">
+                      {parentCategory?.name || 'None (Root Category)'}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-2">
-                    Position
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => handleFieldChange('description', e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      placeholder="Describe this category..."
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{formData.description || 'No description'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="displayOrder" className="block text-sm font-medium text-gray-700 mb-2">
+                    Display Order
                   </label>
                   {isEditing ? (
                     <input
                       type="number"
-                      id="position"
-                      value={formData.position}
-                      onChange={(e) => handleFieldChange('position', String(parseInt(e.target.value) || 1))}
-                      min="1"
+                      id="displayOrder"
+                      value={formData.displayOrder}
+                      onChange={(e) => handleFieldChange('displayOrder', parseInt(e.target.value) || 0)}
+                      min="0"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">{formData.position}</p>
+                    <p className="text-sm text-gray-900">{formData.displayOrder}</p>
                   )}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Posts</label>
-                  <p className="text-sm text-gray-900">{formData.postCount} posts</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Created</label>
-                  <p className="text-sm text-gray-600">{new Date(formData.createdAt).toLocaleString()}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Updated</label>
-                  <p className="text-sm text-gray-600">{new Date(formData.updatedAt).toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                {isEditing ? (
-                  <textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => handleFieldChange('description', e.target.value)}
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                  />
-                ) : (
-                  <div className="prose max-w-none">
-                    <p className="text-gray-700">{formData.description}</p>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* SEO Settings */}
-            <SEOSettingsCard
-              seoTitle={formData.seoTitle}
-              seoDescription={formData.seoDescription}
-              canonicalUrl={formData.canonicalUrl}
-              schemaType={formData.schemaType}
-              seoImage={formData.seoImage}
-              onFieldChange={handleFieldChange}
-              schemaOptions={[
-                { value: 'Category', label: 'Category' },
-                { value: 'Thing', label: 'Thing' },
-                { value: 'Organization', label: 'Organization' },
-                { value: 'Place', label: 'Place' }
-              ]}
-            />
+            <div className="bg-white shadow rounded-lg p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">SEO Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                    SEO Title
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      id="metaTitle"
+                      value={formData.metaTitle}
+                      onChange={(e) => handleFieldChange('metaTitle', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      placeholder="SEO optimized title"
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{formData.metaTitle || 'Not set'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                    SEO Description
+                  </label>
+                  {isEditing ? (
+                    <textarea
+                      id="metaDescription"
+                      value={formData.metaDescription}
+                      onChange={(e) => handleFieldChange('metaDescription', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      placeholder="Meta description for search engines..."
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{formData.metaDescription || 'Not set'}</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Sidebar - 1/3 width */}
           <div className="space-y-6">
-            {/* Category Status */}
+            {/* Status & Settings */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Category Status</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Settings</h3>
               <div className="space-y-4">
                 <div>
                   <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
@@ -234,70 +391,71 @@ export default function CategoryDetailPage() {
                   {isEditing ? (
                     <select
                       id="status"
-                      value={formData.status}
-                      onChange={(e) => handleFieldChange('status', e.target.value)}
+                      value={formData.isActive ? 'active' : 'inactive'}
+                      onChange={(e) => handleFieldChange('isActive', e.target.value === 'active')}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                     >
-                      <option value="published">Published</option>
-                      <option value="draft">Draft</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
                     </select>
                   ) : (
-                    <p className="text-sm text-gray-900 capitalize">{formData.status}</p>
+                    <p className="text-sm">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        formData.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {formData.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </p>
                   )}
+                </div>
+
+                <div className="space-y-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.allowComments}
+                      onChange={(e) => handleFieldChange('allowComments', e.target.checked)}
+                      disabled={!isEditing}
+                      className="rounded border-gray-300 text-[#A96B11] focus:ring-[#A96B11] mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Allow Comments</span>
+                  </label>
+
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.hideAds}
+                      onChange={(e) => handleFieldChange('hideAds', e.target.checked)}
+                      disabled={!isEditing}
+                      className="rounded border-gray-300 text-[#A96B11] focus:ring-[#A96B11] mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Hide Advertisements</span>
+                  </label>
                 </div>
               </div>
             </div>
 
-            {/* Settings */}
+            {/* Statistics */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Settings</h3>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  {isEditing ? (
-                    <input
-                      type="checkbox"
-                      id="allowComments"
-                      checked={formData.allowComments}
-                      onChange={(e) => handleFieldChange('allowComments', e.target.checked)}
-                      className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                    />
-                  ) : (
-                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${formData.allowComments ? 'bg-[#A96B11] border-[#A96B11]' : 'border-gray-300'}`}>
-                      {formData.allowComments && (
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-                  <label htmlFor="allowComments" className="ml-2 text-sm text-gray-700">
-                    Allow comments
-                  </label>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Statistics</h3>
+              <dl className="space-y-3">
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">Posts</dt>
+                  <dd className="text-sm text-gray-900">{category._count?.posts || category.postCount || 0}</dd>
                 </div>
-
-                <div className="flex items-center">
-                  {isEditing ? (
-                    <input
-                      type="checkbox"
-                      id="hideAdvertisements"
-                      checked={formData.hideAdvertisements}
-                      onChange={(e) => handleFieldChange('hideAdvertisements', e.target.checked)}
-                      className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                    />
-                  ) : (
-                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${formData.hideAdvertisements ? 'bg-[#A96B11] border-[#A96B11]' : 'border-gray-300'}`}>
-                      {formData.hideAdvertisements && (
-                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-                  <label htmlFor="hideAdvertisements" className="ml-2 text-sm text-gray-700">
-                    {`Don't show advertisements on this page`}
-                  </label>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">Created</dt>
+                  <dd className="text-sm text-gray-900">
+                    {new Date(category.createdAt).toLocaleDateString()}
+                  </dd>
                 </div>
-              </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
+                  <dd className="text-sm text-gray-900">
+                    {new Date(category.updatedAt).toLocaleDateString()}
+                  </dd>
+                </div>
+              </dl>
             </div>
           </div>
         </div>

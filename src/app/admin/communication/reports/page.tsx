@@ -1,142 +1,102 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import moment from 'moment';
+import { toast } from 'react-hot-toast';
 import CommunicationHeader from '@/components/admin/communication/CommunicationHeader';
 import ReportsSearchFilter from '@/components/admin/communication/ReportsSearchFilter';
 import ActionFilter from '@/components/admin/communication/ActionFilter';
 import CommunicationPagination from '@/components/admin/communication/CommunicationPagination';
-
-// Mock data for reports
-const mockReports = [
-  {
-    id: '1',
-    reporter: {
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@email.com',
-      ipAddress: '192.168.1.105'
-    },
-    date: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-    reported: {
-      name: 'John Spammer',
-      email: 'john.spammer@fake.com',
-      ipAddress: '123.45.67.100'
-    },
-    type: 'spam',
-    context: {
-      title: 'Fake Review with Malicious Links',
-      content: 'This review contains spam content and suspicious links trying to redirect users to malicious websites.'
-    },
-    qty: 5
-  },
-  {
-    id: '2',
-    reporter: {
-      name: 'Mike Wilson',
-      email: 'mike.wilson@company.com',
-      ipAddress: '10.0.0.45'
-    },
-    date: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-    reported: {
-      name: 'Angry User',
-      email: 'angry.user@email.com',
-      ipAddress: '172.16.0.25'
-    },
-    type: 'inappropriate',
-    context: {
-      title: 'Inappropriate Language in Comment',
-      content: 'User posted comment with offensive language and personal attacks against other reviewers.'
-    },
-    qty: 3
-  },
-  {
-    id: '3',
-    reporter: {
-      name: 'Emma Davis',
-      email: 'emma.davis@gmail.com',
-      ipAddress: '203.0.113.75'
-    },
-    date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-    reported: {
-      name: 'Fake Account',
-      email: 'fake.account@bot.com',
-      ipAddress: '185.220.100.50'
-    },
-    type: 'fraud',
-    context: {
-      title: 'Fraudulent Merchant Review',
-      content: 'This appears to be a fake review posted by a bot account to artificially inflate ratings.'
-    },
-    qty: 8
-  },
-  {
-    id: '4',
-    reporter: {
-      name: 'David Brown',
-      email: 'david.brown@service.com',
-      ipAddress: '198.51.100.30'
-    },
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    reported: {
-      name: 'Competitor User',
-      email: 'competitor@rival.com',
-      ipAddress: '104.28.15.75'
-    },
-    type: 'misleading',
-    context: {
-      title: 'Misleading Information in Post',
-      content: 'User is spreading false information about merchant policies to damage reputation.'
-    },
-    qty: 2
-  },
-  {
-    id: '5',
-    reporter: {
-      name: 'Lisa Anderson',
-      email: 'lisa.anderson@user.com',
-      ipAddress: '216.58.194.100'
-    },
-    date: new Date(Date.now() - 1 * 7 * 24 * 60 * 60 * 1000), // 1 week ago
-    reported: {
-      name: 'Harassment User',
-      email: 'harass@trouble.com',
-      ipAddress: '151.101.193.140'
-    },
-    type: 'harassment',
-    context: {
-      title: 'User Harassment in Comments',
-      content: 'User has been repeatedly harassing other community members with threatening messages.'
-    },
-    qty: 12
-  }
-];
+import { reportsApi, ReportGroup } from '@/lib/api/reports';
 
 export default function CommunicationReportsPage() {
+  const [reports, setReports] = useState<ReportGroup[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [selectedReports, setSelectedReports] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
   const itemsPerPage = 20;
 
-  const filteredReports = mockReports.filter(report => {
-    const matchesSearch = searchQuery === '' || 
-      report.reporter.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reported.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.context.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+  // Fetch reports from API
+  useEffect(() => {
+    fetchReports();
+  }, [currentPage, typeFilter, startDate, endDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, string | number> = {
+        page: currentPage,
+        limit: itemsPerPage
+      };
+
+      // Add type filter
+      if (typeFilter) {
+        params.contentType = typeFilter as 'review' | 'comment' | 'post';
+      }
+
+      // Add date filters
+      if (startDate) {
+        params.dateFrom = new Date(startDate).toISOString();
+      }
+      if (endDate) {
+        params.dateTo = new Date(endDate).toISOString();
+      }
+
+      const response = await reportsApi.getReports(params);
+
+      if (response.data) {
+        setReports(response.data.reports);
+        setTotalPages(response.data.pagination.pages);
+        setTotalItems(response.data.pagination.total);
+      } else {
+        console.error('Failed to fetch reports:', response.error);
+        toast.error(response.error || 'Failed to fetch reports');
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      toast.error('Failed to fetch reports');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter reports locally based on search query
+  const filteredReports = reports.filter(report => {
+    if (searchQuery === '') return true;
+
+    const searchLower = searchQuery.toLowerCase();
+
+    // Search in reporter info
+    const reporterMatch = report.reports.some(r =>
+      r.reporter?.displayName?.toLowerCase().includes(searchLower) ||
+      r.reporter?.email?.toLowerCase().includes(searchLower)
+    );
+
+    // Search in content
+    const contentMatch = report.content && (
+      report.content.title?.toLowerCase().includes(searchLower) ||
+      report.content.content?.toLowerCase().includes(searchLower) ||
+      report.content.context?.toLowerCase().includes(searchLower)
+    );
+
+    // Search in reported user info
+    const reportedUserMatch = report.content?.user && (
+      report.content.user.displayName?.toLowerCase().includes(searchLower) ||
+      report.content.user.email.toLowerCase().includes(searchLower)
+    );
+
+    return reporterMatch || contentMatch || reportedUserMatch;
   });
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedReports = filteredReports.slice(startIndex, endIndex);
-
-  const formatDateTime = (date: Date) => {
+  const formatDateTime = (date: string) => {
     return moment(date).format('HH:mm:ss DD/MM/YYYY');
   };
 
@@ -144,7 +104,7 @@ export default function CommunicationReportsPage() {
     if (selectAll) {
       setSelectedReports([]);
     } else {
-      setSelectedReports(paginatedReports.map(report => report.id));
+      setSelectedReports(filteredReports.map(report => report.contentId));
     }
     setSelectAll(!selectAll);
   };
@@ -159,13 +119,79 @@ export default function CommunicationReportsPage() {
     });
   };
 
+  const handleAcceptReport = async (contentId: string, contentType: 'review' | 'comment' | 'post') => {
+    try {
+      const response = await reportsApi.acceptReport(contentId, contentType);
+      if (response.data) {
+        toast.success('Report accepted - content marked as spam');
+        fetchReports(); // Refresh the list
+      } else {
+        toast.error(response.error || 'Failed to accept report');
+      }
+    } catch (error) {
+      console.error('Error accepting report:', error);
+      toast.error('Failed to accept report');
+    }
+  };
+
+  const handleRejectReport = async (contentId: string, contentType: 'review' | 'comment' | 'post') => {
+    try {
+      const response = await reportsApi.rejectReport(contentId, contentType);
+      if (response.data) {
+        toast.success('Report rejected - content kept');
+        fetchReports(); // Refresh the list
+      } else {
+        toast.error(response.error || 'Failed to reject report');
+      }
+    } catch (error) {
+      console.error('Error rejecting report:', error);
+      toast.error('Failed to reject report');
+    }
+  };
+
+  const getReportTypeLabel = (reason?: string) => {
+    if (!reason) return 'other';
+    const lowerReason = reason.toLowerCase();
+    if (lowerReason.includes('spam')) return 'spam';
+    if (lowerReason.includes('inappropriate') || lowerReason.includes('offensive')) return 'inappropriate';
+    if (lowerReason.includes('fraud') || lowerReason.includes('fake')) return 'fraud';
+    if (lowerReason.includes('misleading') || lowerReason.includes('false')) return 'misleading';
+    if (lowerReason.includes('harassment') || lowerReason.includes('abuse')) return 'harassment';
+    return 'other';
+  };
+
+  const getReportTypeColor = (type: string) => {
+    switch (type) {
+      case 'spam': return 'bg-red-100 text-red-800';
+      case 'inappropriate': return 'bg-orange-100 text-orange-800';
+      case 'fraud': return 'bg-purple-100 text-purple-800';
+      case 'misleading': return 'bg-yellow-100 text-yellow-800';
+      case 'harassment': return 'bg-pink-100 text-pink-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CommunicationHeader title="Reports" />
+          <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A96B11]"></div>
+            <div className="text-gray-500">Loading reports...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <CommunicationHeader title="Reports" />
 
         <ReportsSearchFilter
-          totalCount={mockReports.length}
+          totalCount={totalItems}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
@@ -208,95 +234,111 @@ export default function CommunicationReportsPage() {
 
           {/* Reports List */}
           <div className="divide-y divide-gray-200">
-            {paginatedReports.map((report) => (
-              <div key={report.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
-                <div className="flex items-start gap-4">
-                  {/* Checkbox */}
-                  <div className="w-8 flex items-center pt-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedReports.includes(report.id)}
-                      onChange={() => handleSelectReport(report.id)}
-                      className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                    />
-                  </div>
-                  
-                  {/* Reporter */}
-                  <div className="w-40">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-gray-900">{report.reporter.name}</p>
-                      <p className="text-xs text-gray-500">{report.reporter.email}</p>
-                      <p className="text-xs text-gray-400">{report.reporter.ipAddress}</p>
+            {filteredReports.map((reportGroup) => {
+              // Get the first reporter as representative (most recent)
+              const firstReport = reportGroup.reports[0];
+              const reportType = getReportTypeLabel(firstReport?.reason);
+
+              return (
+                <div key={reportGroup.contentId} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
+                  <div className="flex items-start gap-4">
+                    {/* Checkbox */}
+                    <div className="w-8 flex items-center pt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedReports.includes(reportGroup.contentId)}
+                        onChange={() => handleSelectReport(reportGroup.contentId)}
+                        className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                      />
                     </div>
-                  </div>
 
-                  {/* Date */}
-                  <div className="w-32">
-                    <p className="text-xs text-gray-600">{formatDateTime(report.date)}</p>
-                  </div>
-
-                  {/* Reported */}
-                  <div className="w-40">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-gray-900">{report.reported.name}</p>
-                      <p className="text-xs text-gray-500">{report.reported.email}</p>
-                      <p className="text-xs text-gray-400">{report.reported.ipAddress}</p>
+                    {/* Reporter */}
+                    <div className="w-40">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {firstReport?.reporter?.displayName || 'Anonymous'}
+                        </p>
+                        <p className="text-xs text-gray-500">{firstReport?.reporter?.email || 'N/A'}</p>
+                        <p className="text-xs text-gray-400">{firstReport?.reporterIp || 'N/A'}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Type */}
-                  <div className="w-24">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      report.type === 'spam' ? 'bg-red-100 text-red-800' :
-                      report.type === 'inappropriate' ? 'bg-orange-100 text-orange-800' :
-                      report.type === 'fraud' ? 'bg-purple-100 text-purple-800' :
-                      report.type === 'misleading' ? 'bg-yellow-100 text-yellow-800' :
-                      report.type === 'harassment' ? 'bg-pink-100 text-pink-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {report.type}
-                    </span>
-                  </div>
-
-                  {/* Context */}
-                  <div className="flex-1">
-                    <div className="space-y-1">
-                      <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{report.context.title}</h4>
-                      <p className="text-sm text-gray-600 line-clamp-2">{report.context.content}</p>
+                    {/* Date */}
+                    <div className="w-32">
+                      <p className="text-xs text-gray-600">{formatDateTime(reportGroup.lastReportDate)}</p>
                     </div>
-                  </div>
 
-                  {/* Qty */}
-                  <div className="w-16 text-center">
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-800 text-sm font-medium rounded-full">
-                      {report.qty}
-                    </span>
-                  </div>
+                    {/* Reported */}
+                    <div className="w-40">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {reportGroup.content?.user?.displayName || 'Unknown User'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {reportGroup.content?.user?.email || 'N/A'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {reportGroup.contentType}
+                        </p>
+                      </div>
+                    </div>
 
-                  {/* Actions */}
-                  <div className="w-32 flex items-center gap-2">
-                    <button
-                      onClick={() => console.log('Agree report:', report.id)}
-                      className="p-1 text-green-600 hover:text-green-800 transition-colors"
-                      title="Agree"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => console.log('Cancel report:', report.id)}
-                      className="p-1 text-red-600 hover:text-red-800 transition-colors"
-                      title="Cancel"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {/* Type */}
+                    <div className="w-24">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getReportTypeColor(reportType)}`}>
+                        {reportType}
+                      </span>
+                    </div>
+
+                    {/* Context */}
+                    <div className="flex-1">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-medium text-gray-900 line-clamp-1">
+                          {reportGroup.content?.title || reportGroup.content?.context || 'No title'}
+                        </h4>
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {reportGroup.content?.content || reportGroup.content?.reaction || 'No content available'}
+                        </p>
+                        {reportGroup.content?.merchant && (
+                          <p className="text-xs text-gray-500">
+                            Merchant: {reportGroup.content.merchant.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Qty */}
+                    <div className="w-16 text-center">
+                      <span className="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-gray-800 text-sm font-medium rounded-full">
+                        {reportGroup.reportCount}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="w-32 flex items-center gap-2">
+                      <button
+                        onClick={() => handleAcceptReport(reportGroup.contentId, reportGroup.contentType)}
+                        className="p-1 text-green-600 hover:text-green-800 transition-colors"
+                        title="Accept Report (Mark as Spam)"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleRejectReport(reportGroup.contentId, reportGroup.contentType)}
+                        className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                        title="Reject Report (Keep Content)"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -308,7 +350,7 @@ export default function CommunicationReportsPage() {
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No reports found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Try adjusting your search criteria or filters.
+              {loading ? 'Loading...' : 'Try adjusting your search criteria or filters.'}
             </p>
           </div>
         )}
@@ -317,7 +359,7 @@ export default function CommunicationReportsPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
-          totalItems={filteredReports.length}
+          totalItems={totalItems}
           itemsPerPage={itemsPerPage}
         />
       </div>
