@@ -1,78 +1,179 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { contentApi, Category } from '@/lib/api/content';
+import { toast } from 'react-hot-toast';
 
 export default function NewPostPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+
   const [formData, setFormData] = useState({
     title: '',
     content: '',
-    category: '',
-    tags: '',
+    excerpt: '',
+    categoryId: '',
+    tags: [] as string[],
     featuredImage: '',
     canonicalUrl: '',
-    schemaType: 'Article',
-    seoTitle: '',
-    seoDescription: '',
-    seoImage: '',
-    slug: '',
+    metaTitle: '',
+    metaDescription: '',
+    metaKeywords: '',
+    ogImage: '',
     allowComments: true,
-    hideAdvertisements: false
+    hideAds: false,
+    isPinned: false,
+    isFeatured: false,
+    status: 'draft' as 'draft' | 'published' | 'scheduled',
+    scheduledAt: ''
   });
 
+  const [tagInput, setTagInput] = useState('');
   const [featuredImagePreview, setFeaturedImagePreview] = useState('');
-  const [seoImagePreview, setSeoImagePreview] = useState('');
+  const [ogImagePreview, setOgImagePreview] = useState('');
+
+  const fetchCategories = useCallback(async () => {
+    const response = await contentApi.getCategories();
+    if (response.data) {
+      const categoriesData = response.data;
+      setCategories(categoriesData);
+      // Set first category as default if available
+      if (categoriesData.length > 0 && !formData.categoryId) {
+        setFormData(prev => ({ ...prev, categoryId: categoriesData[0].id }));
+      }
+    }
+  }, [formData.categoryId]);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+
+    // Update image previews
+    if (name === 'featuredImage') {
+      setFeaturedImagePreview(value);
+    } else if (name === 'ogImage') {
+      setOgImagePreview(value);
+    }
+  };
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim()]
+      }));
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && e.currentTarget.name === 'tagInput') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  const validateForm = () => {
+    if (!formData.title.trim()) {
+      toast.error('Title is required');
+      return false;
+    }
+    if (!formData.content.trim()) {
+      toast.error('Content is required');
+      return false;
+    }
+    if (!formData.excerpt.trim()) {
+      toast.error('Excerpt is required');
+      return false;
+    }
+    if (!formData.categoryId) {
+      toast.error('Please select a category');
+      return false;
+    }
+    if (formData.status === 'scheduled' && !formData.scheduledAt) {
+      toast.error('Please select a scheduled date for scheduled posts');
+      return false;
+    }
+    return true;
   };
 
   const handleDiscard = () => {
     if (window.confirm('Are you sure you want to discard this post? All changes will be lost.')) {
-      // Navigate back to posts list
-      window.location.href = '/admin/posts';
+      router.push('/admin/posts');
     }
   };
 
-  const handleSaveDraft = () => {
-    console.log('Saving draft:', { ...formData, status: 'draft' });
-    // Save as draft logic here
-  };
+  const handleSaveDraft = async () => {
+    if (!validateForm()) return;
 
-  const handlePublish = () => {
-    console.log('Publishing post:', { ...formData, status: 'published' });
-    // Publish logic here
-  };
+    setLoading(true);
+    try {
+      const response = await contentApi.createPost({
+        ...formData,
+        status: 'draft'
+      });
 
-  const handleFeaturedImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFeaturedImagePreview(reader.result as string);
-        setFormData(prev => ({ ...prev, featuredImage: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSeoImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 300 * 1024) { // 300KB limit
-        alert('SEO image must be less than 300KB');
-        return;
+      if (response.data) {
+        toast.success('Post saved as draft successfully!');
+        router.push('/admin/posts');
+      } else if (response.error) {
+        toast.error(response.error);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSeoImagePreview(reader.result as string);
-        setFormData(prev => ({ ...prev, seoImage: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      toast.error('Failed to save draft');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const response = await contentApi.createPost({
+        ...formData,
+        status: formData.status === 'scheduled' ? 'scheduled' : 'published'
+      });
+
+      if (response.data) {
+        toast.success(`Post ${formData.status === 'scheduled' ? 'scheduled' : 'published'} successfully!`);
+        router.push('/admin/posts');
+      } else if (response.error) {
+        toast.error(response.error);
+      }
+    } catch (error) {
+      console.error('Error publishing post:', error);
+      toast.error('Failed to publish post');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -80,44 +181,46 @@ export default function NewPostPage() {
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">Add New Post</h1>
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-              Draft
-            </span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleDiscard}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              Discard
-            </button>
-            <button
-              onClick={handleSaveDraft}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              Save Draft
-            </button>
-            <button
-              onClick={handlePublish}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#A96B11] hover:bg-[#8B5A0F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A96B11]"
-            >
-              Publish
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDiscard}
+                disabled={loading}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Discard
+              </button>
+              <button
+                onClick={handleSaveDraft}
+                disabled={loading}
+                className="px-4 py-2 border border-[#A96B11] rounded-md text-sm font-medium text-[#A96B11] bg-white hover:bg-[#FFF8F0] disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save Draft'}
+              </button>
+              <button
+                onClick={handlePublish}
+                disabled={loading}
+                className="px-4 py-2 bg-[#A96B11] text-white text-sm font-medium rounded-md hover:bg-[#8B5A0F] disabled:opacity-50"
+              >
+                {loading ? 'Publishing...' : formData.status === 'scheduled' ? 'Schedule' : 'Publish'}
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Content - 2/3 width */}
+          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Title */}
+            {/* Basic Information */}
             <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Post Title
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                    Title <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -125,243 +228,332 @@ export default function NewPostPage() {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                     placeholder="Enter post title"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                    URL Slug
-                  </label>
-                  <input
-                    type="text"
-                    id="slug"
-                    name="slug"
-                    value={formData.slug}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="post-url-slug"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                  Post Content
-                </label>
-                <textarea
-                  id="content"
-                  name="content"
-                  value={formData.content}
-                  onChange={handleInputChange}
-                  rows={15}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                  placeholder="Write your post content here..."
-                />
-              </div>
-            </div>
-
-
-            {/* SEO Settings */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">SEO Settings</h3>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="seoTitle" className="block text-sm font-medium text-gray-700 mb-2">
-                    SEO Title
-                  </label>
-                  <input
-                    type="text"
-                    id="seoTitle"
-                    name="seoTitle"
-                    value={formData.seoTitle}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="SEO optimized title"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="seoDescription" className="block text-sm font-medium text-gray-700 mb-2">
-                    SEO Description
+                  <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-1">
+                    Excerpt <span className="text-red-500">*</span>
                   </label>
                   <textarea
-                    id="seoDescription"
-                    name="seoDescription"
-                    value={formData.seoDescription}
+                    id="excerpt"
+                    name="excerpt"
+                    value={formData.excerpt}
                     onChange={handleInputChange}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="Meta description for search engines..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="Brief description of the post"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="canonicalUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                    Canonical URL
+                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+                    Content <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="url"
-                    id="canonicalUrl"
-                    name="canonicalUrl"
-                    value={formData.canonicalUrl}
+                  <textarea
+                    id="content"
+                    name="content"
+                    value={formData.content}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="https://example.com/canonical-url"
+                    rows={15}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="Write your post content here..."
                   />
-                </div>
-
-                <div>
-                  <label htmlFor="schemaType" className="block text-sm font-medium text-gray-700 mb-2">
-                    Schema Type
-                  </label>
-                  <select
-                    id="schemaType"
-                    name="schemaType"
-                    value={formData.schemaType}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                  >
-                    <option value="Article">Article</option>
-                    <option value="BlogPosting">Blog Posting</option>
-                    <option value="NewsArticle">News Article</option>
-                    <option value="Review">Review</option>
-                    <option value="Product">Product</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    SEO Image (1.91:1 ratio, 1200×630px recommended, ≤300KB)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSeoImageChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#A96B11] file:text-white hover:file:bg-[#8B5A0F]"
-                  />
-                  {seoImagePreview && (
-                    <div className="mt-3">
-                      <Image
-                        src={seoImagePreview}
-                        alt="SEO Preview"
-                        width={400}
-                        height={209}
-                        className="w-full max-w-sm h-auto rounded border border-gray-200"
-                        style={{ aspectRatio: '1.91/1' }}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Preview (1.91:1 aspect ratio)</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar - 1/3 width */}
-          <div className="space-y-6">
-            {/* Categories & Tags */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Categories & Tags</h3>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                  >
-                    <option value="">Select Category</option>
-                    <option value="technology">Technology</option>
-                    <option value="fashion">Fashion</option>
-                    <option value="lifestyle">Lifestyle</option>
-                    <option value="business">Business</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
-                    Tags
-                  </label>
-                  <input
-                    type="text"
-                    id="tags"
-                    name="tags"
-                    value={formData.tags}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="Separate tags with commas"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Settings */}
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Settings</h3>
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="allowComments"
-                    name="allowComments"
-                    checked={formData.allowComments}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                  />
-                  <label htmlFor="allowComments" className="ml-2 text-sm text-gray-700">
-                    Allow comments
-                  </label>
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="hideAdvertisements"
-                    name="hideAdvertisements"
-                    checked={formData.hideAdvertisements}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                  />
-                  <label htmlFor="hideAdvertisements" className="ml-2 text-sm text-gray-700">
-                    {`Don't show advertisements on this page`}
-                  </label>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Note: Rich text editor will be added in future updates
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Featured Image */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Featured Image</h3>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Featured Image</h2>
+
               <div className="space-y-4">
                 <div>
+                  <label htmlFor="featuredImage" className="block text-sm font-medium text-gray-700 mb-1">
+                    Image URL
+                  </label>
                   <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFeaturedImageChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#A96B11] file:text-white hover:file:bg-[#8B5A0F]"
+                    type="text"
+                    id="featuredImage"
+                    name="featuredImage"
+                    value={formData.featuredImage}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
+
                 {featuredImagePreview && (
-                  <div className="mt-3">
-                    <Image
+                  <div className="border rounded-lg overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={featuredImagePreview}
-                      alt="Featured Image Preview"
-                      width={400}
-                      height={192}
-                      className="w-full h-48 object-cover rounded border border-gray-200"
+                      alt="Featured preview"
+                      className="w-full h-48 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/api/placeholder/400/300';
+                      }}
                     />
-                    <p className="text-xs text-gray-500 mt-1">Featured Image Preview</p>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* SEO Settings */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">SEO Settings</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                    Meta Title
+                  </label>
+                  <input
+                    type="text"
+                    id="metaTitle"
+                    name="metaTitle"
+                    value={formData.metaTitle}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="SEO optimized title"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                    Meta Description
+                  </label>
+                  <textarea
+                    id="metaDescription"
+                    name="metaDescription"
+                    value={formData.metaDescription}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="SEO description (155-160 characters)"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="metaKeywords" className="block text-sm font-medium text-gray-700 mb-1">
+                    Meta Keywords
+                  </label>
+                  <input
+                    type="text"
+                    id="metaKeywords"
+                    name="metaKeywords"
+                    value={formData.metaKeywords}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="keyword1, keyword2, keyword3"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="canonicalUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                    Canonical URL
+                  </label>
+                  <input
+                    type="text"
+                    id="canonicalUrl"
+                    name="canonicalUrl"
+                    value={formData.canonicalUrl}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="https://example.com/canonical-url"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="ogImage" className="block text-sm font-medium text-gray-700 mb-1">
+                    Open Graph Image URL
+                  </label>
+                  <input
+                    type="text"
+                    id="ogImage"
+                    name="ogImage"
+                    value={formData.ogImage}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="https://example.com/og-image.jpg"
+                  />
+                </div>
+
+                {ogImagePreview && (
+                  <div className="border rounded-lg overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={ogImagePreview}
+                      alt="OG Image preview"
+                      className="w-full h-32 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/api/placeholder/1200/630';
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Publishing Options */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Publishing Options</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                  >
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="scheduled">Scheduled</option>
+                  </select>
+                </div>
+
+                {formData.status === 'scheduled' && (
+                  <div>
+                    <label htmlFor="scheduledAt" className="block text-sm font-medium text-gray-700 mb-1">
+                      Schedule Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      id="scheduledAt"
+                      name="scheduledAt"
+                      value={formData.scheduledAt}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="categoryId"
+                    name="categoryId"
+                    value={formData.categoryId}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="tagInput" className="block text-sm font-medium text-gray-700 mb-1">
+                    Tags
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      id="tagInput"
+                      name="tagInput"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      placeholder="Add a tag"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddTag}
+                      className="px-4 py-2 bg-[#A96B11] text-white text-sm font-medium rounded-md hover:bg-[#8B5A0F]"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.tags.map(tag => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-2 text-gray-500 hover:text-gray-700"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Post Settings */}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Post Settings</h2>
+
+              <div className="space-y-3">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="allowComments"
+                    checked={formData.allowComments}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Allow Comments</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="hideAds"
+                    checked={formData.hideAds}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Hide Advertisements</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isFeatured"
+                    checked={formData.isFeatured}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Featured Post</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="isPinned"
+                    checked={formData.isPinned}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Pin to Top</span>
+                </label>
               </div>
             </div>
           </div>

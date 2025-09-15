@@ -1,75 +1,156 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { contentApi } from '@/lib/api/content';
+import toast from 'react-hot-toast';
+import type { Category } from '@/lib/api/content';
 
 export default function NewCategoryPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     description: '',
-    parent: '',
-    position: 1,
-    status: 'published',
+    parentId: '',
+    displayOrder: 1,
+    isActive: true,
     featuredImage: '',
     canonicalUrl: '',
     schemaType: 'Thing',
-    seoTitle: '',
-    seoDescription: '',
-    seoImage: ''
+    metaTitle: '',
+    metaDescription: '',
+    seoImage: '',
+    allowComments: true,
+    hideAds: false
   });
 
   const [featuredImagePreview, setFeaturedImagePreview] = useState('');
   const [seoImagePreview, setSeoImagePreview] = useState('');
 
+  // Fetch categories for parent selection on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await contentApi.getCategories();
+        if (response.data) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, type } = e.target;
+
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({
+        ...prev,
+        [name]: checked
+      }));
+    } else if (type === 'number') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: parseInt(value) || 0
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleDiscard = () => {
     if (window.confirm('Are you sure you want to discard this category? All changes will be lost.')) {
-      window.location.href = '/admin/categories';
+      router.push('/admin/posts/categories');
     }
   };
 
-  const handleSaveDraft = () => {
-    console.log('Saving draft:', { ...formData, status: 'draft' });
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      toast.error('Category name is required');
+      return false;
+    }
+    return true;
   };
 
-  const handlePublish = () => {
-    console.log('Publishing category:', { ...formData, status: 'published' });
+  const handleSaveDraft = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const response = await contentApi.createCategory({
+        name: formData.name,
+        description: formData.description,
+        parentId: formData.parentId || undefined,
+        displayOrder: formData.displayOrder,
+        allowComments: formData.allowComments,
+        hideAds: formData.hideAds,
+        isActive: false,  // Draft means not active
+        metaTitle: formData.metaTitle,
+        metaDescription: formData.metaDescription
+      });
+
+      if (response.data) {
+        toast.success('Category saved as draft successfully!');
+        router.push('/admin/posts/categories');
+      }
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+      toast.error('Failed to save category as draft');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const response = await contentApi.createCategory({
+        name: formData.name,
+        description: formData.description,
+        parentId: formData.parentId || undefined,
+        displayOrder: formData.displayOrder,
+        allowComments: formData.allowComments,
+        hideAds: formData.hideAds,
+        isActive: true,  // Published means active
+        metaTitle: formData.metaTitle,
+        metaDescription: formData.metaDescription
+      });
+
+      if (response.data) {
+        toast.success('Category published successfully!');
+        router.push('/admin/posts/categories');
+      }
+    } catch (error) {
+      console.error('Failed to publish:', error);
+      toast.error('Failed to publish category');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFeaturedImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFeaturedImagePreview(reader.result as string);
-        setFormData(prev => ({ ...prev, featuredImage: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
+    const value = e.target.value;
+    setFeaturedImagePreview(value);
+    setFormData(prev => ({ ...prev, featuredImage: value }));
   };
 
   const handleSeoImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 300 * 1024) {
-        alert('SEO image must be less than 300KB');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSeoImagePreview(reader.result as string);
-        setFormData(prev => ({ ...prev, seoImage: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
+    const value = e.target.value;
+    setSeoImagePreview(value);
+    setFormData(prev => ({ ...prev, seoImage: value }));
   };
 
   // Generate slug from name
@@ -104,21 +185,24 @@ export default function NewCategoryPage() {
           <div className="flex items-center space-x-3">
             <button
               onClick={handleDiscard}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              disabled={loading}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Discard
             </button>
             <button
               onClick={handleSaveDraft}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              disabled={loading}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Save Draft
+              {loading ? 'Saving...' : 'Save Draft'}
             </button>
             <button
               onClick={handlePublish}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#A96B11] hover:bg-[#8B5A0F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A96B11]"
+              disabled={loading}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#A96B11] hover:bg-[#8B5A0F] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A96B11] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Publish
+              {loading ? 'Publishing...' : 'Publish'}
             </button>
           </div>
         </div>
@@ -131,7 +215,7 @@ export default function NewCategoryPage() {
               <div className="space-y-4">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Category Name
+                    Category Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -141,20 +225,21 @@ export default function NewCategoryPage() {
                     onChange={handleNameChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                     placeholder="Enter category name"
+                    required
                   />
                 </div>
 
                 <div>
                   <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                    Slug
+                    Slug <span className="text-xs text-gray-500">(auto-generated)</span>
                   </label>
                   <input
                     type="text"
                     id="slug"
                     name="slug"
                     value={formData.slug}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500"
                     placeholder="category-slug"
                   />
                 </div>
@@ -184,14 +269,14 @@ export default function NewCategoryPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">SEO Settings</h3>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="seoTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-2">
                     SEO Title
                   </label>
                   <input
                     type="text"
-                    id="seoTitle"
-                    name="seoTitle"
-                    value={formData.seoTitle}
+                    id="metaTitle"
+                    name="metaTitle"
+                    value={formData.metaTitle}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                     placeholder="SEO optimized title"
@@ -199,13 +284,13 @@ export default function NewCategoryPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="seoDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-2">
                     SEO Description
                   </label>
                   <textarea
-                    id="seoDescription"
-                    name="seoDescription"
-                    value={formData.seoDescription}
+                    id="metaDescription"
+                    name="metaDescription"
+                    value={formData.metaDescription}
                     onChange={handleInputChange}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
@@ -248,13 +333,14 @@ export default function NewCategoryPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    SEO Image (1.91:1 ratio, 1200×630px recommended, ≤300KB)
+                    SEO Image URL
                   </label>
                   <input
-                    type="file"
-                    accept="image/*"
+                    type="text"
+                    value={formData.seoImage}
                     onChange={handleSeoImageChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#A96B11] file:text-white hover:file:bg-[#8B5A0F]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="https://example.com/image.jpg"
                   />
                   {seoImagePreview && (
                     <div className="mt-3">
@@ -281,53 +367,78 @@ export default function NewCategoryPage() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Category Settings</h3>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="parent" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="parentId" className="block text-sm font-medium text-gray-700 mb-2">
                     Parent Category
                   </label>
                   <select
-                    id="parent"
-                    name="parent"
-                    value={formData.parent}
+                    id="parentId"
+                    name="parentId"
+                    value={formData.parentId}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                   >
                     <option value="">None (Root Category)</option>
-                    <option value="1">Technology</option>
-                    <option value="2">Fashion</option>
-                    <option value="3">Lifestyle</option>
-                    <option value="4">Business</option>
+                    {categories.filter(cat => cat.parentId === null).map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-2">
-                    Position
+                  <label htmlFor="displayOrder" className="block text-sm font-medium text-gray-700 mb-2">
+                    Display Order
                   </label>
                   <input
                     type="number"
-                    id="position"
-                    name="position"
-                    value={formData.position}
+                    id="displayOrder"
+                    name="displayOrder"
+                    value={formData.displayOrder}
                     onChange={handleInputChange}
-                    min="1"
+                    min="0"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="isActive" className="block text-sm font-medium text-gray-700 mb-2">
                     Status
                   </label>
                   <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
+                    id="isActive"
+                    name="isActive"
+                    value={formData.isActive.toString()}
+                    onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.value === 'true' }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                   >
-                    <option value="published">Published</option>
-                    <option value="draft">Draft</option>
+                    <option value="true">Active (Published)</option>
+                    <option value="false">Inactive (Draft)</option>
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="allowComments"
+                      checked={formData.allowComments}
+                      onChange={handleInputChange}
+                      className="rounded border-gray-300 text-[#A96B11] focus:ring-[#A96B11] mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Allow Comments</span>
+                  </label>
+
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="hideAds"
+                      checked={formData.hideAds}
+                      onChange={handleInputChange}
+                      className="rounded border-gray-300 text-[#A96B11] focus:ring-[#A96B11] mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Hide Ads</span>
+                  </label>
                 </div>
               </div>
             </div>
@@ -338,10 +449,11 @@ export default function NewCategoryPage() {
               <div className="space-y-4">
                 <div>
                   <input
-                    type="file"
-                    accept="image/*"
+                    type="text"
+                    value={formData.featuredImage}
                     onChange={handleFeaturedImageChange}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-[#A96B11] file:text-white hover:file:bg-[#8B5A0F]"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    placeholder="Image URL"
                   />
                 </div>
                 {featuredImagePreview && (

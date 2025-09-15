@@ -13,6 +13,7 @@ interface MerchantDetailHeaderProps {
   onDiscardClick?: () => void;
   onSaveDraftClick?: () => void;
   onPublishClick?: () => void;
+  isSaving?: boolean;
 }
 
 export default function MerchantDetailHeader({ 
