@@ -19,26 +19,37 @@ interface PromotePromotion {
 }
 
 interface MerchantDefaultProps {
+  initialDefaultPromotion?: DefaultPromotion;
+  initialPromotePromotion?: PromotePromotion;
   onDefaultChange?: (data: DefaultPromotion) => void;
   onPromoteChange?: (data: PromotePromotion) => void;
 }
 
-export default function MerchantDefault({ onDefaultChange, onPromoteChange }: MerchantDefaultProps = {}) {
-  const [defaultPromotion, setDefaultPromotion] = useState<DefaultPromotion>({
-    title: '',
-    description: ''
-  });
+export default function MerchantDefault({
+  initialDefaultPromotion,
+  initialPromotePromotion,
+  onDefaultChange,
+  onPromoteChange
+}: MerchantDefaultProps = {}) {
+  const [defaultPromotion, setDefaultPromotion] = useState<DefaultPromotion>(
+    initialDefaultPromotion || {
+      title: '',
+      description: ''
+    }
+  );
 
-  const [promotePromotion, setPromotePromotion] = useState<PromotePromotion>({
-    title: '',
-    description: '',
-    type: '',
-    startDate: '',
-    endDate: '',
-    giftcodes: '',
-    loginRequired: false,
-    reviewRequired: false
-  });
+  const [promotePromotion, setPromotePromotion] = useState<PromotePromotion>(
+    initialPromotePromotion || {
+      title: '',
+      description: '',
+      type: '',
+      startDate: '',
+      endDate: '',
+      giftcodes: '',
+      loginRequired: false,
+      reviewRequired: false
+    }
+  );
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -107,7 +118,7 @@ export default function MerchantDefault({ onDefaultChange, onPromoteChange }: Me
           />
           <div className="mt-1 flex justify-between">
             {errors.default_title && <p className="text-sm text-red-600">{errors.default_title}</p>}
-            <p className="text-sm text-gray-500 ml-auto">{defaultPromotion.title.length}/40</p>
+            <p className="text-sm text-gray-500 ml-auto">{defaultPromotion.title?.length || 0}/40</p>
           </div>
         </div>
         <div>
@@ -129,7 +140,7 @@ export default function MerchantDefault({ onDefaultChange, onPromoteChange }: Me
           />
           <div className="mt-1 flex justify-between">
             {errors.default_description && <p className="text-sm text-red-600">{errors.default_description}</p>}
-            <p className="text-sm text-gray-500 ml-auto">{defaultPromotion.description.length}/256</p>
+            <p className="text-sm text-gray-500 ml-auto">{defaultPromotion.description?.length || 0}/256</p>
           </div>
         </div>
       </div>
@@ -156,7 +167,7 @@ export default function MerchantDefault({ onDefaultChange, onPromoteChange }: Me
           />
           <div className="mt-1 flex justify-between">
             {errors.promote_title && <p className="text-sm text-red-600">{errors.promote_title}</p>}
-            <p className="text-sm text-gray-500 ml-auto">{promotePromotion.title.length}/40</p>
+            <p className="text-sm text-gray-500 ml-auto">{promotePromotion.title?.length || 0}/40</p>
           </div>
         </div>
         <div>
@@ -178,7 +189,7 @@ export default function MerchantDefault({ onDefaultChange, onPromoteChange }: Me
           />
           <div className="mt-1 flex justify-between">
             {errors.promote_description && <p className="text-sm text-red-600">{errors.promote_description}</p>}
-            <p className="text-sm text-gray-500 ml-auto">{promotePromotion.description.length}/256</p>
+            <p className="text-sm text-gray-500 ml-auto">{promotePromotion.description?.length || 0}/256</p>
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

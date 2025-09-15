@@ -37,8 +37,11 @@ export interface Merchant {
   allowComments: boolean;
   weeklyVisits?: number;
   hideAds: boolean;
+  hideAdsUntil?: string | null;
+  removeFromListUntil?: Record<string, unknown> | null; // JSON field for additional data
   isStarred: boolean;
   reportCount: number;
+  lastReportDate?: string | null;
   faq?: FAQ[];
   promotions?: Promotion[];
   createdAt: string;

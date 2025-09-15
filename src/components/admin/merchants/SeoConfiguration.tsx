@@ -12,19 +12,26 @@ interface SeoData {
 }
 
 interface SeoConfigurationProps {
+  initialSeo?: {
+    title?: string;
+    description?: string;
+    canonical?: string;
+    schema?: string;
+    image?: string;
+  };
   onSeoChange?: (data: SeoData) => void;
 }
 
-export default function SeoConfiguration({ onSeoChange }: SeoConfigurationProps = {}) {
+export default function SeoConfiguration({ initialSeo, onSeoChange }: SeoConfigurationProps = {}) {
   const [seoData, setSeoData] = useState<SeoData>({
-    title: '',
-    description: '',
-    canonicalUrl: '',
-    schemaType: '',
+    title: initialSeo?.title || '',
+    description: initialSeo?.description || '',
+    canonicalUrl: initialSeo?.canonical || '',
+    schemaType: initialSeo?.schema || '',
     seoImage: null
   });
 
-  const [imagePreview, setImagePreview] = useState<string>('');
+  const [imagePreview, setImagePreview] = useState<string>(initialSeo?.image || '');
   const [imageError, setImageError] = useState<string>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 

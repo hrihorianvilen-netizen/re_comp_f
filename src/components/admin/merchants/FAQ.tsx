@@ -9,17 +9,20 @@ interface FAQItem {
 }
 
 interface FAQProps {
+  initialFaqs?: FAQItem[];
   onFAQChange?: (faqs: FAQItem[]) => void;
 }
 
-export default function FAQ({ onFAQChange }: FAQProps = {}) {
-  const [faqs, setFaqs] = useState<FAQItem[]>([
-    {
-      id: '1',
-      question: '',
-      answer: ''
-    }
-  ]);
+export default function FAQ({ initialFaqs, onFAQChange }: FAQProps = {}) {
+  const [faqs, setFaqs] = useState<FAQItem[]>(
+    initialFaqs && initialFaqs.length > 0 ? initialFaqs : [
+      {
+        id: '1',
+        question: '',
+        answer: ''
+      }
+    ]
+  );
 
   const handleQuestionChange = (id: string, question: string) => {
     const updatedFaqs = faqs.map(faq => 

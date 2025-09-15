@@ -257,10 +257,20 @@ export default function MerchantDetailPage() {
     );
   }
 
-  // Parse JSON fields if they're strings
-  const screenshots = typeof merchant.screenshots === 'string' 
-    ? JSON.parse(merchant.screenshots) 
-    : merchant.screenshots || [];
+  // Parse JSON fields if they're strings and ensure it's an array
+  let screenshots: string[] = [];
+  try {
+    if (Array.isArray(merchant.screenshots)) {
+      screenshots = merchant.screenshots;
+    } else if (typeof merchant.screenshots === 'string') {
+      screenshots = JSON.parse(merchant.screenshots);
+    }
+    // Ensure all entries are strings and filter out empty ones
+    screenshots = screenshots.filter(url => url && typeof url === 'string');
+  } catch (error) {
+    console.error('Failed to parse screenshots:', error);
+    screenshots = [];
+  }
   
   const faqItems = typeof merchant.faq === 'string'
     ? JSON.parse(merchant.faq)
@@ -342,36 +352,38 @@ export default function MerchantDetailPage() {
           {/* Screenshots Carousel */}
           {screenshots.length > 0 && (
             <div className="mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Screenshots</h3>
               <Swiper
                 modules={[Autoplay, Navigation]}
                 spaceBetween={16}
                 slidesPerView={5}
-                loop={true}
-                autoplay={{
-                  delay: 3000,
+                loop={screenshots.length > 1}
+                autoplay={screenshots.length > 1 ? {
+                  delay: 4000,
                   disableOnInteraction: false,
-                }}
-                navigation
+                  pauseOnMouseEnter: true,
+                } : false}
+                navigation={screenshots.length > 1}
                 breakpoints={{
                   320: {
-                    slidesPerView: 2,
+                    slidesPerView: Math.min(2, screenshots.length),
                   },
                   640: {
-                    slidesPerView: 3,
+                    slidesPerView: Math.min(3, screenshots.length),
                   },
                   768: {
-                    slidesPerView: 4,
+                    slidesPerView: Math.min(4, screenshots.length),
                   },
                   1024: {
-                    slidesPerView: 5,
+                    slidesPerView: Math.min(5, screenshots.length),
                   },
                 }}
                 className="merchant-screenshots"
               >
                 {screenshots.map((screenshot: string, index: number) => (
                   <SwiperSlide key={index}>
-                    <div 
-                      className="cursor-pointer"
+                    <div
+                      className="cursor-pointer group relative overflow-hidden rounded-lg"
                       onClick={() => {
                         setSelectedImageIndex(index);
                         setModalOpen(true);
@@ -382,12 +394,34 @@ export default function MerchantDetailPage() {
                         alt={`${merchant.name} screenshot ${index + 1}`}
                         width={200}
                         height={150}
-                        className="rounded-lg border w-full h-auto hover:opacity-90 transition-opacity"
+                        className="rounded-lg border w-full h-auto hover:opacity-90 transition-all duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/images/shopee.jpg';
+                        }}
                       />
+                      {/* Overlay for better user experience */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-lg flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                   </SwiperSlide>
                 ))}
               </Swiper>
+            </div>
+          )}
+
+          {/* No Screenshots Message */}
+          {screenshots.length === 0 && (
+            <div className="mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200 text-center">
+              <svg className="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h4 className="text-lg font-medium text-gray-600 mb-1">No Screenshots Available</h4>
+              <p className="text-gray-500">Screenshots for {merchant.name} will be displayed here when available.</p>
             </div>
           )}
         </div>
@@ -867,20 +901,31 @@ export default function MerchantDetailPage() {
               modules={[Navigation]}
               spaceBetween={10}
               slidesPerView={1}
-              navigation
+              navigation={screenshots.length > 1}
               initialSlide={selectedImageIndex}
               className="modal-swiper"
+              keyboard={{
+                enabled: true,
+                onlyInViewport: true,
+              }}
             >
               {screenshots.map((screenshot: string, index: number) => (
                 <SwiperSlide key={index}>
-                  <div className="flex items-center justify-center h-[70vh]">
+                  <div className="flex items-center justify-center h-[70vh] relative">
                     <Image
                       src={screenshot || '/images/shopee.jpg'}
                       alt={`${merchant.name} screenshot ${index + 1}`}
                       width={800}
                       height={600}
-                      className="max-w-full max-h-full object-contain"
+                      className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/shopee.jpg';
+                      }}
                     />
+                    {/* Image counter */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm">
+                      {index + 1} / {screenshots.length}
+                    </div>
                   </div>
                 </SwiperSlide>
               ))}

@@ -30,9 +30,12 @@ interface Merchant {
   hideAds?: boolean;
   hideAdsUntil?: string | Date;
   removeFromListUntil?: Record<string, unknown> | null;
+  isStarred?: boolean;
+  allowComments?: boolean;
   promotions?: Array<{
     type: string;
     title: string;
+    code?: string;
     description: string;
     loginRequired: boolean;
     reviewRequired: boolean;
@@ -40,7 +43,7 @@ interface Merchant {
     endDate?: string;
     giftCode?: {
       codes: string[];
-    };
+    } | Record<string, unknown>;
   }>;
   seo?: {
     title?: string;
@@ -109,6 +112,13 @@ interface MerchantPromotion {
   startDate?: string;
   endDate?: string;
   giftCodes?: string;
+  discountType?: string;
+  discountValue?: string;
+  minimumPurchase?: string;
+  termsConditions?: string;
+  link?: string;
+  expiryDate?: string;
+  [key: string]: unknown; // Allow additional properties
 }
 
 interface MerchantSeo {
@@ -158,6 +168,16 @@ export default function MerchantDetailPage() {
   const [seo, setSeo] = useState<MerchantSeo>({});
   const [utm, setUtm] = useState<MerchantUtm>({});
   const [faqs, setFaqs] = useState<Array<{ id: string; question: string; answer: string }>>([]);
+  const [screenshots, setScreenshots] = useState<string[]>([]);
+
+  // Admin options state
+  const [isVerified, setIsVerified] = useState(false);
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [isPopular, setIsPopular] = useState(false);
+  const [showInHomepage, setShowInHomepage] = useState(false);
+  const [displayOrder, setDisplayOrder] = useState(0);
+  const [hideReviews, setHideReviews] = useState(false);
+  const [hideWriteReview, setHideWriteReview] = useState(false);
 
   const [originalData, setOriginalData] = useState<MerchantFormData | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -221,41 +241,98 @@ export default function MerchantDetailPage() {
             adsEndDate: undefined
           });
 
-          // Initialize admin options settings (these might come from removeFromListUntil or other fields)
+          // Initialize admin options settings from backend data - extract from removeFromListUntil
+          const additionalData = merchant.removeFromListUntil as Record<string, unknown>;
+          const adminOptions = (additionalData?.adminOptions || {}) as Record<string, unknown>;
+
+          // Set individual admin option states
+          setIsVerified((adminOptions.isVerified as boolean) || false);
+          setIsFeatured((adminOptions.isFeatured as boolean) || merchant.isStarred || false);
+          setIsPopular((adminOptions.isPopular as boolean) || false);
+          setShowInHomepage((adminOptions.showInHomepage as boolean) || false);
+          setDisplayOrder((adminOptions.displayOrder as number) || 0);
+          setHideReviews((adminOptions.hideReviews as boolean) || false);
+          setHideWriteReview((adminOptions.hideWriteReview as boolean) || !merchant.allowComments || false);
+
           setAdminOptionsSettings({
-            removeHotTrusted: false,
-            removeControversial: false,
-            removeAvoid: false
+            removeHotTrusted: (adminOptions.isVerified as boolean) || false,
+            removeControversial: (adminOptions.isPopular as boolean) || false,
+            removeAvoid: (adminOptions.showInHomepage as boolean) || false,
+            controversialStartDate: '', // These would need to be extracted if dates are stored
+            controversialEndDate: ''
           });
 
-          // These might be nested objects or need to be constructed from fields
-          if (merchant.seo) setSeo(merchant.seo);
-          if (merchant.utm) setUtm(merchant.utm);
-          if (merchant.faqs) setFaqs(merchant.faqs);
+          // Extract SEO data from removeFromListUntil or direct field
+          const extractedSeo = (additionalData?.seo || merchant.seo || {}) as Record<string, unknown>;
+          setSeo({
+            title: (extractedSeo.title as string) || '',
+            description: (extractedSeo.description as string) || '',
+            canonical: (extractedSeo.canonical as string) || '',
+            schema: (extractedSeo.schema as string) || ''
+          });
 
-          // Set promotions
+          // Extract UTM data from removeFromListUntil or direct field
+          const extractedUtm = (additionalData?.utm || merchant.utm || {}) as Record<string, unknown>;
+          setUtm({
+            targetUrl: (extractedUtm.targetUrl as string) || '',
+            source: (extractedUtm.source as string) || '',
+            medium: (extractedUtm.medium as string) || '',
+            campaign: (extractedUtm.campaign as string) || '',
+            content: (extractedUtm.content as string) || '',
+            term: (extractedUtm.term as string) || ''
+          });
+
+          // Set FAQs and screenshots
+          if (merchant.faqs) setFaqs(merchant.faqs);
+          if (merchant.screenshots) setScreenshots(merchant.screenshots);
+
+          // Set promotions - extract additional data from formatted promotions
           if (merchant.promotions) {
             const defaultProm = merchant.promotions.find((p) => p.type === 'default');
             const priorityProm = merchant.promotions.find((p) => p.type === 'priority');
 
             if (defaultProm) {
               setDefaultPromotion({
-                title: defaultProm.title,
-                description: defaultProm.description,
-                loginRequired: defaultProm.loginRequired,
-                reviewRequired: defaultProm.reviewRequired
+                title: defaultProm.title || defaultProm.code || '',
+                description: defaultProm.description || '',
+                loginRequired: defaultProm.loginRequired || false,
+                reviewRequired: defaultProm.reviewRequired || false,
+                // Extract additional fields from the backend response
+                discountType: (defaultProm as Record<string, unknown>).discountType as string || '',
+                discountValue: (defaultProm as Record<string, unknown>).discountValue as string || '',
+                minimumPurchase: (defaultProm as Record<string, unknown>).minimumPurchase as string || '',
+                termsConditions: (defaultProm as Record<string, unknown>).termsConditions as string || '',
+                link: (defaultProm as Record<string, unknown>).link as string || '',
+                expiryDate: (defaultProm as Record<string, unknown>).expiryDate as string || '',
+                startDate: defaultProm.startDate || '',
+                endDate: defaultProm.endDate || ''
               });
             }
 
             if (priorityProm) {
+              // Extract gift codes from giftCode field if it contains codes
+              let giftCodesString = '';
+              if (priorityProm.giftCode && typeof priorityProm.giftCode === 'object') {
+                const giftCodeData = priorityProm.giftCode as Record<string, unknown>;
+                if (giftCodeData.codes && Array.isArray(giftCodeData.codes)) {
+                  giftCodesString = giftCodeData.codes.join(';');
+                }
+              }
+
               setPriorityPromotion({
-                title: priorityProm.title,
-                description: priorityProm.description,
-                loginRequired: priorityProm.loginRequired,
-                reviewRequired: priorityProm.reviewRequired,
-                startDate: priorityProm.startDate,
-                endDate: priorityProm.endDate,
-                giftCodes: priorityProm.giftCode?.codes?.join(';')
+                title: priorityProm.title || '',
+                description: priorityProm.description || '',
+                loginRequired: priorityProm.loginRequired || false,
+                reviewRequired: priorityProm.reviewRequired || false,
+                startDate: priorityProm.startDate || '',
+                endDate: priorityProm.endDate || '',
+                giftCodes: giftCodesString,
+                // Extract additional fields from giftCode JSON data
+                discountText: (priorityProm.giftCode as Record<string, unknown>)?.discountText as string || '',
+                ctaText: (priorityProm.giftCode as Record<string, unknown>)?.ctaText as string || 'Shop Now',
+                ctaLink: (priorityProm.giftCode as Record<string, unknown>)?.ctaLink as string || '',
+                backgroundColor: (priorityProm.giftCode as Record<string, unknown>)?.backgroundColor as string || '#FFF3E0',
+                textColor: (priorityProm.giftCode as Record<string, unknown>)?.textColor as string || '#E65100'
               });
             }
           }
@@ -367,12 +444,26 @@ export default function MerchantDetailPage() {
       formDataToSend.append('logo', formData.logo);
     }
 
-    // Add promotions
+    // Add screenshots if present
+    if (formData.screenshots) {
+      for (let i = 0; i < formData.screenshots.length; i++) {
+        formDataToSend.append('screenshotDesktop', formData.screenshots[i]);
+      }
+    }
+
+    // Add default promotion with all fields
     if (defaultPromotion.title) {
       formDataToSend.append('defaultPromotion[title]', defaultPromotion.title);
       formDataToSend.append('defaultPromotion[description]', defaultPromotion.description || '');
       formDataToSend.append('defaultPromotion[loginRequired]', String(defaultPromotion.loginRequired || false));
       formDataToSend.append('defaultPromotion[reviewRequired]', String(defaultPromotion.reviewRequired || false));
+      // Add additional promotion fields
+      if (defaultPromotion.discountType) formDataToSend.append('defaultPromotion[discountType]', defaultPromotion.discountType);
+      if (defaultPromotion.discountValue) formDataToSend.append('defaultPromotion[discountValue]', defaultPromotion.discountValue);
+      if (defaultPromotion.minimumPurchase) formDataToSend.append('defaultPromotion[minimumPurchase]', defaultPromotion.minimumPurchase);
+      if (defaultPromotion.termsConditions) formDataToSend.append('defaultPromotion[termsConditions]', defaultPromotion.termsConditions);
+      if (defaultPromotion.link) formDataToSend.append('defaultPromotion[link]', defaultPromotion.link);
+      if (defaultPromotion.expiryDate) formDataToSend.append('defaultPromotion[expiryDate]', defaultPromotion.expiryDate);
     }
 
     if (priorityPromotion.title) {
@@ -383,13 +474,23 @@ export default function MerchantDetailPage() {
       if (priorityPromotion.startDate) formDataToSend.append('priorityPromotion[startDate]', priorityPromotion.startDate);
       if (priorityPromotion.endDate) formDataToSend.append('priorityPromotion[endDate]', priorityPromotion.endDate);
       if (priorityPromotion.giftCodes) formDataToSend.append('priorityPromotion[giftCodes]', priorityPromotion.giftCodes);
+      // Add additional priority promotion fields
+      if ('discountText' in priorityPromotion && priorityPromotion.discountText) formDataToSend.append('priorityPromotion[discountText]', priorityPromotion.discountText as string);
+      if ('ctaText' in priorityPromotion && (priorityPromotion as Record<string, unknown>).ctaText) formDataToSend.append('priorityPromotion[ctaText]', (priorityPromotion as Record<string, unknown>).ctaText as string);
+      if ('ctaLink' in priorityPromotion && (priorityPromotion as Record<string, unknown>).ctaLink) formDataToSend.append('priorityPromotion[ctaLink]', (priorityPromotion as Record<string, unknown>).ctaLink as string);
+      if ('backgroundColor' in priorityPromotion && (priorityPromotion as Record<string, unknown>).backgroundColor) formDataToSend.append('priorityPromotion[backgroundColor]', (priorityPromotion as Record<string, unknown>).backgroundColor as string);
+      if ('textColor' in priorityPromotion && (priorityPromotion as Record<string, unknown>).textColor) formDataToSend.append('priorityPromotion[textColor]', (priorityPromotion as Record<string, unknown>).textColor as string);
     }
 
-    // Add SEO
+    // Add SEO with image support
     if (seo.title) formDataToSend.append('seo[title]', seo.title);
     if (seo.description) formDataToSend.append('seo[description]', seo.description);
     if (seo.canonical) formDataToSend.append('seo[canonical]', seo.canonical);
     if (seo.schema) formDataToSend.append('seo[schema]', seo.schema);
+    // Add SEO image if exists
+    if ('image' in seo && (seo as Record<string, unknown>).image instanceof File) {
+      formDataToSend.append('seoImage', (seo as Record<string, unknown>).image as File);
+    }
 
     // Add UTM
     if (utm.targetUrl) formDataToSend.append('utm[targetUrl]', utm.targetUrl);
@@ -409,6 +510,15 @@ export default function MerchantDetailPage() {
     if (settings.removeFromList) {
       formDataToSend.append('settings[removeFromList]', JSON.stringify(settings.removeFromList));
     }
+
+    // Add admin options (using individual state variables)
+    formDataToSend.append('isVerified', String(isVerified));
+    formDataToSend.append('isFeatured', String(isFeatured));
+    formDataToSend.append('isPopular', String(isPopular));
+    formDataToSend.append('showInHomepage', String(showInHomepage));
+    formDataToSend.append('displayOrder', String(displayOrder));
+    formDataToSend.append('hideReviews', String(hideReviews));
+    formDataToSend.append('hideWriteReview', String(hideWriteReview));
 
     // Add FAQs
     if (faqs && faqs.length > 0) {
@@ -556,17 +666,24 @@ export default function MerchantDetailPage() {
                   advertisement={adminOptionsAdvertisement}
                   onSettingsChange={(newSettings) => {
                     setAdminOptionsSettings(newSettings || {});
-                    // Update main settings if needed
+                    // Update individual admin option states
+                    if (newSettings) {
+                      setIsVerified(newSettings.removeHotTrusted || false);
+                      setIsPopular(newSettings.removeControversial || false);
+                      setShowInHomepage(newSettings.removeAvoid || false);
+                    }
                   }}
                   onAdvertisementChange={(newAdvertisement) => {
                     setAdminOptionsAdvertisement(newAdvertisement || {});
-                    // Update main settings
+                    // Update main settings and individual states
                     if (newAdvertisement) {
                       setSettings(prev => ({
                         ...prev,
                         dontShowAds: newAdvertisement.dontShowAds,
                         hideAdsUntil: newAdvertisement.adsStartDate
                       }));
+                      setHideReviews(newAdvertisement.dontShowAds || false);
+                      setHideWriteReview(newAdvertisement.dontShowAds || false);
                     }
                   }}
                 />
@@ -576,6 +693,22 @@ export default function MerchantDetailPage() {
             {/* MerchantDefault - Full width */}
             <div className={`col-span-3 ${!isEditMode ? 'pointer-events-none opacity-75' : ''}`}>
               <MerchantDefault
+                initialDefaultPromotion={{
+                  ...defaultPromotion,
+                  title: defaultPromotion.title || '',
+                  description: defaultPromotion.description || ''
+                }}
+                initialPromotePromotion={{
+                  ...priorityPromotion,
+                  title: priorityPromotion.title || '',
+                  description: priorityPromotion.description || '',
+                  type: 'type' in priorityPromotion ? (priorityPromotion as Record<string, unknown>).type as string : 'priority',
+                  startDate: priorityPromotion.startDate || '',
+                  endDate: priorityPromotion.endDate || '',
+                  giftcodes: priorityPromotion.giftCodes || '',
+                  loginRequired: priorityPromotion.loginRequired || false,
+                  reviewRequired: priorityPromotion.reviewRequired || false
+                }}
                 onDefaultChange={(data) => {
                   setDefaultPromotion({
                     title: data.title,
@@ -601,6 +734,7 @@ export default function MerchantDetailPage() {
               {/* SEO Configuration - 2/3 width */}
               <div className="lg:col-span-2">
                 <SeoConfiguration
+                  initialSeo={seo}
                   onSeoChange={(data) => {
                     setSeo({
                       title: data.title,
@@ -615,6 +749,7 @@ export default function MerchantDetailPage() {
               {/* UTM Tracking - 1/3 width */}
               <div className="lg:col-span-1">
                 <UtmTracking
+                  initialUtm={utm}
                   onUtmChange={(data) => {
                     setUtm({
                       targetUrl: data.targetUrl,
@@ -632,6 +767,7 @@ export default function MerchantDetailPage() {
             {/* Screenshots Section - Full Width */}
             <div className={`col-span-3 ${!isEditMode ? 'pointer-events-none opacity-75' : ''}`}>
               <Screenshots
+                initialScreenshots={screenshots}
                 onScreenshotsChange={(data) => {
                   // Screenshots handling would go here if needed
                   // Currently not used in the form submission
@@ -643,6 +779,7 @@ export default function MerchantDetailPage() {
             {/* FAQ Section - Full Width */}
             <div className={`col-span-3 ${!isEditMode ? 'pointer-events-none opacity-75' : ''}`}>
               <FAQ
+                initialFaqs={faqs}
                 onFAQChange={(data) => {
                   setFaqs(data);
                 }}

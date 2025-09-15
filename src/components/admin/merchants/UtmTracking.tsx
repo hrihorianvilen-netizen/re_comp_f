@@ -12,17 +12,25 @@ interface UtmData {
 }
 
 interface UtmTrackingProps {
+  initialUtm?: {
+    targetUrl?: string;
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    content?: string;
+    term?: string;
+  };
   onUtmChange?: (data: UtmData) => void;
 }
 
-export default function UtmTracking({ onUtmChange }: UtmTrackingProps = {}) {
+export default function UtmTracking({ initialUtm, onUtmChange }: UtmTrackingProps = {}) {
   const [utmData, setUtmData] = useState<UtmData>({
-    targetUrl: '',
-    source: '',
-    medium: '',
-    campaign: '',
-    content: '',
-    term: ''
+    targetUrl: initialUtm?.targetUrl || '',
+    source: initialUtm?.source || '',
+    medium: initialUtm?.medium || '',
+    campaign: initialUtm?.campaign || '',
+    content: initialUtm?.content || '',
+    term: initialUtm?.term || ''
   });
 
   const [previewUrl, setPreviewUrl] = useState<string>('');
