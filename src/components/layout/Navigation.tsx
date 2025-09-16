@@ -3,15 +3,18 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/hooks/useAuth';
 
 export default function Navigation() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, loading, logout } = useAuth();
   const { data: reactQueryUser } = useUser();
-  
+  const router = useRouter();
+
   // Use React Query user data if available, fallback to Auth context
   const currentUser = reactQueryUser || user;
 
@@ -22,6 +25,14 @@ export default function Navigation() {
     // If it's a relative URL, prepend the API base URL
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://reviews-backend-2zkw.onrender.com';
     return `${baseUrl.replace('/api', '')}${avatar}`;
+  };
+
+  // Handle search submission
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/merchants?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   return (
@@ -35,7 +46,7 @@ export default function Navigation() {
           
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl mx-8">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -43,10 +54,23 @@ export default function Navigation() {
               </div>
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search merchants, products, or services..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full placeholder-gray-500 text-black focus:outline-none"
+                className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-full placeholder-gray-500 text-black focus:outline-none focus:ring-2 focus:ring-[#a56b00] focus:border-transparent"
               />
-            </div>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <svg className="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </form>
           </div>
 
           {/* Right side - Dropdown and Add button */}

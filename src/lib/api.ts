@@ -692,6 +692,50 @@ class ApiClient {
     });
   }
 
+  // User's own reviews
+  async getMyReviews(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }) {
+    // First get the current user info
+    const userResult = await this.getMe();
+    if (!userResult.data?.user) {
+      return { error: 'Not authenticated' };
+    }
+
+    const searchParams = new URLSearchParams();
+    // Add user ID to filter only current user's reviews
+    searchParams.append('userId', userResult.data.user.id);
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && key !== 'userId') {
+          searchParams.append(key, String(value));
+        }
+      });
+    }
+    const query = searchParams.toString();
+    return this.request<{
+      reviews: Review[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+      };
+    }>(`/reviews${query ? '?' + query : ''}`);
+  }
+
+  async deleteMyReview(reviewId: string) {
+    return this.request<{ success: boolean; message?: string }>(
+      `/reviews/${reviewId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+  }
+
   // Admin Reviews endpoints
   async getAdminReviews(params?: {
     page?: number;

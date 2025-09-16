@@ -33,20 +33,36 @@ export default function MerchantsContent() {
     category: '',
     status: 'all'
   });
+  const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // Load categories from database
+  const loadCategories = useCallback(async () => {
+    try {
+      const result = await api.getMerchantCategories();
+      if (result.data) {
+        setCategories(result.data.categories);
+      }
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    }
+  }, []);
+
   const loadInitialMerchants = useCallback(async () => {
     setLoading(true);
     setError(null);
     setCurrentPage(1);
-    
+
+    const search = searchParams.get('search') || '';
+
     try {
       const result = await api.getMerchants({
         page: 1,
         limit: 30,
+        search: search || undefined,
         category: filters.category || undefined,
         status: filters.status === 'all' ? undefined : filters.status,
         excludeDrafts: true
@@ -62,17 +78,19 @@ export default function MerchantsContent() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, searchParams]);
 
   const loadMoreMerchants = useCallback(async () => {
     if (loadingMore || !hasMore) return;
 
     setLoadingMore(true);
-    
+    const search = searchParams.get('search') || '';
+
     try {
       const result = await api.getMerchants({
         page: currentPage + 1,
         limit: 30,
+        search: search || undefined,
         category: filters.category || undefined,
         status: filters.status === 'all' ? undefined : filters.status,
         excludeDrafts: true
@@ -88,7 +106,7 @@ export default function MerchantsContent() {
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMore, currentPage, filters]);
+  }, [loadingMore, hasMore, currentPage, filters, searchParams]);
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -125,8 +143,20 @@ export default function MerchantsContent() {
   useEffect(() => {
     const category = searchParams.get('category') || '';
     const status = searchParams.get('status') || 'all';
+    const search = searchParams.get('search') || '';
     setFilters({ category, status });
+
+    // If there's a search query, handle it
+    if (search) {
+      // The search is already handled by loadInitialMerchants with the API
+      // Just need to pass it through
+    }
   }, [searchParams]);
+
+  // Load categories on mount
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   // Load initial merchants when filters change
   useEffect(() => {
@@ -164,9 +194,15 @@ export default function MerchantsContent() {
           <div className="py-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
               <div className="mb-6 lg:mb-0">
-                <h1 className="text-2xl font-bold text-gray-900">Browse Merchants</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {searchParams.get('search')
+                    ? `Search Results for "${searchParams.get('search')}"`
+                    : 'Browse Merchants'}
+                </h1>
                 <p className="text-gray-600 mt-1">
-                  Discover trusted merchants and read authentic reviews from our community
+                  {searchParams.get('search')
+                    ? `Found ${merchants.length} merchants matching your search`
+                    : 'Discover trusted merchants and read authentic reviews from our community'}
                 </p>
               </div>
             </div>
@@ -185,16 +221,11 @@ export default function MerchantsContent() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent"
                 >
                   <option value="">All Categories</option>
-                  <option value="Technology">Technology</option>
-                  <option value="Fashion">Fashion</option>
-                  <option value="Home & Garden">Home & Garden</option>
-                  <option value="Health & Beauty">Health & Beauty</option>
-                  <option value="Sports">Sports</option>
-                  <option value="Food & Beverage">Food & Beverage</option>
-                  <option value="Travel">Travel</option>
-                  <option value="Automotive">Automotive</option>
-                  <option value="Books">Books</option>
-                  <option value="Electronics">Electronics</option>
+                  {categories.map((cat) => (
+                    <option key={cat.name} value={cat.name}>
+                      {cat.name} ({cat.count})
+                    </option>
+                  ))}
                 </select>
               </div>
 
