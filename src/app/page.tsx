@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Merchant, Review } from '@/types/api';
 import api from '@/lib/api';
@@ -17,28 +16,25 @@ export default function HomePage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [recentlyViewed, setRecentlyViewed] = useState<Merchant[]>([]);
+  const [recentMerchants, setRecentMerchants] = useState<Merchant[]>([]);
 
   useEffect(() => {
     loadInitialData();
-    loadRecentlyViewed();
+    loadRecentMerchants();
   }, []);
 
-  const loadRecentlyViewed = async () => {
+  // Load 10 most recent merchants from database
+  const loadRecentMerchants = async () => {
     try {
-      // Load 30 most recent viewed merchants from database
-      const result = await api.getRecentMerchants(30);
-      
-      console.log('Recent merchants API result:', result);
-      
+      const result = await api.getMerchants({
+        limit: 10
+      });
+
       if (result.data) {
-        const merchants = result.data.merchants || [];
-        // Filter out draft merchants from recently viewed
-        const publicMerchants = merchants.filter(
+        const publicMerchants = result.data.merchants.filter(
           merchant => merchant.status !== 'draft'
         );
-        console.log('Recently viewed merchants loaded:', publicMerchants.length, 'items');
-        setRecentlyViewed(publicMerchants);
+        setRecentMerchants(publicMerchants);
       }
     } catch (error) {
       console.error('Failed to load recent merchants:', error);
@@ -92,12 +88,8 @@ export default function HomePage() {
     }
   };
 
-  // Transform recently viewed merchants for the swiper component, ensuring unique items
-  const uniqueRecentlyViewed = recentlyViewed.filter((item, index, arr) => 
-    arr.findIndex(i => i.id === item.id) === index
-  );
-  
-  const recentlyViewedItems = uniqueRecentlyViewed.map((item, index) => ({
+  // Transform recent merchants for the swiper component
+  const recentlyViewedItems = recentMerchants.slice(0, 10).map((item, index) => ({
     id: item.id,
     slug: item.slug,
     name: item.name,
@@ -117,16 +109,16 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Banner Image Bar */}
-      <div className="w-full relative">
-        <Image
-          src="/images/banner.png"
-          alt="Review Banner"
-          width={1440}
-          height={300}
-          className="w-full md:h-full h-[120px] md:object-cover"
-          priority
-        />
+      {/* Hero Section with Banner Background */}
+      <div
+        className="w-full relative"
+        style={{
+          backgroundImage: 'url(/images/banner.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          minHeight: '200px',
+        }}
+      >
         {/* Text Overlay with Search */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-black max-w-2xl mx-auto px-4">

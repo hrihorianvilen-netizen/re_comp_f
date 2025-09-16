@@ -175,48 +175,63 @@ export function useAddComment() {
   });
 }
 
-// Hook for recently viewed merchants (using localStorage + React Query)
+// In-memory store for recently viewed merchants (React Query only, no localStorage)
+let recentlyViewedStore: Merchant[] = [];
+
+// Hook for recently viewed merchants (using React Query only)
 export function useRecentlyViewed() {
   return useQuery({
     queryKey: ['recentlyViewed'],
     queryFn: () => {
-      if (typeof window === 'undefined') return [];
-      const stored = localStorage.getItem('recentlyViewed');
-      return stored ? JSON.parse(stored) : [];
+      return recentlyViewedStore;
     },
-    staleTime: 0, // Always check localStorage
-    gcTime: 0, // Don't cache
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    gcTime: 1000 * 60 * 10, // Keep in cache for 10 minutes
   });
 }
 
-// Function to save to recently viewed (can be called directly)
-export function saveToRecentlyViewed(merchant: Merchant) {
-  if (typeof window === 'undefined' || !merchant) return;
-  
-  try {
-    const stored = localStorage.getItem('recentlyViewed');
-    let recentlyViewed = stored ? JSON.parse(stored) : [];
-    
-    // Remove if already exists
-    recentlyViewed = recentlyViewed.filter((item: Merchant) => item.id !== merchant.id);
-    
-    // Add to beginning
-    recentlyViewed.unshift({
-      id: merchant.id,
-      slug: merchant.slug,
-      name: merchant.name,
-      logo: merchant.logo,
-      rating: merchant.rating,
-      weeklyVisits: merchant.weeklyVisits,
-    });
-    
-    // Keep only last 10 items
-    recentlyViewed = recentlyViewed.slice(0, 10);
-    
-    localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
-  } catch (error) {
-    console.error('Failed to save to recently viewed:', error);
-  }
+// Function to save to recently viewed (updates in-memory store)
+export function saveToRecentlyViewed(merchant: Merchant): Promise<void> {
+  return new Promise((resolve) => {
+    if (!merchant) {
+      resolve();
+      return;
+    }
+
+    try {
+      // Remove if already exists
+      recentlyViewedStore = recentlyViewedStore.filter((item: Merchant) => item.id !== merchant.id);
+
+      // Add to beginning
+      recentlyViewedStore.unshift({
+        id: merchant.id,
+        slug: merchant.slug,
+        name: merchant.name,
+        logo: merchant.logo,
+        rating: merchant.rating,
+        weeklyVisits: merchant.weeklyVisits,
+      } as Merchant);
+
+      // Keep only last 10 items
+      recentlyViewedStore = recentlyViewedStore.slice(0, 10);
+      resolve();
+    } catch (error) {
+      console.error('Failed to save to recently viewed:', error);
+      resolve();
+    }
+  });
+}
+
+// Hook to update recently viewed with React Query mutation
+export function useUpdateRecentlyViewed() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: saveToRecentlyViewed,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recentlyViewed'] });
+    },
+  });
 }
 
 // ==== COMMENT HOOKS ====

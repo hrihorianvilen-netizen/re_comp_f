@@ -14,6 +14,7 @@ import { Autoplay, Navigation } from 'swiper/modules';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import AdSlot from '@/components/ui/AdSlot';
+import { useUpdateRecentlyViewed } from '@/hooks/useMerchants';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
@@ -38,6 +39,9 @@ export default function MerchantDetailPage() {
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
   const [selectedRatingFilters, setSelectedRatingFilters] = useState<Set<number>>(new Set());
 
+  // Use React Query mutation for recently viewed
+  const updateRecentlyViewed = useUpdateRecentlyViewed();
+
   // Load merchant and reviews from backend
   useEffect(() => {
     const loadMerchantData = async () => {
@@ -56,10 +60,11 @@ export default function MerchantDetailPage() {
         if (merchantRes.error) {
           setError(merchantRes.error);
         } else if (merchantRes.data) {
-          setMerchant(merchantRes.data.merchant || merchantRes.data);
-          
-          // Save to recently viewed
-          saveToRecentlyViewed(merchantRes.data.merchant || merchantRes.data);
+          const merchantData = merchantRes.data.merchant || merchantRes.data;
+          setMerchant(merchantData);
+
+          // Save to recently viewed using React Query mutation
+          updateRecentlyViewed.mutate(merchantData);
         }
 
         if (reviewsRes.data) {
@@ -81,36 +86,10 @@ export default function MerchantDetailPage() {
     };
 
     loadMerchantData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // Save merchant to recently viewed localStorage
-  const saveToRecentlyViewed = (merchantData: Merchant) => {
-    if (typeof window === 'undefined' || !merchantData) return;
-    
-    try {
-      const stored = localStorage.getItem('recentlyViewed');
-      let recentlyViewed = stored ? JSON.parse(stored) : [];
-      
-      // Remove if already exists
-      recentlyViewed = recentlyViewed.filter((item: Merchant) => item.id !== merchantData.id);
-      
-      // Add to beginning
-      recentlyViewed.unshift({
-        id: merchantData.id,
-        slug: merchantData.slug,
-        name: merchantData.name,
-        logo: merchantData.logo,
-        rating: merchantData.rating
-      });
-      
-      // Keep only last 10 items
-      recentlyViewed = recentlyViewed.slice(0, 10);
-      
-      localStorage.setItem('recentlyViewed', JSON.stringify(recentlyViewed));
-    } catch (error) {
-      console.error('Failed to save to recently viewed:', error);
-    }
-  };
+  // Removed saveToRecentlyViewed function - now using React Query mutation
 
   const formatDate = (date: string | Date) => {
     return new Intl.DateTimeFormat('en-US', {
