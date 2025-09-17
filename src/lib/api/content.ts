@@ -114,8 +114,7 @@ export interface CreatePostData {
   content: string;
   categoryId: string;
   featuredImage?: string;
-  status?: 'draft' | 'published' | 'scheduled' | 'trash';
-  scheduledAt?: string;
+  status?: 'draft' | 'published' | 'trash';
   allowComments?: boolean;
   hideAds?: boolean;
   tags?: string[];
@@ -243,10 +242,51 @@ export const contentApi = {
   // Create post
   async createPost(postData: CreatePostData): Promise<ApiResponse<Post>> {
     try {
+      // If we have images as base64, we need to convert them to files
+      const formData = new FormData();
+
+      // Add all non-file fields
+      Object.keys(postData).forEach(key => {
+        if (key !== 'featuredImage' && key !== 'seoImage') {
+          const value = postData[key as keyof CreatePostData];
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      // Handle base64 images by converting to blobs
+      if (postData.featuredImage && postData.featuredImage.startsWith('data:')) {
+        const response = await fetch(postData.featuredImage);
+        const blob = await response.blob();
+        formData.append('featuredImage', blob, 'featured-image.jpg');
+      } else if (postData.featuredImage) {
+        formData.append('featuredImage', postData.featuredImage);
+      }
+
+      if (postData.seoImage && postData.seoImage.startsWith('data:')) {
+        const response = await fetch(postData.seoImage);
+        const blob = await response.blob();
+        formData.append('seoImage', blob, 'seo-image.jpg');
+      } else if (postData.seoImage) {
+        formData.append('seoImage', postData.seoImage);
+      }
+
+      // Create headers without Content-Type to let browser set it with boundary for multipart
+      const authHeaders = getAuthHeaders();
+      const headers = Object.entries(authHeaders).reduce((acc, [key, value]) => {
+        if (key !== 'Content-Type') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
       const response = await fetch(`${API_BASE_URL}/admin/content/posts`, {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(postData),
+        headers,
+        body: formData,
       });
 
       if (!response.ok) {
@@ -265,10 +305,51 @@ export const contentApi = {
   // Update post
   async updatePost(id: string, postData: UpdatePostData): Promise<ApiResponse<Post>> {
     try {
+      // Similar to create, convert to FormData for file uploads
+      const formData = new FormData();
+
+      // Add all non-file fields
+      Object.keys(postData).forEach(key => {
+        if (key !== 'featuredImage' && key !== 'seoImage') {
+          const value = postData[key as keyof UpdatePostData];
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else if (value !== undefined && value !== null) {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      // Handle base64 images by converting to blobs
+      if (postData.featuredImage && postData.featuredImage.startsWith('data:')) {
+        const response = await fetch(postData.featuredImage);
+        const blob = await response.blob();
+        formData.append('featuredImage', blob, 'featured-image.jpg');
+      } else if (postData.featuredImage) {
+        formData.append('featuredImage', postData.featuredImage);
+      }
+
+      if (postData.seoImage && postData.seoImage.startsWith('data:')) {
+        const response = await fetch(postData.seoImage);
+        const blob = await response.blob();
+        formData.append('seoImage', blob, 'seo-image.jpg');
+      } else if (postData.seoImage) {
+        formData.append('seoImage', postData.seoImage);
+      }
+
+      // Create headers without Content-Type to let browser set it with boundary for multipart
+      const authHeaders = getAuthHeaders();
+      const headers = Object.entries(authHeaders).reduce((acc, [key, value]) => {
+        if (key !== 'Content-Type') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, string>);
+
       const response = await fetch(`${API_BASE_URL}/admin/content/posts/${id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(postData),
+        headers,
+        body: formData,
       });
 
       if (!response.ok) {

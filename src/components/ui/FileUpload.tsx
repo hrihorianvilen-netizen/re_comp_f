@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 
 interface FileUploadProps {
   accept?: string;
@@ -175,11 +176,14 @@ export default function FileUpload({
         <div className="relative">
           <div className={`${maxWidth} mx-auto`}>
             <div className="relative">
-              <img
+              <Image
                 src={previewUrl}
                 alt="Preview"
                 className={`w-full h-auto rounded border border-gray-200 ${aspectRatio ? '' : 'max-h-48 object-cover'}`}
                 style={aspectRatio ? { aspectRatio } : undefined}
+                width={500}
+                height={500}
+                unoptimized
               />
               <button
                 type="button"

@@ -21,12 +21,12 @@ export default function PostDetailPage() {
     title: '',
     slug: '',
     content: '',
-    status: 'draft' as 'draft' | 'published' | 'scheduled' | 'trash',
+    status: 'draft' as 'draft' | 'published' | 'trash',
     author: '',
     categoryId: '',
     tags: [] as string[],
     featuredImage: '',
-    canonicalUrl: 'https://',
+    canonicalUrl: '',
     schemaType: 'Article',
     seoTitle: '',
     seoDescription: '',
@@ -52,12 +52,12 @@ export default function PostDetailPage() {
             title: postData.title || '',
             slug: postData.slug || '',
             content: postData.content || '',
-            status: postData.status || 'draft',
+            status: (postData.status === 'scheduled' ? 'draft' : postData.status || 'draft') as 'draft' | 'published' | 'trash',
             author: postData.author || '',
             categoryId: postData.categoryId || '',
             tags: Array.isArray(postData.tags) ? postData.tags : [],
             featuredImage: postData.featuredImage || '',
-            canonicalUrl: postData.canonicalUrl || 'https://',
+            canonicalUrl: postData.canonicalUrl || '',
             schemaType: postData.schemaType || 'Article',
             seoTitle: postData.seoTitle || '',
             seoDescription: postData.seoDescription || '',
@@ -125,7 +125,7 @@ export default function PostDetailPage() {
         title: formData.title,
         slug: formData.slug,
         content: formData.content,
-        status: formData.status as 'draft' | 'published' | 'scheduled' | 'trash',
+        status: formData.status as 'draft' | 'published' | 'trash',
         categoryId: formData.categoryId,
         tags: formData.tags,
         featuredImage: formData.featuredImage,
@@ -159,12 +159,12 @@ export default function PostDetailPage() {
         title: post.title || '',
         slug: post.slug || '',
         content: post.content || '',
-        status: post.status || 'draft',
+        status: (post.status === 'scheduled' ? 'draft' : post.status || 'draft') as 'draft' | 'published' | 'trash',
         author: post.author || '',
         categoryId: post.categoryId || '',
         tags: Array.isArray(post.tags) ? post.tags : [],
         featuredImage: post.featuredImage || '',
-        canonicalUrl: post.canonicalUrl || 'https://',
+        canonicalUrl: post.canonicalUrl || '',
         schemaType: post.schemaType || 'Article',
         seoTitle: post.seoTitle || '',
         seoDescription: post.seoDescription || '',
@@ -237,7 +237,6 @@ export default function PostDetailPage() {
     const statusMap = {
       published: { text: 'Published', color: 'green' as const },
       draft: { text: 'Draft', color: 'gray' as const },
-      scheduled: { text: 'Scheduled', color: 'blue' as const },
       trash: { text: 'Trash', color: 'red' as const },
     };
     return statusMap[status as keyof typeof statusMap] || statusMap.draft;
@@ -246,14 +245,14 @@ export default function PostDetailPage() {
   const headerActions = [
     { text: 'Back to Posts', onClick: () => router.push('/admin/posts'), variant: 'secondary' as const },
     ...(isEditing ? [
-      { text: 'Discard', onClick: handleDiscard, variant: 'secondary' as const, disabled: loading },
-      { text: 'Save Changes', onClick: handleSave, variant: 'primary' as const, disabled: loading },
+      { text: loading ? '⟳ Discarding...' : 'Discard', onClick: handleDiscard, variant: 'secondary' as const, disabled: loading },
+      { text: loading ? '⟳ Saving...' : 'Save Changes', onClick: handleSave, variant: 'primary' as const, disabled: loading },
       ...(formData.status === 'draft' ? [
-        { text: 'Publish', onClick: handlePublish, variant: 'primary' as const, disabled: loading }
+        { text: loading ? '⟳ Publishing...' : 'Publish', onClick: handlePublish, variant: 'primary' as const, disabled: loading }
       ] : [])
     ] : [
       { text: 'Edit', onClick: () => setIsEditing(true), variant: 'primary' as const },
-      { text: 'Delete', onClick: handleDelete, variant: 'danger' as const, disabled: loading }
+      { text: loading ? '⟳ Deleting...' : 'Delete', onClick: handleDelete, variant: 'danger' as const, disabled: loading }
     ])
   ];
 
@@ -261,8 +260,9 @@ export default function PostDetailPage() {
     return (
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="text-gray-500">Loading post...</div>
+          <div className="flex flex-col justify-center items-center h-64 gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A96B11]"></div>
+            <div className="text-gray-500">Loading post details...</div>
           </div>
         </div>
       </div>
@@ -288,7 +288,17 @@ export default function PostDetailPage() {
   }
 
   return (
-    <div className="py-6">
+    <div className="py-6 relative">
+      {/* Loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-[#00000080] bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A96B11]"></div>
+            <div className="text-gray-700 font-medium">Processing...</div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <AdminHeader
           title={isEditing ? 'Edit Post' : 'Post Details'}
@@ -433,7 +443,7 @@ export default function PostDetailPage() {
                       value={formData.canonicalUrl}
                       onChange={(e) => handleFieldChange('canonicalUrl', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                      placeholder="https://"
+                      placeholder="https://example.com/page (optional)"
                     />
                   </div>
 
@@ -517,27 +527,6 @@ export default function PostDetailPage() {
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Post Settings</h3>
               <div className="space-y-4">
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  {isEditing ? (
-                    <select
-                      id="status"
-                      value={formData.status}
-                      onChange={(e) => handleFieldChange('status', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    >
-                      <option value="published">Published</option>
-                      <option value="draft">Draft</option>
-                      <option value="scheduled">Scheduled</option>
-                      <option value="trash">Trash</option>
-                    </select>
-                  ) : (
-                    <p className="text-sm text-gray-900 capitalize">{formData.status}</p>
-                  )}
-                </div>
-
                 <div>
                   <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                     Category

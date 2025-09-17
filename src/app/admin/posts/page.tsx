@@ -132,45 +132,6 @@ export default function PostsPage() {
     }
   };
 
-  const handleDeletePost = async (id: string, permanent: boolean = false) => {
-    if (!confirm(`Are you sure you want to ${permanent ? 'permanently delete' : 'trash'} this post?`)) {
-      return;
-    }
-
-    const response = await contentApi.deletePost(id, permanent);
-
-    if (response.data) {
-      toast.success(response.data.message);
-      fetchPosts();
-      fetchStatistics();
-    } else if (response.error) {
-      toast.error(response.error);
-    }
-  };
-
-  const handleRestorePost = async (id: string) => {
-    const response = await contentApi.restorePost(id);
-
-    if (response.data) {
-      toast.success('Post restored successfully');
-      fetchPosts();
-      fetchStatistics();
-    } else if (response.error) {
-      toast.error(response.error);
-    }
-  };
-
-  const handleDuplicatePost = async (id: string) => {
-    const response = await contentApi.duplicatePost(id);
-
-    if (response.data) {
-      toast.success('Post duplicated successfully');
-      fetchPosts();
-    } else if (response.error) {
-      toast.error(response.error);
-    }
-  };
-
   const handleSelectAll = () => {
     if (selectedPosts.length === posts.length) {
       setSelectedPosts([]);

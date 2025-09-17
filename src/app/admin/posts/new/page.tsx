@@ -18,16 +18,14 @@ export default function NewPostPage() {
     categoryId: '',
     tags: [] as string[],
     featuredImage: '',
-    canonicalUrl: 'https://',
+    canonicalUrl: '',
     seoTitle: '',
     seoDescription: '',
     metaKeywords: '',
     schemaType: 'Article',
     seoImage: '',
     allowComments: true,
-    hideAds: false,
-    status: 'draft' as 'draft' | 'published' | 'scheduled',
-    scheduledAt: ''
+    hideAds: false
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -122,10 +120,6 @@ export default function NewPostPage() {
       toast.error('Please select a category');
       return false;
     }
-    if (formData.status === 'scheduled' && !formData.scheduledAt) {
-      toast.error('Please select a scheduled date for scheduled posts');
-      return false;
-    }
     return true;
   };
 
@@ -166,11 +160,11 @@ export default function NewPostPage() {
     try {
       const response = await contentApi.createPost({
         ...formData,
-        status: formData.status === 'scheduled' ? 'scheduled' : 'published'
+        status: 'published'
       });
 
       if (response.data) {
-        toast.success(`Post ${formData.status === 'scheduled' ? 'scheduled' : 'published'} successfully!`);
+        toast.success('Post published successfully!');
         router.push('/admin/posts');
       } else if (response.error) {
         toast.error(response.error);
@@ -210,7 +204,7 @@ export default function NewPostPage() {
                 disabled={loading}
                 className="px-4 py-2 bg-[#A96B11] text-white text-sm font-medium rounded-md hover:bg-[#8B5A0F] disabled:opacity-50"
               >
-                {loading ? 'Publishing...' : formData.status === 'scheduled' ? 'Schedule' : 'Publish'}
+                {loading ? 'Publishing...' : 'Publish'}
               </button>
             </div>
           </div>
@@ -345,7 +339,7 @@ export default function NewPostPage() {
                     value={formData.canonicalUrl}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="https://"
+                    placeholder="https://example.com/page (optional)"
                   />
                 </div>
 
@@ -396,40 +390,6 @@ export default function NewPostPage() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Publishing Options</h2>
 
               <div className="space-y-4">
-                <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                    Status
-                  </label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="scheduled">Scheduled</option>
-                  </select>
-                </div>
-
-                {formData.status === 'scheduled' && (
-                  <div>
-                    <label htmlFor="scheduledAt" className="block text-sm font-medium text-gray-700 mb-1">
-                      Schedule Date & Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      id="scheduledAt"
-                      name="scheduledAt"
-                      value={formData.scheduledAt}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                      min={new Date().toISOString().slice(0, 16)}
-                    />
-                  </div>
-                )}
-
                 <div>
                   <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-1">
                     Category <span className="text-red-500">*</span>
