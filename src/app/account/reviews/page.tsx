@@ -22,7 +22,7 @@ export default function MyReviewsPage() {
   // Use React Query for user authentication
   const { data: user, isLoading: userLoading } = useUser();
 
-  // Fetch reviews using React Query
+  // Fetch reviews using React Query with optimized caching
   const { data: reviewsData, isLoading: reviewsLoading, error } = useQuery({
     queryKey: ['myReviews', currentPage, user?.id],
     queryFn: async () => {
@@ -40,6 +40,9 @@ export default function MyReviewsPage() {
       return response.data;
     },
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Delete review mutation

@@ -19,49 +19,42 @@ export default function HomePage() {
   const [recentMerchants, setRecentMerchants] = useState<Merchant[]>([]);
 
   useEffect(() => {
-    loadInitialData();
-    loadRecentMerchants();
+    loadAllData();
   }, []);
 
-  // Load 10 most recent merchants from database
-  const loadRecentMerchants = async () => {
+  // Optimized: Load all data in parallel
+  const loadAllData = async () => {
     try {
-      const result = await api.getMerchants({
-        limit: 10
-      });
-
-      if (result.data) {
-        const publicMerchants = result.data.merchants.filter(
-          merchant => merchant.status !== 'draft'
-        );
-        setRecentMerchants(publicMerchants);
-      }
-    } catch (error) {
-      console.error('Failed to load recent merchants:', error);
-    }
-  };
-
-  const loadInitialData = async () => {
-    try {
-      // Load merchants and reviews in parallel
-      const [merchantResult, reviewResult] = await Promise.all([
+      // Execute all API calls in parallel for maximum performance
+      const [merchantResult, reviewResult, recentMerchantResult] = await Promise.all([
         api.getMerchants({ limit: 50 }),
-        api.getReviews({ limit: 20 })
+        api.getReviews({ limit: 20 }),
+        api.getMerchants({ limit: 10 }) // For recently viewed section
       ]);
-      
+
+      // Process merchants
       if (merchantResult.data) {
-        // Filter out draft merchants from public display
         const publicMerchants = merchantResult.data.merchants.filter(
           merchant => merchant.status !== 'draft'
         );
         setMerchants(publicMerchants);
       }
-      
+
+      // Process reviews
       if (reviewResult.data) {
         setReviews(reviewResult.data.reviews);
       }
+
+      // Process recent merchants
+      if (recentMerchantResult.data) {
+        const publicRecentMerchants = recentMerchantResult.data.merchants.filter(
+          merchant => merchant.status !== 'draft'
+        );
+        setRecentMerchants(publicRecentMerchants);
+      }
     } catch (error) {
-      console.error('Failed to load initial data:', error);
+      console.error('Failed to load data:', error);
+      // Optionally set error state for UI feedback
     } finally {
       setLoading(false);
     }

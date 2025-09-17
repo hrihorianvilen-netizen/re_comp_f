@@ -51,10 +51,14 @@ export default function MerchantDetailPage() {
       setError(null);
       
       try {
-        // Load merchant and reviews in parallel
+        // Optimized: Load merchant, reviews, and track visit in parallel
         const [merchantRes, reviewsRes] = await Promise.all([
           api.getMerchant(slug),
-          api.getReviews({ merchantSlug: slug, limit: 50 })
+          api.getReviews({ merchantSlug: slug, limit: 50 }),
+          api.trackMerchantVisit(slug).catch(err => {
+            console.warn('Failed to track merchant visit:', err);
+            return null; // Don't fail the whole operation if tracking fails
+          })
         ]);
 
         if (merchantRes.error) {
@@ -69,13 +73,6 @@ export default function MerchantDetailPage() {
 
         if (reviewsRes.data) {
           setReviews(reviewsRes.data.reviews || []);
-        }
-
-        // Track the visit when page loads
-        try {
-          await api.trackMerchantVisit(slug);
-        } catch (visitErr) {
-          console.warn('Failed to track merchant visit:', visitErr);
         }
       } catch (err) {
         console.error('Failed to load merchant data:', err);
