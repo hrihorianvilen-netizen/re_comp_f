@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useAuth } from '@/contexts/AuthContext';
 import GiftCodeClaimModal from '@/components/merchants/GiftCodeClaimModal';
 import api from '@/lib/api';
@@ -250,12 +250,14 @@ export default function GiftCodesPage() {
                   <div className="p-4 border-b bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div className="flex items-center gap-3">
                       {promotion.merchant.logo ? (
-                        <Image
+                        <OptimizedImage
                           src={getImageUrl(promotion.merchant.logo)}
                           alt={promotion.merchant.name}
                           width={40}
                           height={40}
                           className="rounded-lg object-cover"
+                          sizeType="thumbnail"
+                          qualityPriority="medium"
                         />
                       ) : (
                         <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">

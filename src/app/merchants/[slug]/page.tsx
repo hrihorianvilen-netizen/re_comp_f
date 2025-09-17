@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import Link from 'next/link';
 import { Merchant, Review, FAQ } from '@/types/api';
 import { RatingStars, InteractiveRatingStars } from '@/components/ui';
@@ -277,12 +277,15 @@ export default function MerchantDetailPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6">
             <div className="flex items-start gap-4 lg:gap-6 flex-1">
-              <Image
+              <OptimizedImage
                 src={getImageUrl(merchant.logo, '/images/shopee.jpg')}
                 alt={merchant.name}
                 width={100}
                 height={100}
                 className="w-16 h-16 lg:w-[100px] lg:h-[100px]"
+                sizeType="thumbnail"
+                qualityPriority="high"
+                priority
               />
               <div className="flex-1">
                 <div className="flex items-center gap-3">
@@ -365,15 +368,15 @@ export default function MerchantDetailPage() {
                         setModalOpen(true);
                       }}
                     >
-                      <Image
+                      <OptimizedImage
                         src={screenshot || '/images/shopee.jpg'}
                         alt={`${merchant.name} screenshot ${index + 1}`}
                         width={200}
                         height={150}
                         className="rounded-lg border w-full h-auto hover:opacity-90 transition-all duration-300 group-hover:scale-105"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/shopee.jpg';
-                        }}
+                        sizeType="card"
+                        qualityPriority="medium"
+                        priority={index < 3}
                       />
                       {/* Overlay for better user experience */}
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-lg flex items-center justify-center">
@@ -888,15 +891,14 @@ export default function MerchantDetailPage() {
               {screenshots.map((screenshot: string, index: number) => (
                 <SwiperSlide key={index}>
                   <div className="flex items-center justify-center h-[70vh] relative">
-                    <Image
+                    <OptimizedImage
                       src={screenshot || '/images/shopee.jpg'}
                       alt={`${merchant.name} screenshot ${index + 1}`}
                       width={800}
                       height={600}
                       className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/images/shopee.jpg';
-                      }}
+                      sizeType="card"
+                      qualityPriority="medium"
                     />
                     {/* Image counter */}
                     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-3 py-1 rounded-full text-sm">

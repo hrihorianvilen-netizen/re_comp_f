@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface NewsArticle {
   id: string;
@@ -253,12 +253,14 @@ export default function AdminNewsPage() {
                           onChange={() => handleSelectNews(article.id)}
                           className="absolute top-3 left-3 h-4 w-4 text-[#198639] focus:ring-[#198639] border-gray-300 rounded z-10"
                         />
-                        <Image
+                        <OptimizedImage
                           src={article.image}
                           alt={article.title}
                           width={400}
                           height={200}
                           className="w-full h-48 object-cover"
+                          sizeType="card"
+                          qualityPriority="medium"
                         />
                         <div className="absolute top-3 right-3">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[article.status]}`}>

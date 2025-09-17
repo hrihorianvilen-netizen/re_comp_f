@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface SeoData {
   title: string;
@@ -208,13 +208,15 @@ export default function SeoConfiguration({ initialSeo, onSeoChange }: SeoConfigu
             <div className="space-y-1 text-center">
               {imagePreview ? (
                 <div className="relative">
-                  <Image
+                  <OptimizedImage
                     src={imagePreview}
                     alt="SEO preview"
                     width={305}
                     height={160}
                     className="mx-auto max-h-40 object-cover rounded-lg"
                     style={{ aspectRatio: '1.91/1' }}
+                    sizeType="card"
+                    qualityPriority="medium"
                   />
                   <button
                     type="button"

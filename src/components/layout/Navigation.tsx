@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUser } from '@/hooks/useAuth';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 export default function Navigation() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -152,12 +152,15 @@ export default function Navigation() {
                       >
                         {getAvatarUrl(currentUser.avatar) ? (
                           <div className="w-8 h-8 relative">
-                            <Image
+                            <OptimizedImage
                               src={getAvatarUrl(currentUser.avatar) || ''}
                               alt={currentUser.displayName || currentUser.name || 'User'}
                               width={32}
                               height={32}
                               className="rounded-full border border-gray-200 object-cover w-full h-full"
+                              sizeType="avatar"
+                              qualityPriority="high"
+                              priority
                             />
                           </div>
                         ) : (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useUser, useUpdateProfile } from '@/hooks/useAuth';
 import { getImageUrl } from '@/lib/utils';
 
@@ -102,12 +102,15 @@ export default function UserProfile() {
         {/* Avatar Section */}
         <div className="flex items-center space-x-6">
           <div className="relative">
-            <Image
+            <OptimizedImage
               src={previewUrl || getImageUrl(user.avatar) || '/images/default-avatar.png'}
               alt="Profile avatar"
               width={80}
               height={80}
               className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+              sizeType="avatar"
+              qualityPriority="high"
+              priority
             />
           </div>
           <div>

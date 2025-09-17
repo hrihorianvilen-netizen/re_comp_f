@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpdateProfile, useUploadAvatar, useUser } from '@/hooks/useAuth';
 import ChangePasswordForm from './ChangePasswordForm';
@@ -139,18 +139,15 @@ export default function AccountManagement() {
                 <div className="relative inline-block">
                 {(previewUrl || getAvatarUrl(currentUser.avatar)) ? (
                   <div className="w-[120px] h-[120px] relative mx-auto">
-                    <Image
+                    <OptimizedImage
                       src={previewUrl || getAvatarUrl(currentUser.avatar) || ''}
                       alt={currentUser.displayName || currentUser.name || 'User'}
                       width={120}
                       height={120}
                       className="rounded-full border-4 border-gray-100 shadow-md object-cover w-full h-full"
-                      onError={(e) => {
-                        console.error('Image failed to load:', e.currentTarget.src);
-                      }}
-                      onLoad={() => {
-                        console.log('Image loaded successfully:', previewUrl || getAvatarUrl(currentUser.avatar));
-                      }}
+                      sizeType="avatar"
+                      qualityPriority="high"
+                      priority
                     />
                   </div>
                 ) : (

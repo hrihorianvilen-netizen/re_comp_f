@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface NewsItem {
   id: string;
@@ -179,12 +179,14 @@ export default function NewsSection({
             <article key={article.id} className="overflow-hidden">
               <div className="md:flex">
                 <div className="md:w-1/3">
-                  <Image
+                  <OptimizedImage
                     src={article.image}
                     alt={article.title}
                     width={268}
                     height={151}
                     className="w-full h-48 md:h-full object-cover"
+                    sizeType="card"
+                    qualityPriority="medium"
                   />
                 </div>
                 <div className="md:w-2/3 p-4">
@@ -279,12 +281,14 @@ export default function NewsSection({
               {news.slice(0, 4).map((article) => (
                 <div key={`popular-${article.id}`} className="flex gap-3 border-b-2 border-gray-200 pb-3 last:border-0 last:pb-0">
                   <div className="flex-shrink-0">
-                    <Image
+                    <OptimizedImage
                       src={article.image}
                       alt={article.title}
                       width={80}
                       height={60}
                       className="object-cover"
+                      sizeType="thumbnail"
+                      qualityPriority="medium"
                     />
                   </div>
                   <div className="flex-1 min-w-0">

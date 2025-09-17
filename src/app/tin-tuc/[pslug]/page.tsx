@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface Reactions {
   love: number;
@@ -289,11 +289,13 @@ export default function PostDetailPage() {
             <article className="bg-white rounded-lg shadow-sm overflow-hidden">
               {/* Article Header */}
               <div className="relative h-64 md:h-96">
-                <Image
+                <OptimizedImage
                   src={news.image}
                   alt={news.title}
                   fill
                   className="object-cover"
+                  sizeType="card"
+                  qualityPriority="medium"
                 />
               </div>
 
@@ -699,12 +701,14 @@ export default function PostDetailPage() {
                   {Object.values(mockNewsData).filter(n => n.slug !== news.slug).slice(0, 4).map((article) => (
                     <div key={article.id} className="flex gap-3 border-b-2 border-gray-200 pb-3 last:border-0 last:pb-0">
                       <div className="flex-shrink-0">
-                        <Image
+                        <OptimizedImage
                           src={article.image}
                           alt={article.title}
                           width={80}
                           height={60}
                           className="object-cover"
+                          sizeType="thumbnail"
+                          qualityPriority="medium"
                         />
                       </div>
                       <div className="flex-1 min-w-0">

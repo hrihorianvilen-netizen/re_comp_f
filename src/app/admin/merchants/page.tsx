@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { Merchant } from '@/types/api';
 import { RatingStars } from '@/components/ui';
 import api from '@/lib/api';
@@ -299,12 +299,14 @@ export default function AdminMerchantsPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <Image
+                      <OptimizedImage
                         src={getImageUrl(merchant.logo, '/images/shopee.jpg')}
                         alt={merchant.name}
                         width={40}
                         height={40}
                         className="rounded-lg"
+                        sizeType="thumbnail"
+                        qualityPriority="medium"
                       />
                       <div>
                         <Link

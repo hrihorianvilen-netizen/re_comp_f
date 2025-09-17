@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { ReviewComment } from '@/types/api';
 import { useComments, useAddComment } from '@/hooks/useMerchants';
 import { getImageUrl } from '@/lib/utils';
@@ -81,12 +81,14 @@ export default function CommentSystem({ reviewId, merchantSlug, initialComments 
               {/* Avatar */}
               <div className="flex-shrink-0">
                 {comment.user?.avatar ? (
-                  <Image
+                  <OptimizedImage
                     src={getImageUrl(comment.user.avatar)}
                     alt={comment.displayName || 'User'}
                     width={32}
                     height={32}
                     className="w-8 h-8 rounded-full object-cover"
+                    sizeType="avatar"
+                    qualityPriority="medium"
                   />
                 ) : (
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">

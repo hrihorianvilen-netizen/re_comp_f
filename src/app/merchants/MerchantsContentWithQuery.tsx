@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-intersection-observer';
@@ -192,12 +192,14 @@ export default function MerchantsContentWithQuery() {
                   <div className="p-6">
                     <div className="flex items-start space-x-4">
                       <div className="flex-shrink-0">
-                        <Image
+                        <OptimizedImage
                           src={getImageUrl(merchant.logo) || '/images/default-merchant.png'}
                           alt={`${merchant.name} logo`}
                           width={64}
                           height={64}
                           className="w-16 h-16 rounded-lg object-cover"
+                          sizeType="thumbnail"
+                          qualityPriority="medium"
                         />
                       </div>
                       <div className="flex-1 min-w-0">

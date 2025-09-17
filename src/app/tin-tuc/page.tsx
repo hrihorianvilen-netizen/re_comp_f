@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { RecentlyViewedSwiper, MerchantTabs } from '@/components/merchants';
 import { NewsSection } from '@/components/news';
 import { RecentReviews } from '@/components/reviews';
@@ -258,12 +258,14 @@ export default function TinTucPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Banner Image with Text Overlay */}
       <div className="w-full relative">
-        <Image
+        <OptimizedImage
           src="/images/banner.png"
           alt="Review Banner"
           width={1440}
           height={300}
           className="w-full md:h-full h-[120px] md:object-cover"
+          sizeType="full"
+          qualityPriority="high"
           priority
         />
         {/* Text Overlay */}

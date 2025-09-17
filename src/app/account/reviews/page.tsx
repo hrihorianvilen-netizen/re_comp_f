@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { RatingStars } from '@/components/ui';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { Review, ReviewComment } from '@/types/api';
 
 export default function MyReviewsPage() {
@@ -261,7 +261,7 @@ export default function MyReviewsPage() {
                         {/* Merchant Logo */}
                         {review.merchant && (
                           <Link href={`/merchants/${review.merchant.slug}`}>
-                            <Image
+                            <OptimizedImage
                               src={
                                 getImageUrl(review.merchant.logo) ||
                                 '/images/default-merchant.png'
@@ -270,6 +270,8 @@ export default function MyReviewsPage() {
                               width={48}
                               height={48}
                               className="w-12 h-12 rounded-lg object-cover"
+                              sizeType="avatar"
+                              qualityPriority="medium"
                             />
                           </Link>
                         )}

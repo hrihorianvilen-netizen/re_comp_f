@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { Merchant } from '@/types/api';
-import Image from 'next/image';
 import Link from 'next/link';
 import { RatingStars } from '@/components/ui';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { getImageUrl } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -87,7 +87,7 @@ export default function MerchantTabs({ merchants }: MerchantTabsProps) {
           </div>
           <div className="w-full">
             <div className="grid grid-cols-1 gap-4 mt-4">
-              {currentMerchants.map((merchant) => (
+              {currentMerchants.map((merchant, index) => (
                 <Link 
                   key={merchant.id} 
                   href={`/merchants/${merchant.slug || merchant.id}`} 
@@ -99,11 +99,14 @@ export default function MerchantTabs({ merchants }: MerchantTabsProps) {
                       {/* Image */}
                       <div className="relative w-32 h-32 flex-shrink-0">
                         {merchant.logo ? (
-                          <Image
+                          <OptimizedImage
                             src={getImageUrl(merchant.logo)}
                             alt={merchant.name}
                             fill
                             className="object-cover rounded-md"
+                            sizeType="thumbnail"
+                            qualityPriority="medium"
+                            priority={index < 5}
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-200 rounded-md flex items-center justify-center">

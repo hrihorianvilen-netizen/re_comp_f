@@ -2,9 +2,9 @@
 
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
-import Image from 'next/image';
 import Link from 'next/link';
 import { RatingStars } from '@/components/ui';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { getImageUrl } from '@/lib/utils';
 import api from '@/lib/api';
 
@@ -90,11 +90,13 @@ export default function RecentlyViewedSwiper({ items }: RecentlyViewedSwiperProp
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <div className="relative w-12 h-12 flex-shrink-0">
-                        <Image
+                        <OptimizedImage
                           src={getImageUrl(item.image)}
                           alt={item.name}
                           fill
                           className="object-cover rounded-lg"
+                          sizes="48px"
+                          quality={80}
                         />
                       </div>
                       <h3 className="font-semibold text-gray-900 line-clamp-1">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useAd, useUpdateAd, usePublishAd, useArchiveAd, useDeleteAd } from '@/hooks/useAds';
 import { getImageUrl } from '@/lib/utils';
 
@@ -500,12 +500,14 @@ export default function AdvertisementDetailPage() {
                   {/* Image Preview */}
                   {imagePreview && imagePreview !== '' ? (
                     <div className="relative">
-                      <Image
+                      <OptimizedImage
                         src={imagePreview || '/images/placeholder.jpg'}
                         alt="Banner preview"
                         width={400}
                         height={256}
                         className="w-full h-64 object-cover rounded-lg border border-gray-300"
+                        sizeType="card"
+                        qualityPriority="low"
                       />
                       {isEditing && (
                         <button

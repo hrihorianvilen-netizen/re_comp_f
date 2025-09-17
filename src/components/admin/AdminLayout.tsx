@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useUser } from '@/hooks/useAuth';
 import { Toaster } from 'react-hot-toast';
 
@@ -357,12 +357,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <div className="flex items-center">
                   <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                     {getAvatarUrl(user?.avatar) ? (
-                      <Image
+                      <OptimizedImage
                         src={getAvatarUrl(user?.avatar) || ''}
                         alt={user?.displayName || user?.name || 'Admin'}
                         width={40}
                         height={40}
                         className="rounded-full object-cover w-full h-full"
+                        sizeType="avatar"
+                        qualityPriority="high"
+                        priority
                       />
                     ) : (
                       <span className="text-gray-600 text-sm font-medium">

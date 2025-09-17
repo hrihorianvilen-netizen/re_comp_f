@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface LogoUploadProps {
   logoPreview: string;
@@ -39,13 +39,15 @@ export default function LogoUpload({ logoPreview, setLogoPreview, onLogoChange, 
         <div className="space-y-1 text-center">
           {logoPreview ? (
             <div className="relative">
-              <Image
+              <OptimizedImage
                 src={logoPreview}
                 alt="Logo preview"
                 width={64}
                 height={64}
                 className="mx-auto h-16 w-16 object-cover rounded-lg"
                 style={{ aspectRatio: '1/1' }}
+                sizeType="thumbnail"
+                qualityPriority="high"
               />
               <button
                 type="button"

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import Link from 'next/link';
 import { Review, ReviewComment, Merchant } from '@/types/api';
 import { RatingStars } from '@/components/ui';
@@ -235,12 +235,14 @@ export default function ReviewDetailPage() {
           {/* Merchant Info */}
           <div className="flex flex-col lg:flex-row lg:items-start lg:gap-6 mb-6 pb-6 border-b">
             <div className="flex items-start gap-4 lg:gap-6 flex-1">
-              <Image
+              <OptimizedImage
                 src={review.merchant?.logo || '/images/shopee.jpg'}
                 alt={review.merchant?.name || 'Merchant'}
                 width={80}
                 height={80}
                 className="w-16 h-16 lg:w-[100px] lg:h-[100px]"
+                sizeType="thumbnail"
+                qualityPriority="medium"
               />
               <div className="flex-1">
                 <Link 

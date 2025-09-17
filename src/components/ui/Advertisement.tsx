@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import Link from 'next/link';
 import { Advertisement as AdType } from '@/types/api';
 
@@ -50,12 +50,14 @@ export default function Advertisement({ advertisement, className = '', variant =
               isHorizontalView ? 'w-32 h-24' :
               isCompactView ? 'w-full h-32' : 'w-full h-48'
             }`}>
-              <Image
+              <OptimizedImage
                 src={advertisement.imageUrl}
                 alt={advertisement.title}
                 fill
                 className="object-cover"
                 sizes={isHorizontalView ? '128px' : '(max-width: 768px) 100vw, 33vw'}
+                sizeType="full"
+                qualityPriority="low"
               />
             </div>
           </div>

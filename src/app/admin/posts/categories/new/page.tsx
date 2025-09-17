@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { contentApi } from '@/lib/api/content';
 import toast from 'react-hot-toast';
 import type { Category } from '@/lib/api/content';
@@ -369,13 +369,15 @@ export default function NewCategoryPage() {
                   />
                   {seoImagePreview && (
                     <div className="mt-3">
-                      <Image
+                      <OptimizedImage
                         src={seoImagePreview}
                         alt="SEO Preview"
                         width={400}
                         height={209}
                         className="w-full max-w-sm h-auto rounded border border-gray-200"
                         style={{ aspectRatio: '1.91/1' }}
+                        sizeType="card"
+                        qualityPriority="medium"
                       />
                       <p className="text-xs text-gray-500 mt-1">Preview (1.91:1 aspect ratio)</p>
                     </div>
@@ -488,12 +490,14 @@ export default function NewCategoryPage() {
                 </div>
                 {featuredImagePreview && (
                   <div className="mt-3">
-                    <Image
+                    <OptimizedImage
                       src={featuredImagePreview}
                       alt="Featured Image Preview"
                       width={400}
                       height={192}
                       className="w-full h-48 object-cover rounded border border-gray-200"
+                      sizeType="card"
+                      qualityPriority="medium"
                     />
                     <p className="text-xs text-gray-500 mt-1">Featured Image Preview</p>
                   </div>

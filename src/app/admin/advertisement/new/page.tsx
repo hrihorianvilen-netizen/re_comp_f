@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useMerchants } from '@/hooks/useMerchants';
 import { useCreateAd } from '@/hooks/useAds';
 
@@ -495,12 +495,14 @@ export default function NewAdvertisementPage() {
                   {/* Image Preview */}
                   {imagePreview ? (
                     <div className="relative">
-                      <Image
+                      <OptimizedImage
                         src={imagePreview}
                         alt="Banner preview"
                         width={400}
                         height={256}
                         className="w-full h-64 object-cover rounded-lg border border-gray-300"
+                        sizeType="card"
+                        qualityPriority="low"
                       />
                       <button
                         type="button"

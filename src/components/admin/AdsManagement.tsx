@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { getImageUrl } from '@/lib/utils';
 import {
   useAds,
@@ -196,12 +196,14 @@ export default function AdsManagement() {
                       <div className="relative">
                         {ad.imageUrl && ad.imageUrl !== '' ? (
                           <>
-                            <Image
+                            <OptimizedImage
                               src={getImageUrl(ad.imageUrl, '/images/placeholder.jpg')}
                               alt={ad.title}
                               width={64}
                               height={48}
                               className="object-cover rounded border border-gray-200"
+                              sizeType="thumbnail"
+                              qualityPriority="high"
                             />
                           </>
                         ) : (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface ScreenshotData {
   desktopImages: File[];
@@ -237,11 +237,13 @@ export default function Screenshots({ initialScreenshots, onScreenshotsChange }:
                   {existingScreenshots.map((screenshot, index) => (
                     <div key={`existing-${index}`} className="relative group">
                       <div className="aspect-[16/10] bg-gray-100 rounded-lg overflow-hidden">
-                        <Image
+                        <OptimizedImage
                           src={screenshot}
                           alt={`Existing screenshot ${index + 1}`}
                           fill
                           className="object-cover"
+                          sizeType="card"
+                          qualityPriority="medium"
                         />
                       </div>
                       <button
@@ -271,13 +273,15 @@ export default function Screenshots({ initialScreenshots, onScreenshotsChange }:
                           ? 'border-red-500 shadow-red-200 shadow-md'
                           : 'border-green-500 shadow-green-200 shadow-md'
                       }`}>
-                        <Image
+                        <OptimizedImage
                           src={imagePreview.preview}
                           alt={`Desktop screenshot ${index + 1}`}
                           fill
                           className={`object-cover transition-all duration-200 ${
                             imagePreview.error ? 'opacity-40 grayscale' : 'opacity-100'
                           }`}
+                          sizeType="card"
+                          qualityPriority="medium"
                         />
 
                         {/* Visual status overlay */}
@@ -389,13 +393,15 @@ export default function Screenshots({ initialScreenshots, onScreenshotsChange }:
                       ? 'border-red-500 shadow-red-200 shadow-md'
                       : 'border-green-500 shadow-green-200 shadow-md'
                   }`}>
-                    <Image
+                    <OptimizedImage
                       src={imagePreview.preview}
                       alt={`Mobile screenshot ${index + 1}`}
                       fill
                       className={`object-cover transition-all duration-200 ${
                         imagePreview.error ? 'opacity-40 grayscale' : 'opacity-100'
                       }`}
+                      sizeType="card"
+                      qualityPriority="medium"
                     />
 
                     {/* Visual status overlay */}

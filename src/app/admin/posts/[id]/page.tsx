@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import AdminHeader from '@/components/admin/shared/AdminHeader';
 import SEOSettingsCard from '@/components/admin/shared/SEOSettingsCard';
 import { contentApi } from '@/lib/api/content';
@@ -546,12 +546,14 @@ export default function PostDetailPage() {
               <div className="space-y-4">
                 {formData.featuredImage && (
                   <div>
-                    <Image
+                    <OptimizedImage
                       src={formData.featuredImage}
                       alt="Featured Image"
                       width={400}
                       height={192}
                       className="w-full h-48 object-cover rounded border border-gray-200"
+                      sizeType="card"
+                      qualityPriority="medium"
                     />
                   </div>
                 )}

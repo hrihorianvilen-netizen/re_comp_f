@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { ReviewComment } from '@/types/api';
 import { getImageUrl } from '@/lib/utils';
 
@@ -48,12 +48,14 @@ export default function CommentDisplay({ comments, showAll = false, maxDisplay =
               {/* Avatar */}
               <div className="flex-shrink-0">
                 {comment.user?.avatar ? (
-                  <Image
+                  <OptimizedImage
                     src={getImageUrl(comment.user.avatar)}
                     alt={comment.displayName || 'User'}
                     width={24}
                     height={24}
                     className="w-6 h-6 rounded-full object-cover"
+                    sizeType="avatar"
+                    qualityPriority="medium"
                   />
                 ) : (
                   <div className="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center">

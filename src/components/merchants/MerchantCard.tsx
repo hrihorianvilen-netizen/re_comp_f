@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Merchant } from '@/types/api';
 import { RatingStars } from '@/components/ui';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { getImageUrl } from '@/lib/utils';
 
 interface MerchantCardProps {
@@ -41,12 +41,14 @@ export default function MerchantCard({ merchant }: MerchantCardProps) {
       <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6">
         <div className="flex items-center justify-between mb-4">
           {merchant.logo ? (
-            <Image
+            <OptimizedImage
               src={getImageUrl(merchant.logo)}
               alt={merchant.name}
               width={40}
               height={40}
               className="rounded-lg"
+              sizes="40px"
+              quality={85}
             />
           ) : (
             <div className="w-10 h-10 bg-gray-200 rounded-lg flex items-center justify-center">
