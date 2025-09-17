@@ -18,7 +18,6 @@ export interface Post {
   slug: string;
   title: string;
   content: string;
-  excerpt: string;
   featuredImage?: string;
   author: string;
   authorId?: string;
@@ -32,14 +31,13 @@ export interface Post {
   views: number;
   likes: number;
   shares: number;
-  metaTitle?: string;
-  metaDescription?: string;
+  seoTitle?: string;
+  seoDescription?: string;
   metaKeywords?: string;
   canonicalUrl?: string;
-  ogImage?: string;
+  schemaType?: string;
+  seoImage?: string;
   tags: string[];
-  isPinned: boolean;
-  isFeatured: boolean;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -112,8 +110,8 @@ export interface PostsResponse {
 
 export interface CreatePostData {
   title: string;
+  slug: string;
   content: string;
-  excerpt: string;
   categoryId: string;
   featuredImage?: string;
   status?: 'draft' | 'published' | 'scheduled' | 'trash';
@@ -121,13 +119,12 @@ export interface CreatePostData {
   allowComments?: boolean;
   hideAds?: boolean;
   tags?: string[];
-  isPinned?: boolean;
-  isFeatured?: boolean;
-  metaTitle?: string;
-  metaDescription?: string;
+  seoTitle?: string;
+  seoDescription?: string;
   metaKeywords?: string;
   canonicalUrl?: string;
-  ogImage?: string;
+  schemaType?: string;
+  seoImage?: string;
 }
 
 export interface UpdatePostData extends Partial<CreatePostData> {

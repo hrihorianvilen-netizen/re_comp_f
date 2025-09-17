@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { contentApi, Category } from '@/lib/api/content';
 import { toast } from 'react-hot-toast';
+import FileUpload from '@/components/ui/FileUpload';
 
 export default function NewPostPage() {
   const router = useRouter();
@@ -12,27 +13,24 @@ export default function NewPostPage() {
 
   const [formData, setFormData] = useState({
     title: '',
+    slug: '',
     content: '',
-    excerpt: '',
     categoryId: '',
     tags: [] as string[],
     featuredImage: '',
-    canonicalUrl: '',
-    metaTitle: '',
-    metaDescription: '',
+    canonicalUrl: 'https://',
+    seoTitle: '',
+    seoDescription: '',
     metaKeywords: '',
-    ogImage: '',
+    schemaType: 'Article',
+    seoImage: '',
     allowComments: true,
     hideAds: false,
-    isPinned: false,
-    isFeatured: false,
     status: 'draft' as 'draft' | 'published' | 'scheduled',
     scheduledAt: ''
   });
 
   const [tagInput, setTagInput] = useState('');
-  const [featuredImagePreview, setFeaturedImagePreview] = useState('');
-  const [ogImagePreview, setOgImagePreview] = useState('');
 
   const fetchCategories = useCallback(async () => {
     const response = await contentApi.getCategories();
@@ -67,11 +65,19 @@ export default function NewPostPage() {
       }));
     }
 
-    // Update image previews
-    if (name === 'featuredImage') {
-      setFeaturedImagePreview(value);
-    } else if (name === 'ogImage') {
-      setOgImagePreview(value);
+    // Auto-generate slug from title
+    if (name === 'title' && !formData.slug) {
+      const slug = value.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        slug: slug
+      }));
+      return;
     }
   };
 
@@ -108,8 +114,8 @@ export default function NewPostPage() {
       toast.error('Content is required');
       return false;
     }
-    if (!formData.excerpt.trim()) {
-      toast.error('Excerpt is required');
+    if (!formData.slug.trim()) {
+      toast.error('Slug is required');
       return false;
     }
     if (!formData.categoryId) {
@@ -234,18 +240,21 @@ export default function NewPostPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-1">
-                    Excerpt <span className="text-red-500">*</span>
+                  <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-1">
+                    URL Slug <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    id="excerpt"
-                    name="excerpt"
-                    value={formData.excerpt}
+                  <input
+                    type="text"
+                    id="slug"
+                    name="slug"
+                    value={formData.slug}
                     onChange={handleInputChange}
-                    rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="Brief description of the post"
+                    placeholder="url-friendly-slug"
                   />
+                  <p className="mt-1 text-sm text-gray-500">
+                    This will be the URL: /posts/{formData.slug}
+                  </p>
                 </div>
 
                 <div>
@@ -272,36 +281,22 @@ export default function NewPostPage() {
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Featured Image</h2>
 
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="featuredImage" className="block text-sm font-medium text-gray-700 mb-1">
-                    Image URL
-                  </label>
-                  <input
-                    type="text"
-                    id="featuredImage"
-                    name="featuredImage"
-                    value={formData.featuredImage}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-
-                {featuredImagePreview && (
-                  <div className="border rounded-lg overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={featuredImagePreview}
-                      alt="Featured preview"
-                      className="w-full h-48 object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/api/placeholder/400/300';
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+              <FileUpload
+                accept="image/*"
+                maxSize={5 * 1024 * 1024} // 5MB
+                value={formData.featuredImage}
+                onChange={(_file, dataUrl) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    featuredImage: dataUrl || ''
+                  }));
+                }}
+                preview={true}
+                placeholder="Upload featured image"
+                label="Featured Image"
+                aspectRatio="16/9"
+                maxWidth="max-w-md"
+              />
             </div>
 
             {/* SEO Settings */}
@@ -310,14 +305,14 @@ export default function NewPostPage() {
 
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="metaTitle" className="block text-sm font-medium text-gray-700 mb-1">
-                    Meta Title
+                  <label htmlFor="seoTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                    SEO Title
                   </label>
                   <input
                     type="text"
-                    id="metaTitle"
-                    name="metaTitle"
-                    value={formData.metaTitle}
+                    id="seoTitle"
+                    name="seoTitle"
+                    value={formData.seoTitle}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
                     placeholder="SEO optimized title"
@@ -325,13 +320,13 @@ export default function NewPostPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="metaDescription" className="block text-sm font-medium text-gray-700 mb-1">
-                    Meta Description
+                  <label htmlFor="seoDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                    SEO Description
                   </label>
                   <textarea
-                    id="metaDescription"
-                    name="metaDescription"
-                    value={formData.metaDescription}
+                    id="seoDescription"
+                    name="seoDescription"
+                    value={formData.seoDescription}
                     onChange={handleInputChange}
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
@@ -340,63 +335,56 @@ export default function NewPostPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="metaKeywords" className="block text-sm font-medium text-gray-700 mb-1">
-                    Meta Keywords
-                  </label>
-                  <input
-                    type="text"
-                    id="metaKeywords"
-                    name="metaKeywords"
-                    value={formData.metaKeywords}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="keyword1, keyword2, keyword3"
-                  />
-                </div>
-
-                <div>
                   <label htmlFor="canonicalUrl" className="block text-sm font-medium text-gray-700 mb-1">
                     Canonical URL
                   </label>
                   <input
-                    type="text"
+                    type="url"
                     id="canonicalUrl"
                     name="canonicalUrl"
                     value={formData.canonicalUrl}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="https://example.com/canonical-url"
+                    placeholder="https://"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="ogImage" className="block text-sm font-medium text-gray-700 mb-1">
-                    Open Graph Image URL
+                  <label htmlFor="schemaType" className="block text-sm font-medium text-gray-700 mb-1">
+                    Schema Type
                   </label>
-                  <input
-                    type="text"
-                    id="ogImage"
-                    name="ogImage"
-                    value={formData.ogImage}
+                  <select
+                    id="schemaType"
+                    name="schemaType"
+                    value={formData.schemaType}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    placeholder="https://example.com/og-image.jpg"
-                  />
+                  >
+                    <option value="Article">Article</option>
+                    <option value="BlogPosting">Blog Posting</option>
+                    <option value="NewsArticle">News Article</option>
+                    <option value="Review">Review</option>
+                  </select>
                 </div>
 
-                {ogImagePreview && (
-                  <div className="border rounded-lg overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={ogImagePreview}
-                      alt="OG Image preview"
-                      className="w-full h-32 object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/api/placeholder/1200/630';
-                      }}
-                    />
-                  </div>
-                )}
+                <div>
+                  <FileUpload
+                    accept="image/*"
+                    maxSize={300 * 1024} // 300KB
+                    value={formData.seoImage}
+                    onChange={(_file, dataUrl) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        seoImage: dataUrl || ''
+                      }));
+                    }}
+                    preview={true}
+                    placeholder="Upload SEO image"
+                    label="SEO Image (1.91:1 ratio, 1200×630px recommended)"
+                    aspectRatio="1.91/1"
+                    maxWidth="max-w-sm"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -533,27 +521,6 @@ export default function NewPostPage() {
                   <span className="ml-2 text-sm text-gray-700">Hide Advertisements</span>
                 </label>
 
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="isFeatured"
-                    checked={formData.isFeatured}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Featured Post</span>
-                </label>
-
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="isPinned"
-                    checked={formData.isPinned}
-                    onChange={handleInputChange}
-                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">Pin to Top</span>
-                </label>
               </div>
             </div>
           </div>

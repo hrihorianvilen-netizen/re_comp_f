@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import AdminHeader from '@/components/admin/shared/AdminHeader';
-import SEOSettingsCard from '@/components/admin/shared/SEOSettingsCard';
+import FileUpload from '@/components/ui/FileUpload';
 import { contentApi } from '@/lib/api/content';
 import toast from 'react-hot-toast';
 import type { Post, Category } from '@/lib/api/content';
@@ -21,13 +21,12 @@ export default function PostDetailPage() {
     title: '',
     slug: '',
     content: '',
-    excerpt: '',
     status: 'draft' as 'draft' | 'published' | 'scheduled' | 'trash',
     author: '',
     categoryId: '',
     tags: [] as string[],
     featuredImage: '',
-    canonicalUrl: '',
+    canonicalUrl: 'https://',
     schemaType: 'Article',
     seoTitle: '',
     seoDescription: '',
@@ -36,6 +35,7 @@ export default function PostDetailPage() {
     hideAds: false,
     readTime: '5 min read'
   });
+
 
   // Fetch post and categories on mount
   useEffect(() => {
@@ -52,17 +52,16 @@ export default function PostDetailPage() {
             title: postData.title || '',
             slug: postData.slug || '',
             content: postData.content || '',
-            excerpt: postData.excerpt || '',
             status: postData.status || 'draft',
             author: postData.author || '',
             categoryId: postData.categoryId || '',
             tags: Array.isArray(postData.tags) ? postData.tags : [],
             featuredImage: postData.featuredImage || '',
-            canonicalUrl: postData.canonicalUrl || '',
-            schemaType: 'Article',  // Default value since Post doesn't have schemaType
-            seoTitle: postData.metaTitle || '',
-            seoDescription: postData.metaDescription || '',
-            seoImage: postData.ogImage || '',
+            canonicalUrl: postData.canonicalUrl || 'https://',
+            schemaType: postData.schemaType || 'Article',
+            seoTitle: postData.seoTitle || '',
+            seoDescription: postData.seoDescription || '',
+            seoImage: postData.seoImage || '',
             allowComments: postData.allowComments ?? true,
             hideAds: postData.hideAds ?? false,
             readTime: postData.readTime || '5 min read'
@@ -124,18 +123,19 @@ export default function PostDetailPage() {
       const postId = params.id as string;
       const updateData = {
         title: formData.title,
+        slug: formData.slug,
         content: formData.content,
-        excerpt: formData.excerpt,
         status: formData.status as 'draft' | 'published' | 'scheduled' | 'trash',
         categoryId: formData.categoryId,
         tags: formData.tags,
         featuredImage: formData.featuredImage,
         allowComments: formData.allowComments,
         hideAds: formData.hideAds,
-        metaTitle: formData.seoTitle,
-        metaDescription: formData.seoDescription,
+        seoTitle: formData.seoTitle,
+        seoDescription: formData.seoDescription,
         canonicalUrl: formData.canonicalUrl,
-        ogImage: formData.seoImage
+        schemaType: formData.schemaType,
+        seoImage: formData.seoImage
       };
 
       const response = await contentApi.updatePost(postId, updateData);
@@ -159,17 +159,16 @@ export default function PostDetailPage() {
         title: post.title || '',
         slug: post.slug || '',
         content: post.content || '',
-        excerpt: post.excerpt || '',
         status: post.status || 'draft',
         author: post.author || '',
         categoryId: post.categoryId || '',
         tags: Array.isArray(post.tags) ? post.tags : [],
         featuredImage: post.featuredImage || '',
-        canonicalUrl: post.canonicalUrl || '',
-        schemaType: 'Article',  // Default value since Post doesn't have schemaType
-        seoTitle: post.metaTitle || '',
-        seoDescription: post.metaDescription || '',
-        seoImage: post.ogImage || '',
+        canonicalUrl: post.canonicalUrl || 'https://',
+        schemaType: post.schemaType || 'Article',
+        seoTitle: post.seoTitle || '',
+        seoDescription: post.seoDescription || '',
+        seoImage: post.seoImage || '',
         allowComments: post.allowComments ?? true,
         hideAds: post.hideAds ?? false,
         readTime: post.readTime || '5 min read'
@@ -203,18 +202,19 @@ export default function PostDetailPage() {
       const postId = params.id as string;
       const updateData = {
         title: formData.title,
+        slug: formData.slug,
         content: formData.content,
-        excerpt: formData.excerpt,
         status: 'published' as const,
         categoryId: formData.categoryId,
         tags: formData.tags,
         featuredImage: formData.featuredImage,
         allowComments: formData.allowComments,
         hideAds: formData.hideAds,
-        metaTitle: formData.seoTitle,
-        metaDescription: formData.seoDescription,
+        seoTitle: formData.seoTitle,
+        seoDescription: formData.seoDescription,
         canonicalUrl: formData.canonicalUrl,
-        ogImage: formData.seoImage
+        schemaType: formData.schemaType,
+        seoImage: formData.seoImage
       };
 
       const response = await contentApi.updatePost(postId, updateData);
@@ -336,23 +336,6 @@ export default function PostDetailPage() {
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 mb-2">
-                    Excerpt
-                  </label>
-                  {isEditing ? (
-                    <textarea
-                      id="excerpt"
-                      value={formData.excerpt}
-                      onChange={(e) => handleFieldChange('excerpt', e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                      placeholder="Brief description of the post"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-600">{formData.excerpt || 'No excerpt'}</p>
-                  )}
-                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Author</label>
@@ -408,20 +391,124 @@ export default function PostDetailPage() {
             </div>
 
             {/* SEO Settings */}
-            <SEOSettingsCard
-              seoTitle={formData.seoTitle}
-              seoDescription={formData.seoDescription}
-              canonicalUrl={formData.canonicalUrl}
-              schemaType={formData.schemaType}
-              seoImage={formData.seoImage}
-              onFieldChange={handleFieldChange}
-              schemaOptions={[
-                { value: 'Article', label: 'Article' },
-                { value: 'BlogPosting', label: 'Blog Posting' },
-                { value: 'NewsArticle', label: 'News Article' },
-                { value: 'Review', label: 'Review' }
-              ]}
-            />
+            {isEditing ? (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">SEO Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="seoTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                      SEO Title
+                    </label>
+                    <input
+                      type="text"
+                      id="seoTitle"
+                      value={formData.seoTitle}
+                      onChange={(e) => handleFieldChange('seoTitle', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      placeholder="SEO optimized title"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="seoDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                      SEO Description
+                    </label>
+                    <textarea
+                      id="seoDescription"
+                      value={formData.seoDescription}
+                      onChange={(e) => handleFieldChange('seoDescription', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      placeholder="SEO description (155-160 characters)"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="canonicalUrl" className="block text-sm font-medium text-gray-700 mb-2">
+                      Canonical URL
+                    </label>
+                    <input
+                      type="url"
+                      id="canonicalUrl"
+                      value={formData.canonicalUrl}
+                      onChange={(e) => handleFieldChange('canonicalUrl', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      placeholder="https://"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="schemaType" className="block text-sm font-medium text-gray-700 mb-2">
+                      Schema Type
+                    </label>
+                    <select
+                      id="schemaType"
+                      value={formData.schemaType}
+                      onChange={(e) => handleFieldChange('schemaType', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    >
+                      <option value="Article">Article</option>
+                      <option value="BlogPosting">Blog Posting</option>
+                      <option value="NewsArticle">News Article</option>
+                      <option value="Review">Review</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <FileUpload
+                      accept="image/*"
+                      maxSize={300 * 1024} // 300KB
+                      value={formData.seoImage}
+                      onChange={(_file, dataUrl) => {
+                        handleFieldChange('seoImage', dataUrl || '');
+                      }}
+                      preview={true}
+                      placeholder="Upload SEO image"
+                      label="SEO Image (1.91:1 ratio, 1200×630px recommended)"
+                      aspectRatio="1.91/1"
+                      maxWidth="max-w-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-white shadow rounded-lg p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">SEO Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">SEO Title</label>
+                    <p className="text-sm text-gray-900">{formData.seoTitle || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">SEO Description</label>
+                    <p className="text-sm text-gray-900">{formData.seoDescription || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Canonical URL</label>
+                    <p className="text-sm text-gray-900">{formData.canonicalUrl || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Schema Type</label>
+                    <p className="text-sm text-gray-900">{formData.schemaType}</p>
+                  </div>
+                  {formData.seoImage && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">SEO Image</label>
+                      <OptimizedImage
+                        src={formData.seoImage}
+                        alt="SEO Image"
+                        width={384}
+                        height={201}
+                        className="w-full max-w-sm h-auto rounded border border-gray-200"
+                        style={{ aspectRatio: '1.91/1' }}
+                        sizeType="card"
+                        qualityPriority="medium"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar - 1/3 width */}
@@ -544,8 +631,22 @@ export default function PostDetailPage() {
             <div className="bg-white shadow rounded-lg p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Featured Image</h3>
               <div className="space-y-4">
-                {formData.featuredImage && (
-                  <div>
+                {isEditing ? (
+                  <FileUpload
+                    accept="image/*"
+                    maxSize={5 * 1024 * 1024} // 5MB
+                    value={formData.featuredImage}
+                    onChange={(_file, dataUrl) => {
+                      handleFieldChange('featuredImage', dataUrl || '');
+                    }}
+                    preview={true}
+                    placeholder="Upload featured image"
+                    label="Featured Image"
+                    aspectRatio="16/9"
+                    maxWidth="max-w-md"
+                  />
+                ) : (
+                  formData.featuredImage && (
                     <OptimizedImage
                       src={formData.featuredImage}
                       alt="Featured Image"
@@ -555,19 +656,7 @@ export default function PostDetailPage() {
                       sizeType="card"
                       qualityPriority="medium"
                     />
-                  </div>
-                )}
-                {isEditing && (
-                  <>
-                    <input
-                      type="text"
-                      value={formData.featuredImage}
-                      onChange={(e) => handleFieldChange('featuredImage', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                      placeholder="Image URL"
-                    />
-                    <p className="text-xs text-gray-500">Enter the URL of the featured image</p>
-                  </>
+                  )
                 )}
               </div>
             </div>

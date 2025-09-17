@@ -5,6 +5,7 @@ import Link from 'next/link';
 import moment from 'moment';
 import { contentApi, Post, Category } from '@/lib/api/content';
 import { toast } from 'react-hot-toast';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 export default function PostsPage() {
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -13,8 +14,6 @@ export default function PostsPage() {
     search: '',
     categoryId: '',
     tags: [] as string[],
-    isFeatured: false,
-    isPinned: false,
   });
   const [selectedPosts, setSelectedPosts] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -84,14 +83,6 @@ export default function PostsPage() {
 
       if (filters.search) {
         params.search = filters.search;
-      }
-
-      if (filters.isFeatured) {
-        params.isFeatured = true;
-      }
-
-      if (filters.isPinned) {
-        params.isPinned = true;
       }
 
       if (filters.tags.length > 0) {
@@ -211,6 +202,12 @@ export default function PostsPage() {
     );
   };
 
+  const formatCommentCount = (count: number) => {
+    if (count === 0) return '—';
+    if (count > 999) return '999+';
+    return count.toString();
+  };
+
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -265,8 +262,6 @@ export default function PostsPage() {
                     <option value="draft">Move to Draft</option>
                     <option value="trash">Move to Trash</option>
                     <option value="delete">Delete Permanently</option>
-                    <option value="feature">Mark as Featured</option>
-                    <option value="unfeature">Remove Featured</option>
                   </select>
                   <button
                     onClick={handleBulkAction}
@@ -302,27 +297,6 @@ export default function PostsPage() {
                     </option>
                   ))}
                 </select>
-
-                {/* Featured/Pinned Filters */}
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.isFeatured}
-                    onChange={(e) => handleFilterChange('isFeatured', e.target.checked)}
-                    className="text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                  />
-                  <span className="text-sm text-gray-700">Featured</span>
-                </label>
-
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.isPinned}
-                    onChange={(e) => handleFilterChange('isPinned', e.target.checked)}
-                    className="text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                  />
-                  <span className="text-sm text-gray-700">Pinned</span>
-                </label>
               </div>
 
               {/* Right - Results Count */}
@@ -334,164 +308,148 @@ export default function PostsPage() {
         </div>
 
         {/* Posts List */}
-        <div className="bg-white shadow rounded-lg">
+        <div className="bg-white shadow rounded-lg overflow-hidden">
           {/* Table Header */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="grid grid-cols-12 gap-4 items-center">
-              <div className="col-span-1 flex justify-center">
-                <input
-                  type="checkbox"
-                  checked={selectedPosts.length === posts.length && posts.length > 0}
-                  onChange={handleSelectAll}
-                  className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
-                />
-              </div>
-              <div className="col-span-4 text-sm font-medium text-gray-700">Title</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700 text-center">Category</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Status</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Views</div>
-              <div className="col-span-1 text-sm font-medium text-gray-700 text-center">Comments</div>
-              <div className="col-span-2 text-sm font-medium text-gray-700 text-center">Actions</div>
-            </div>
-          </div>
-
-          {/* Loading State */}
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#A96B11]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Loading posts...
-              </div>
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-12">
-              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No posts found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {selectedStatus === 'all' ? 'Get started by creating a new post.' : 'No posts with this status.'}
-              </p>
-              {selectedStatus === 'all' && (
-                <div className="mt-6">
-                  <Link
-                    href="/admin/posts/new"
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#A96B11] hover:bg-[#8B5A0F]"
-                  >
-                    Create New Post
-                  </Link>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {posts.map((post) => (
-                <div key={post.id} className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
-                  <div className="grid grid-cols-12 gap-4 items-center">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="w-12 px-6 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedPosts.length === posts.length && posts.length > 0}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
+                  />
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Title
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Author
+                </th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Comments
+                </th>
+                <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Statistics
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th scope="col" className="relative px-6 py-3">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12">
+                    <div className="inline-flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-[#A96B11]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Loading posts...
+                    </div>
+                  </td>
+                </tr>
+              ) : posts.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No posts found</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {selectedStatus === 'all' ? 'Get started by creating a new post.' : 'No posts with this status.'}
+                    </p>
+                    {selectedStatus === 'all' && (
+                      <div className="mt-6">
+                        <Link
+                          href="/admin/posts/new"
+                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#A96B11] hover:bg-[#8B5A0F]"
+                        >
+                          Create New Post
+                        </Link>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ) : (
+                posts.map((post) => (
+                  <tr key={post.id} className="hover:bg-gray-50">
                     {/* Checkbox */}
-                    <div className="col-span-1 flex justify-center">
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
                       <input
                         type="checkbox"
                         checked={selectedPosts.includes(post.id)}
                         onChange={() => handleSelectPost(post.id)}
                         className="w-4 h-4 text-[#A96B11] border-gray-300 rounded focus:ring-[#A96B11]"
                       />
-                    </div>
+                    </td>
 
-                    {/* Title */}
-                    <div className="col-span-4">
-                      <div className="space-y-1">
-                        <Link
-                          href={`/admin/posts/${post.id}`}
-                          className="text-sm font-medium text-gray-900 hover:text-[#A96B11] block"
-                        >
-                          {post.title}
-                        </Link>
-                        <div className="flex items-center space-x-2 text-xs text-gray-500">
-                          {post.isFeatured && (
-                            <span className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">Featured</span>
-                          )}
-                          {post.isPinned && (
-                            <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">Pinned</span>
-                          )}
-                          {post.tags.length > 0 && (
-                            <span>Tags: {post.tags.slice(0, 3).join(', ')}{post.tags.length > 3 && '...'}</span>
-                          )}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          By {post.authorUser?.name || post.author} • {moment(post.publishedAt || post.createdAt).format('MMM DD, YYYY')}
+                    {/* Title with Featured Image */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-3">
+                        {post.featuredImage && (
+                          <div className="flex-shrink-0">
+                            <OptimizedImage
+                              src={post.featuredImage}
+                              alt={post.title}
+                              width={60}
+                              height={40}
+                              className="rounded object-cover"
+                              sizeType="thumbnail"
+                              qualityPriority="low"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/admin/posts/${post.id}`}
+                            className="text-sm font-medium text-gray-900 hover:text-[#A96B11] truncate block"
+                          >
+                            {post.title}
+                          </Link>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {getStatusBadge(post.status)}
+                            {post.category && (
+                              <span className="ml-2">{post.category.name}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </td>
 
-                    {/* Category */}
-                    <div className="col-span-2 text-center">
-                      <span className="text-sm text-gray-900">{post.category?.name || 'Uncategorized'}</span>
-                    </div>
-
-                    {/* Status */}
-                    <div className="col-span-1 text-center">
-                      {getStatusBadge(post.status)}
-                    </div>
-
-                    {/* Views */}
-                    <div className="col-span-1 text-center">
-                      <span className="text-sm text-gray-600">{post.views}</span>
-                    </div>
+                    {/* Author */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {post.authorUser?.name || post.author || 'Unknown'}
+                    </td>
 
                     {/* Comments */}
-                    <div className="col-span-1 text-center">
-                      <span className="text-sm text-gray-600">{post._count?.comments || 0}</span>
-                    </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="text-sm text-gray-600">
+                        {formatCommentCount(post._count?.comments || 0)}
+                      </span>
+                    </td>
 
-                    {/* Actions */}
-                    <div className="col-span-2 flex items-center justify-center space-x-2">
-                      <Link
-                        href={`/admin/posts/${post.id}`}
-                        className="text-[#A96B11] hover:text-[#8B5A0F] text-sm"
-                      >
-                        Edit
-                      </Link>
-                      {post.status === 'trash' ? (
-                        <>
-                          <button
-                            onClick={() => handleRestorePost(post.id)}
-                            className="text-green-600 hover:text-green-800 text-sm"
-                          >
-                            Restore
-                          </button>
-                          <button
-                            onClick={() => handleDeletePost(post.id, true)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleDuplicatePost(post.id)}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            Duplicate
-                          </button>
-                          <button
-                            onClick={() => handleDeletePost(post.id)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Trash
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                    {/* Statistics */}
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="text-sm text-gray-600">
+                        <span>{post.views || 0} views</span>
+                      </div>
+                    </td>
+
+                    {/* Date */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {moment(post.publishedAt || post.createdAt).format('YYYY/MM/DD')}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Pagination */}
