@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import AdminHeader from '@/components/admin/shared/AdminHeader';
 import FileUpload from '@/components/ui/FileUpload';
+import SlugInput from '@/components/ui/SlugInput';
 import { contentApi } from '@/lib/api/content';
 import toast from 'react-hot-toast';
+import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 import type { Post, Category } from '@/lib/api/content';
 
 export default function PostDetailPage() {
@@ -89,6 +91,15 @@ export default function PostDetailPage() {
       ...prev,
       [name]: value
     }));
+
+    // Auto-generate slug when title changes
+    if (name === 'title' && typeof value === 'string' && isEditing) {
+      const newSlug = autoGenerateSlug(value);
+      setFormData(prev => ({
+        ...prev,
+        slug: newSlug
+      }));
+    }
   };
 
   const handleTagsChange = (value: string) => {
@@ -110,6 +121,15 @@ export default function PostDetailPage() {
     }
     if (!formData.categoryId) {
       toast.error('Category is required');
+      return false;
+    }
+    if (!formData.slug.trim()) {
+      toast.error('Slug is required');
+      return false;
+    }
+    const slugValidation = validateSlugFormat(formData.slug);
+    if (!slugValidation.isValid) {
+      toast.error(slugValidation.error || 'Invalid slug format');
       return false;
     }
     return true;
@@ -329,22 +349,25 @@ export default function PostDetailPage() {
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                    URL Slug
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      id="slug"
-                      value={formData.slug}
-                      onChange={(e) => handleFieldChange('slug', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
-                    />
-                  ) : (
+                {isEditing ? (
+                  <SlugInput
+                    value={formData.slug}
+                    onChange={(value) => handleFieldChange('slug', value)}
+                    sourceText={formData.title}
+                    label="URL Slug"
+                    required={true}
+                    showPreview={true}
+                    previewBaseUrl="/posts"
+                    className="mb-4"
+                  />
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      URL Slug
+                    </label>
                     <p className="text-sm text-gray-600 font-mono">/{formData.slug}</p>
-                  )}
-                </div>
+                  </div>
+                )}
 
 
                 <div>

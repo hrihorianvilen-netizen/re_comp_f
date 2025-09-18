@@ -12,6 +12,7 @@ import Screenshots from '@/components/admin/merchants/Screenshots';
 import FAQ from '@/components/admin/merchants/FAQ';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
+import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 import type {
   MerchantFormData,
   MerchantPromotion,
@@ -116,6 +117,22 @@ export default function AddMerchantPage() {
       ...prev,
       [name]: value
     }));
+
+    // Auto-generate slug when merchant name changes (only if slug is empty or matches previous auto-generated slug)
+    if (name === 'name' && value.trim()) {
+      const currentSlug = formData.slug;
+      const previousAutoSlug = autoGenerateSlug(formData.name);
+
+      // Only auto-generate if slug is empty or if it was previously auto-generated
+      if (!currentSlug || currentSlug === previousAutoSlug) {
+        const newSlug = autoGenerateSlug(value);
+        setFormData(prev => ({
+          ...prev,
+          name: value,
+          slug: newSlug
+        }));
+      }
+    }
 
     // Clear error when user starts typing
     if (errors[name]) {
@@ -256,6 +273,23 @@ export default function AddMerchantPage() {
       newErrors.name = 'Merchant name is required';
     }
 
+    if (!formData.slug.trim()) {
+      newErrors.slug = 'Slug is required';
+    } else {
+      const slugValidation = validateSlugFormat(formData.slug);
+      if (!slugValidation.isValid) {
+        newErrors.slug = slugValidation.error || 'Invalid slug format';
+      }
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required';
+    }
+
+    if (!formData.category.trim()) {
+      newErrors.category = 'Category is required';
+    }
+
     if (!formData.website.trim()) {
       newErrors.website = 'Website URL is required';
     } else if (!/^https?:\/\/.+/.test(formData.website)) {
@@ -266,6 +300,11 @@ export default function AddMerchantPage() {
       newErrors.email = 'Email is required';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Logo is required for new merchants
+    if (!formData.logo) {
+      newErrors.logo = 'Logo image is required';
     }
 
     setErrors(newErrors);

@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import SlugInput from '@/components/ui/SlugInput';
 import { contentApi } from '@/lib/api/content';
 import toast from 'react-hot-toast';
+import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 import type { Category } from '@/lib/api/content';
 
 export default function NewCategoryPage() {
@@ -99,6 +101,15 @@ export default function NewCategoryPage() {
       toast.error('Category name is required');
       return false;
     }
+    if (!formData.slug.trim()) {
+      toast.error('Slug is required');
+      return false;
+    }
+    const slugValidation = validateSlugFormat(formData.slug);
+    if (!slugValidation.isValid) {
+      toast.error(slugValidation.error || 'Invalid slug format');
+      return false;
+    }
     return true;
   };
 
@@ -109,6 +120,7 @@ export default function NewCategoryPage() {
     try {
       const response = await contentApi.createCategory({
         name: formData.name,
+        slug: formData.slug,
         description: formData.description,
         parentId: formData.parentId || undefined,
         displayOrder: formData.displayOrder,
@@ -141,6 +153,7 @@ export default function NewCategoryPage() {
     try {
       const response = await contentApi.createCategory({
         name: formData.name,
+        slug: formData.slug,
         description: formData.description,
         parentId: formData.parentId || undefined,
         displayOrder: formData.displayOrder,
@@ -178,21 +191,20 @@ export default function NewCategoryPage() {
     setFormData(prev => ({ ...prev, seoImage: value }));
   };
 
-  // Generate slug from name
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .trim();
-  };
-
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
+    const newSlug = autoGenerateSlug(name);
     setFormData(prev => ({
       ...prev,
       name,
-      slug: generateSlug(name)
+      slug: newSlug
+    }));
+  };
+
+  const handleSlugChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      slug: value
     }));
   };
 
@@ -254,20 +266,16 @@ export default function NewCategoryPage() {
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                    Slug <span className="text-xs text-gray-500">(auto-generated)</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="slug"
-                    name="slug"
-                    value={formData.slug}
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500"
-                    placeholder="category-slug"
-                  />
-                </div>
+                <SlugInput
+                  value={formData.slug}
+                  onChange={handleSlugChange}
+                  sourceText={formData.name}
+                  label="URL Slug"
+                  required={true}
+                  showPreview={true}
+                  previewBaseUrl="/categories"
+                  className="mb-4"
+                />
               </div>
             </div>
 

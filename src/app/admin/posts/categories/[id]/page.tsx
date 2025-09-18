@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import AdminHeader from '@/components/admin/shared/AdminHeader';
+import SlugInput from '@/components/ui/SlugInput';
 import { contentApi, Category } from '@/lib/api/content';
+import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 
 export default function CategoryDetailPage() {
   const params = useParams();
@@ -112,6 +114,22 @@ export default function CategoryDetailPage() {
       ...prev,
       [name]: value
     }));
+
+    // Auto-generate slug when name changes
+    if (name === 'name' && typeof value === 'string' && isEditing) {
+      const newSlug = autoGenerateSlug(value);
+      setFormData(prev => ({
+        ...prev,
+        slug: newSlug
+      }));
+    }
+  };
+
+  const handleSlugChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      slug: value
+    }));
   };
 
   const handleSave = async () => {
@@ -119,11 +137,21 @@ export default function CategoryDetailPage() {
       toast.error('Category name is required');
       return;
     }
+    if (!formData.slug.trim()) {
+      toast.error('Slug is required');
+      return;
+    }
+    const slugValidation = validateSlugFormat(formData.slug);
+    if (!slugValidation.isValid) {
+      toast.error(slugValidation.error || 'Invalid slug format');
+      return;
+    }
 
     setSaving(true);
     try {
       const updateData = {
         name: formData.name,
+        slug: formData.slug,
         description: formData.description,
         parentId: formData.parentId || undefined,
         displayOrder: formData.displayOrder,
@@ -265,12 +293,25 @@ export default function CategoryDetailPage() {
                   )}
                 </div>
 
-                <div>
-                  <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
-                    Slug
-                  </label>
-                  <p className="text-sm text-gray-600 font-mono">/{formData.slug}</p>
-                </div>
+                {isEditing ? (
+                  <SlugInput
+                    value={formData.slug}
+                    onChange={handleSlugChange}
+                    sourceText={formData.name}
+                    label="URL Slug"
+                    required={true}
+                    showPreview={true}
+                    previewBaseUrl="/categories"
+                    className="mb-4"
+                  />
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Slug
+                    </label>
+                    <p className="text-sm text-gray-600 font-mono">/{formData.slug}</p>
+                  </div>
+                )}
 
                 <div>
                   <label htmlFor="parent" className="block text-sm font-medium text-gray-700 mb-2">

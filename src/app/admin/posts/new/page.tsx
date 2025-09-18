@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { contentApi, Category } from '@/lib/api/content';
 import { toast } from 'react-hot-toast';
 import FileUpload from '@/components/ui/FileUpload';
+import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 
 export default function NewPostPage() {
   const router = useRouter();
@@ -63,19 +64,21 @@ export default function NewPostPage() {
       }));
     }
 
-    // Auto-generate slug from title
-    if (name === 'title' && !formData.slug) {
-      const slug = value.toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim();
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-        slug: slug
-      }));
-      return;
+    // Auto-generate slug from title using Vietnamese-aware utilities
+    if (name === 'title' && value.trim()) {
+      const currentSlug = formData.slug;
+      const previousAutoSlug = autoGenerateSlug(formData.title);
+
+      // Only auto-generate if slug is empty or if it was previously auto-generated
+      if (!currentSlug || currentSlug === previousAutoSlug) {
+        const newSlug = autoGenerateSlug(value);
+        setFormData(prev => ({
+          ...prev,
+          [name]: value,
+          slug: newSlug
+        }));
+        return;
+      }
     }
   };
 
@@ -115,6 +118,12 @@ export default function NewPostPage() {
     if (!formData.slug.trim()) {
       toast.error('Slug is required');
       return false;
+    } else {
+      const slugValidation = validateSlugFormat(formData.slug);
+      if (!slugValidation.isValid) {
+        toast.error(slugValidation.error || 'Invalid slug format');
+        return false;
+      }
     }
     if (!formData.categoryId) {
       toast.error('Please select a category');

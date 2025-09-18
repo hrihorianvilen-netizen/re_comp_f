@@ -178,6 +178,7 @@ export interface UpdatePostData extends Partial<CreatePostData> {
 
 export interface CreateCategoryData {
   name: string;
+  slug: string;
   description?: string;
   parentId?: string;
   displayOrder?: number;

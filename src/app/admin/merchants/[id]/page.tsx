@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { getAssetUrl } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 import MerchantDetailHeader from '@/components/admin/merchants/MerchantDetailHeader';
 import MerchantBasicInfo from '@/components/admin/merchants/MerchantBasicInfo';
 import MerchantDefault from '@/components/admin/merchants/MerchantDefault';
@@ -375,6 +376,22 @@ export default function MerchantDetailPage() {
       [name]: value
     }));
 
+    // Auto-generate slug when merchant name changes (only if slug is empty or matches previous auto-generated slug)
+    if (name === 'name' && value.trim()) {
+      const currentSlug = formData.slug;
+      const previousAutoSlug = autoGenerateSlug(formData.name);
+
+      // Only auto-generate if slug is empty or if it was previously auto-generated
+      if (!currentSlug || currentSlug === previousAutoSlug) {
+        const newSlug = autoGenerateSlug(value);
+        setFormData(prev => ({
+          ...prev,
+          name: value,
+          slug: newSlug
+        }));
+      }
+    }
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -394,8 +411,11 @@ export default function MerchantDetailPage() {
 
     if (!formData.name.trim()) newErrors.name = 'Merchant name is required';
     if (!formData.slug.trim()) newErrors.slug = 'Slug is required';
-    else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+    else {
+      const slugValidation = validateSlugFormat(formData.slug);
+      if (!slugValidation.isValid) {
+        newErrors.slug = slugValidation.error || 'Invalid slug format';
+      }
     }
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.category) newErrors.category = 'Category is required';

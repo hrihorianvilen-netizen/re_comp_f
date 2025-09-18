@@ -12,6 +12,7 @@ import SeoConfiguration from '@/components/admin/merchants/SeoConfiguration';
 import UtmTracking from '@/components/admin/merchants/UtmTracking';
 import Screenshots from '@/components/admin/merchants/Screenshots';
 import FAQ from '@/components/admin/merchants/FAQ';
+import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 
 interface MerchantFormData {
   name: string;
@@ -299,7 +300,23 @@ export default function MerchantEditPage() {
       ...prev,
       [name]: value
     }));
-    
+
+    // Auto-generate slug when merchant name changes (only if slug is empty or matches previous auto-generated slug)
+    if (name === 'name' && value.trim()) {
+      const currentSlug = formData.slug;
+      const previousAutoSlug = autoGenerateSlug(formData.name);
+
+      // Only auto-generate if slug is empty or if it was previously auto-generated
+      if (!currentSlug || currentSlug === previousAutoSlug) {
+        const newSlug = autoGenerateSlug(value);
+        setFormData(prev => ({
+          ...prev,
+          name: value,
+          slug: newSlug
+        }));
+      }
+    }
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -318,8 +335,11 @@ export default function MerchantEditPage() {
 
     if (!formData.name.trim()) newErrors.name = 'Merchant name is required';
     if (!formData.slug.trim()) newErrors.slug = 'Slug is required';
-    else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      newErrors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens';
+    else {
+      const slugValidation = validateSlugFormat(formData.slug);
+      if (!slugValidation.isValid) {
+        newErrors.slug = slugValidation.error || 'Invalid slug format';
+      }
     }
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.category) newErrors.category = 'Category is required';
