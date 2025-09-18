@@ -27,6 +27,70 @@ interface MerchantFormData {
   status: 'draft' | 'recommended' | 'trusted' | 'neutral' | 'controversial' | 'avoid';
 }
 
+interface PromotionData {
+  title?: string;
+  description?: string;
+  promoCode?: string;
+  code?: string;
+  discount?: string;
+  startDate?: string;
+  endDate?: string;
+  validUntil?: string;
+  conditions?: string;
+  link?: string;
+  loginRequired?: boolean;
+  reviewRequired?: boolean;
+  isActive?: boolean;
+  displayOrder?: number;
+  type?: string;
+  giftcodes?: string;
+  giftCode?: Record<string, unknown>;
+}
+
+interface MerchantResponse {
+  id: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  category?: string;
+  website?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  logo?: string;
+  screenshots?: string[];
+  status?: string;
+  faq?: Array<{ id: string; question: string; answer: string }>;
+  faqs?: Array<{ id: string; question: string; answer: string }>;
+  seoTitle?: string;
+  metaTitle?: string;
+  seoDescription?: string;
+  metaDescription?: string;
+  seoImage?: string;
+  canonicalUrl?: string;
+  schemaType?: string;
+  seo?: { image?: string; title?: string; description?: string; canonical?: string; schema?: string };
+  removeFromListUntil?: {
+    seo?: { image?: string; title?: string; description?: string; canonical?: string; schema?: string };
+    [key: string]: unknown;
+  };
+  isVerified?: boolean;
+  isFeatured?: boolean;
+  isPopular?: boolean;
+  showInHomepage?: boolean;
+  displayOrder?: number;
+  hideReviews?: boolean;
+  hideWriteReview?: boolean;
+  utmTargetUrl?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+  utmTerm?: string;
+  utmContent?: string;
+  defaultPromotion?: PromotionData;
+  promotePromotion?: PromotionData;
+}
+
 export default function MerchantEditPage() {
   const router = useRouter();
   const params = useParams();
@@ -51,6 +115,67 @@ export default function MerchantEditPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [seoData, setSeoData] = useState<{
+    title?: string;
+    description?: string;
+    canonical?: string;
+    schema?: string;
+    image?: string | File;
+  }>({
+    title: '',
+    description: '',
+    canonical: '',
+    schema: ''
+  });
+
+  // Admin Options state (separate for different needs)
+  const [adminSettings, setAdminSettings] = useState({
+    isVerified: false,
+    isFeatured: false,
+    isPopular: false,
+    showInHomepage: false,
+    displayOrder: 0,
+    hideReviews: false,
+    hideWriteReview: false
+  });
+
+  const [adminOptionsSettings, setAdminOptionsSettings] = useState({
+    removeHotTrusted: false,
+    removeControversial: false,
+    removeAvoid: false,
+    controversialStartDate: '',
+    controversialEndDate: ''
+  });
+
+  const [adminOptionsAdvertisement, setAdminOptionsAdvertisement] = useState({
+    dontShowAds: false,
+    adsStartDate: '',
+    adsEndDate: ''
+  });
+
+  // Default Promotions state
+  const [defaultPromotion, setDefaultPromotion] = useState<PromotionData>({});
+  const [promotePromotion, setPromotePromotion] = useState<PromotionData>({});
+
+  // UTM state
+  const [utmData, setUtmData] = useState({
+    targetUrl: '',
+    source: '',
+    medium: '',
+    campaign: '',
+    term: '',
+    content: ''
+  });
+
+  // Screenshots state
+  const [screenshots, setScreenshots] = useState<string[]>([]);
+  const [screenshotData, setScreenshotData] = useState<{ desktopImages: File[], mobileImages: File[] }>({
+    desktopImages: [],
+    mobileImages: []
+  });
+
+  // FAQ state
+  const [faqs, setFaqs] = useState<Array<{ id: string; question: string; answer: string }>>([]);
 
   useEffect(() => {
     const fetchMerchantData = async () => {
@@ -60,7 +185,7 @@ export default function MerchantEditPage() {
         const result = await api.getAdminMerchant(merchantId);
         
         if (result.data && result.data.merchant) {
-          const merchant = result.data.merchant;
+          const merchant = result.data.merchant as MerchantResponse;
           
           console.log('Fetched merchant data:', merchant); // Debug log
           
@@ -81,10 +206,77 @@ export default function MerchantEditPage() {
           console.log('Setting form data:', merchantData); // Debug log
           
           setFormData(merchantData);
-          
+
           // Set logo preview if exists
           if (merchant.logo) {
             setLogoPreview(getAssetUrl(merchant.logo));
+          }
+
+          // Set SEO data if exists
+          // Check for SEO data in various possible locations
+          const seoTitle = merchant.seoTitle || merchant.metaTitle || '';
+          const seoDescription = merchant.seoDescription || merchant.metaDescription || '';
+          const canonical = merchant.canonicalUrl || '';
+          const schema = merchant.schemaType || '';
+
+          // Get SEO image from merchant data or from JSON field
+          const seoImage = merchant.seoImage ||
+                          merchant.seo?.image ||
+                          merchant.removeFromListUntil?.seo?.image || '';
+
+          if (seoTitle || seoDescription || canonical || schema || seoImage) {
+            setSeoData({
+              title: seoTitle,
+              description: seoDescription,
+              canonical: canonical,
+              schema: schema,
+              image: seoImage
+            });
+          }
+
+          // Set admin options if exists
+          if (merchant.isVerified !== undefined || merchant.isFeatured !== undefined) {
+            setAdminSettings({
+              isVerified: merchant.isVerified || false,
+              isFeatured: merchant.isFeatured || false,
+              isPopular: merchant.isPopular || false,
+              showInHomepage: merchant.showInHomepage || false,
+              displayOrder: merchant.displayOrder || 0,
+              hideReviews: merchant.hideReviews || false,
+              hideWriteReview: merchant.hideWriteReview || false
+            });
+          }
+
+          // Set UTM data if exists
+          if (merchant.utmSource || merchant.utmMedium) {
+            setUtmData({
+              targetUrl: merchant.utmTargetUrl || '',
+              source: merchant.utmSource || '',
+              medium: merchant.utmMedium || '',
+              campaign: merchant.utmCampaign || '',
+              term: merchant.utmTerm || '',
+              content: merchant.utmContent || ''
+            });
+          }
+
+          // Set screenshots if exists
+          if (merchant.screenshots) {
+            setScreenshots(merchant.screenshots);
+          }
+
+          // Set FAQs if exists
+          if (merchant.faq) {
+            setFaqs(merchant.faq);
+          } else if (merchant.faqs) {
+            setFaqs(merchant.faqs);
+          }
+
+          // Set promotions if exists
+          if (merchant.defaultPromotion) {
+            setDefaultPromotion(merchant.defaultPromotion);
+          }
+          if (merchant.promotePromotion) {
+            setPromotePromotion(merchant.promotePromotion);
           }
         } else {
           console.error('Merchant not found:', result.error);
@@ -169,6 +361,62 @@ export default function MerchantEditPage() {
       // Add status based on action
       const status = action === 'publish' ? 'recommended' : 'draft';
       formDataToSend.append('status', status);
+
+      // Add SEO data
+      if (seoData.title) formDataToSend.append('seoTitle', seoData.title);
+      if (seoData.description) formDataToSend.append('seoDescription', seoData.description);
+      if (seoData.canonical) formDataToSend.append('canonicalUrl', seoData.canonical);
+      if (seoData.schema) formDataToSend.append('schemaType', seoData.schema);
+
+      // Handle SEO image - only append as file if it's a File object
+      if (seoData.image) {
+        if (seoData.image instanceof File) {
+          formDataToSend.append('seoImage', seoData.image);
+        } else if (typeof seoData.image === 'string') {
+          // If it's a string URL, send it as a regular field so backend knows to keep it
+          formDataToSend.append('existingSeoImage', seoData.image);
+        }
+      }
+
+      // Add admin options
+      formDataToSend.append('isVerified', String(adminSettings.isVerified));
+      formDataToSend.append('isFeatured', String(adminSettings.isFeatured));
+      formDataToSend.append('isPopular', String(adminSettings.isPopular));
+      formDataToSend.append('showInHomepage', String(adminSettings.showInHomepage));
+      formDataToSend.append('displayOrder', String(adminSettings.displayOrder));
+      formDataToSend.append('hideReviews', String(adminSettings.hideReviews));
+      formDataToSend.append('hideWriteReview', String(adminSettings.hideWriteReview));
+
+      // Add UTM data
+      if (utmData.targetUrl) formDataToSend.append('utm[targetUrl]', utmData.targetUrl);
+      if (utmData.source) formDataToSend.append('utm[source]', utmData.source);
+      if (utmData.medium) formDataToSend.append('utm[medium]', utmData.medium);
+      if (utmData.campaign) formDataToSend.append('utm[campaign]', utmData.campaign);
+      if (utmData.term) formDataToSend.append('utm[term]', utmData.term);
+      if (utmData.content) formDataToSend.append('utm[content]', utmData.content);
+
+      // Add FAQs
+      if (faqs && faqs.length > 0) {
+        formDataToSend.append('faqs', JSON.stringify(faqs));
+      }
+
+      // Add default promotion
+      if (Object.keys(defaultPromotion).length > 0) {
+        formDataToSend.append('defaultPromotion', JSON.stringify(defaultPromotion));
+      }
+
+      // Add promote promotion
+      if (Object.keys(promotePromotion).length > 0) {
+        formDataToSend.append('promotePromotion', JSON.stringify(promotePromotion));
+      }
+
+      // Add screenshots
+      screenshotData.desktopImages.forEach((file, index) => {
+        formDataToSend.append(`screenshots_desktop_${index}`, file);
+      });
+      screenshotData.mobileImages.forEach((file, index) => {
+        formDataToSend.append(`screenshots_mobile_${index}`, file);
+      });
       
       // Add logo if present
       if (formData.logo) {
@@ -217,9 +465,23 @@ export default function MerchantEditPage() {
   }
 
   return (
-    <div className="py-6">
+    <div className="py-6 relative">
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000080]">
+          <div className="rounded-lg p-6 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <p className="text-white font-medium">
+              {activeAction === 'save_draft' ? 'Saving draft...' :
+               activeAction === 'publish' ? 'Publishing...' :
+               'Saving...'}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <MerchantFormHeader 
+        <MerchantFormHeader
           activeAction={activeAction}
           setActiveAction={setActiveAction}
           onSaveDraft={() => handleSubmit('save_draft')}
@@ -253,15 +515,39 @@ export default function MerchantEditPage() {
 
             {/* Right sidebar - 1/3 width */}
             <div className="lg:col-span-1">
-              <AdminOptions 
-                onSettingsChange={(settings) => console.log('Settings changed:', settings)}
-                onAdvertisementChange={(advertisement) => console.log('Advertisement changed:', advertisement)}
+              <AdminOptions
+                settings={adminOptionsSettings}
+                advertisement={adminOptionsAdvertisement}
+                onSettingsChange={(settings) => setAdminOptionsSettings(prev => ({ ...prev, ...settings }))}
+                onAdvertisementChange={(advertisement) => setAdminOptionsAdvertisement(prev => ({ ...prev, ...advertisement }))}
               />
             </div>
             <div className="col-span-3">
-              <MerchantDefault 
-                onDefaultChange={(data) => console.log('Default promotion changed:', data)}
-                onPromoteChange={(data) => console.log('Promote promotion changed:', data)}
+              <MerchantDefault
+                initialDefaultPromotion={
+                  defaultPromotion.title || defaultPromotion.description
+                    ? {
+                        title: defaultPromotion.title || '',
+                        description: defaultPromotion.description || ''
+                      }
+                    : undefined
+                }
+                initialPromotePromotion={
+                  promotePromotion.title || promotePromotion.description
+                    ? {
+                        title: promotePromotion.title || '',
+                        description: promotePromotion.description || '',
+                        type: promotePromotion.type || '',
+                        startDate: promotePromotion.startDate || '',
+                        endDate: promotePromotion.endDate || '',
+                        giftcodes: promotePromotion.giftcodes || '',
+                        loginRequired: Boolean(promotePromotion.loginRequired),
+                        reviewRequired: Boolean(promotePromotion.reviewRequired)
+                      }
+                    : undefined
+                }
+                onDefaultChange={(data) => setDefaultPromotion({...defaultPromotion, ...data})}
+                onPromoteChange={(data) => setPromotePromotion({...promotePromotion, ...data})}
               />
             </div>
             
@@ -269,30 +555,42 @@ export default function MerchantEditPage() {
             <div className="col-span-3 grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* SEO Configuration - 2/3 width */}
               <div className="lg:col-span-2">
-                <SeoConfiguration 
-                  onSeoChange={(data) => console.log('SEO data changed:', data)}
+                <SeoConfiguration
+                  initialSeo={seoData}
+                  onSeoChange={(data) => {
+                    setSeoData({
+                      title: data.title,
+                      description: data.description,
+                      canonical: data.canonicalUrl,
+                      schema: data.schemaType,
+                      image: data.seoImage || undefined
+                    });
+                  }}
                 />
               </div>
               
               {/* UTM Tracking - 1/3 width */}
               <div className="lg:col-span-1">
-                <UtmTracking 
-                  onUtmChange={(data) => console.log('UTM data changed:', data)}
+                <UtmTracking
+                  initialUtm={utmData}
+                  onUtmChange={(data) => setUtmData(data)}
                 />
               </div>
             </div>
 
             {/* Screenshots Section - Full Width */}
             <div className="col-span-3">
-              <Screenshots 
-                onScreenshotsChange={(data) => console.log('Screenshots changed:', data)}
+              <Screenshots
+                initialScreenshots={screenshots}
+                onScreenshotsChange={(data) => setScreenshotData(data)}
               />
             </div>
 
             {/* FAQ Section - Full Width */}
             <div className="col-span-3">
-              <FAQ 
-                onFAQChange={(data) => console.log('FAQ changed:', data)}
+              <FAQ
+                initialFaqs={faqs}
+                onFAQChange={(data) => setFaqs(data)}
               />
             </div>
           </div>

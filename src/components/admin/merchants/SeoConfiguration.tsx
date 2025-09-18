@@ -17,7 +17,7 @@ interface SeoConfigurationProps {
     description?: string;
     canonical?: string;
     schema?: string;
-    image?: string;
+    image?: string | File;
   };
   onSeoChange?: (data: SeoData) => void;
 }
@@ -31,7 +31,7 @@ export default function SeoConfiguration({ initialSeo, onSeoChange }: SeoConfigu
     seoImage: null
   });
 
-  const [imagePreview, setImagePreview] = useState<string>(initialSeo?.image || '');
+  const [imagePreview, setImagePreview] = useState<string>(typeof initialSeo?.image === 'string' ? initialSeo.image : '');
   const [imageError, setImageError] = useState<string>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 

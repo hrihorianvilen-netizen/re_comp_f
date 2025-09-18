@@ -126,6 +126,7 @@ interface MerchantSeo {
   description?: string;
   canonical?: string;
   schema?: string;
+  image?: string | File;
 }
 
 interface MerchantUtm {
@@ -191,7 +192,6 @@ export default function MerchantDetailPage() {
       try {
         // Fetch specific merchant data from API
         const result = await api.getAdminMerchant(merchantId);
-
         if (result.data && result.data.merchant) {
           const merchant = result.data.merchant as Merchant;
 
@@ -264,11 +264,14 @@ export default function MerchantDetailPage() {
 
           // Extract SEO data from removeFromListUntil or direct field
           const extractedSeo = (additionalData?.seo || merchant.seo || {}) as Record<string, unknown>;
+          console.log(extractedSeo, "extractedSeo");
+          
           setSeo({
             title: (extractedSeo.title as string) || '',
             description: (extractedSeo.description as string) || '',
-            canonical: (extractedSeo.canonical as string) || '',
-            schema: (extractedSeo.schema as string) || ''
+            canonical: (extractedSeo.canonicalUrl as string) || '',
+            schema: (extractedSeo.schemaType as string) || '',
+            image: (extractedSeo.image as string) || ''
           });
 
           // Extract UTM data from removeFromListUntil or direct field
@@ -482,11 +485,11 @@ export default function MerchantDetailPage() {
       if ('textColor' in priorityPromotion && (priorityPromotion as Record<string, unknown>).textColor) formDataToSend.append('priorityPromotion[textColor]', (priorityPromotion as Record<string, unknown>).textColor as string);
     }
 
-    // Add SEO with image support
-    if (seo.title) formDataToSend.append('seo[title]', seo.title);
-    if (seo.description) formDataToSend.append('seo[description]', seo.description);
-    if (seo.canonical) formDataToSend.append('seo[canonical]', seo.canonical);
-    if (seo.schema) formDataToSend.append('seo[schema]', seo.schema);
+    // Add SEO with image support    
+    if (seo.title) formDataToSend.append('seoTitle', seo.title);
+    if (seo.description) formDataToSend.append('seoDescription', seo.description);
+    if (seo.canonical) formDataToSend.append('canonicalUrl', seo.canonical);
+    if (seo.schema) formDataToSend.append('schemaType', seo.schema);
     // Add SEO image if exists
     if ('image' in seo && (seo as Record<string, unknown>).image instanceof File) {
       formDataToSend.append('seoImage', (seo as Record<string, unknown>).image as File);
@@ -625,7 +628,19 @@ export default function MerchantDetailPage() {
   }
 
   return (
-    <div className="py-6">
+    <div className="py-6 relative">
+      {/* Loading Overlay */}
+      {isSaving && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#00000080]" style={{ backgroundColor: '#00000080' }}>
+          <div className="rounded-lg p-6 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <p className="text-white font-medium">
+              Saving...
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <MerchantDetailHeader
           isEditMode={isEditMode}
@@ -740,7 +755,8 @@ export default function MerchantDetailPage() {
                       title: data.title,
                       description: data.description,
                       canonical: data.canonicalUrl,
-                      schema: data.schemaType
+                      schema: data.schemaType,
+                      image: data.seoImage || undefined
                     });
                   }}
                 />
