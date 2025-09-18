@@ -11,6 +11,52 @@ const getAuthHeaders = () => {
   };
 };
 
+// ==================== TYPES ====================
+
+export interface PostComment {
+  id: string;
+  postId: string;
+  userId?: string;
+  displayName: string;
+  user?: {
+    id: string;
+    displayName: string;
+    avatar?: string;
+  };
+  content: string;
+  reactions: {
+    love: number;
+    sad: number;
+    angry: number;
+    [key: string]: number;
+  };
+  replies: PostReply[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PostReply {
+  id: string;
+  commentId: string;
+  userId: string;
+  userName: string;
+  displayName: string;
+  user?: {
+    id: string;
+    displayName: string;
+    avatar?: string;
+  };
+  content: string;
+  reaction?: '❤️' | '😢' | '😡';
+  reactions: {
+    love: number;
+    sad: number;
+    angry: number;
+    selectedReaction?: string;
+  };
+  createdAt: string;
+}
+
 // ==================== POSTS API ====================
 
 export interface Post {
@@ -590,6 +636,102 @@ export const contentApi = {
     } catch (error) {
       console.error('Error fetching statistics:', error);
       return { error: 'Failed to fetch statistics' };
+    }
+  },
+
+  // ==================== POST COMMENTS ====================
+
+  // Create post comment
+  async createPostComment(postSlug: string, commentData: {
+    content: string;
+    displayName: string;
+  }): Promise<ApiResponse<PostComment>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postSlug}/comments`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(commentData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { error: error.error || 'Failed to create comment' };
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      return { error: 'Failed to create comment' };
+    }
+  },
+
+  // Add reaction to post comment
+  async addCommentReaction(postSlug: string, commentId: string, reactionType: 'love' | 'sad' | 'angry'): Promise<ApiResponse<{ success: boolean; reactions: Record<string, number> }>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postSlug}/comments/${commentId}/reactions`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reactionType }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { error: error.error || 'Failed to add reaction' };
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      return { error: 'Failed to add reaction' };
+    }
+  },
+
+  // Add reply to post comment
+  async createPostReply(postSlug: string, commentId: string, replyData: {
+    content: string;
+    displayName: string;
+    reaction?: '❤️' | '😢' | '😡';
+  }): Promise<ApiResponse<PostReply>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postSlug}/comments/${commentId}/replies`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(replyData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { error: error.error || 'Failed to create reply' };
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      console.error('Error creating reply:', error);
+      return { error: 'Failed to create reply' };
+    }
+  },
+
+  // Track post view
+  async trackPostView(postSlug: string): Promise<ApiResponse<{ views: number }>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/posts/${postSlug}/views`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { error: error.error || 'Failed to track view' };
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      console.error('Error tracking view:', error);
+      return { error: 'Failed to track view' };
     }
   },
 };

@@ -377,6 +377,77 @@ class ApiClient {
     return this.request<{ post: Post }>(`/posts/${slug}`);
   }
 
+  // Post comment endpoints
+  async getPostComments(postSlug: string) {
+    return this.request<{ comments: Array<{
+      id: string;
+      postId: string;
+      userId?: string;
+      displayName: string;
+      content: string;
+      reactions: Record<string, number>;
+      replies: Array<{
+        id: string;
+        content: string;
+        displayName: string;
+        createdAt: string;
+      }>;
+      createdAt: string;
+      updatedAt: string;
+    }> }>(`/posts/${postSlug}/comments`);
+  }
+
+  async createPostComment(postSlug: string, commentData: {
+    content: string;
+    displayName: string;
+  }) {
+    return this.request<{ comment: {
+      id: string;
+      postId: string;
+      displayName: string;
+      content: string;
+      createdAt: string;
+    }; message: string }>(`/posts/${postSlug}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(commentData),
+    });
+  }
+
+  async addPostCommentReaction(postSlug: string, commentId: string, reactionType: string) {
+    return this.request<{ success: boolean; message: string }>(`/posts/${postSlug}/comments/${commentId}/reactions`, {
+      method: 'POST',
+      body: JSON.stringify({ type: reactionType }),
+    });
+  }
+
+  async createPostCommentReply(postSlug: string, commentId: string, replyData: {
+    content: string;
+    displayName: string;
+  }) {
+    return this.request<{ reply: {
+      id: string;
+      commentId: string;
+      displayName: string;
+      content: string;
+      createdAt: string;
+    }; message: string }>(`/posts/${postSlug}/comments/${commentId}/replies`, {
+      method: 'POST',
+      body: JSON.stringify(replyData),
+    });
+  }
+
+  async trackPostView(postSlug: string) {
+    return this.request<{ success: boolean }>(`/posts/${postSlug}/view`, {
+      method: 'POST',
+    });
+  }
+
+  async likePost(postSlug: string) {
+    return this.request<{ likes: number }>(`/posts/${postSlug}/like`, {
+      method: 'POST',
+    });
+  }
+
   // Admin endpoints (require admin authentication)
   async getAdminMerchants(params?: {
     page?: number;

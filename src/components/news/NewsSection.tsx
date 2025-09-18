@@ -27,80 +27,6 @@ interface NewsSectionProps {
   itemsPerPage?: number;
 }
 
-// Default mock data for news
-const defaultMockNews: NewsItem[] = [
-  {
-    id: '1',
-    slug: 'top-10-ecommerce-platforms-2024',
-    title: 'Top 10 E-commerce Platforms to Watch in 2024',
-    excerpt: 'Discover the latest trends and emerging platforms that are shaping the future of online retail.',
-    content: 'The e-commerce landscape is rapidly evolving with new platforms emerging every day. From innovative marketplaces to specialized niche platforms, businesses have more options than ever before to reach their customers. This comprehensive guide explores the top platforms that are revolutionizing online retail, including their unique features, market positioning, and growth potential. Learn how these platforms are leveraging AI, social commerce, and mobile-first strategies to capture market share and deliver exceptional customer experiences.',
-    image: '/images/news/vinuin.png',
-    category: 'Newly updated',
-    publishedAt: '2024-01-15',
-    readTime: '5 min read',
-    author: 'Sarah Johnson',
-    comments: 42,
-    reviews: 128
-  },
-  {
-    id: '2',
-    slug: 'consumer-trust-online-reviews-study',
-    title: 'Consumer Trust in Online Reviews: A Comprehensive Study',
-    excerpt: 'New research reveals how customer reviews influence purchasing decisions and brand reputation.',
-    content: 'A groundbreaking study conducted across 10,000 consumers reveals the critical role of online reviews in modern purchasing decisions. The research shows that 93% of consumers read reviews before making a purchase, and authentic, detailed reviews significantly impact conversion rates. This article delves into the psychology behind review trust, the impact of fake reviews, and how businesses can build credibility through transparent review systems.',
-    image: '/images/news/vinuin.png',
-    category: 'Newly updated',
-    publishedAt: '2024-01-12',
-    readTime: '8 min read',
-    author: 'Michael Chen',
-    comments: 38,
-    reviews: 95
-  },
-  {
-    id: '3',
-    slug: 'ai-customer-service-revolution',
-    title: 'The Rise of AI in Customer Service',
-    excerpt: 'How artificial intelligence is revolutionizing customer support and improving user experience.',
-    content: 'Artificial Intelligence is transforming customer service from reactive to proactive. Companies are now using AI-powered chatbots, sentiment analysis, and predictive analytics to anticipate customer needs and resolve issues before they escalate. This article examines successful AI implementations, ROI metrics, and future trends in AI-driven customer support.',
-    image: '/images/news/vinuin.png',
-    category: 'Technology',
-    publishedAt: '2024-01-10',
-    readTime: '6 min read',
-    author: 'Emily Davis',
-    comments: 56,
-    reviews: 201
-  },
-  {
-    id: '4',
-    slug: 'sustainable-business-practices-trend',
-    title: 'Sustainable Business Practices: A Growing Trend',
-    excerpt: 'Companies are adopting eco-friendly approaches to attract environmentally conscious consumers.',
-    content: "Sustainability is no longer just a buzzword—it's a business imperative. This article explores how leading companies are integrating sustainable practices into their core operations, from supply chain management to product design. Learn about the financial benefits of going green and how sustainability drives innovation and customer loyalty.",
-    image: '/images/news/vinuin.png',
-    category: 'Business',
-    publishedAt: '2024-01-08',
-    readTime: '7 min read',
-    author: 'David Wilson',
-    comments: 29,
-    reviews: 73
-  },
-  {
-    id: '5',
-    slug: 'mobile-commerce-future-shopping',
-    title: 'Mobile Commerce: The Future of Shopping',
-    excerpt: 'Exploring how mobile devices are becoming the primary shopping channel for consumers worldwide.',
-    content: 'Mobile commerce has exceeded desktop transactions for the first time, marking a pivotal shift in consumer behavior. This comprehensive analysis covers mobile shopping trends, app vs. web experiences, mobile payment innovations, and strategies for optimizing mobile conversion rates.',
-    image: '/images/news/vinuin.png',
-    category: 'Technology',
-    publishedAt: '2024-01-05',
-    readTime: '4 min read',
-    author: 'Lisa Rodriguez',
-    comments: 31,
-    reviews: 89
-  }
-];
-
 const categories = [
   'All',
   'Newly updated',
@@ -111,7 +37,7 @@ const categories = [
 ];
 
 export default function NewsSection({
-  news = defaultMockNews,
+  news = [],
   showCategories = true,
   showPagination = true,
   showSidebar = true,
@@ -176,14 +102,14 @@ export default function NewsSection({
           </div>
         ) : (
           currentNews.map((article) => (
-            <article key={article.id} className="overflow-hidden">
-              <div className="md:flex">
-                <div className="md:w-1/3">
+            <article key={article.id} className="overflow-hidden pb-2 border-b-2 border-gray-200 justify-center">
+              <div className="md:flex gap-3">
+                <div className="md:w-1/3 items-center">
                   <OptimizedImage
                     src={article.image}
                     alt={article.title}
                     width={268}
-                    height={151}
+                    height={150}
                     className="w-full h-48 md:h-full object-cover"
                     sizeType="card"
                     qualityPriority="medium"
@@ -214,7 +140,7 @@ export default function NewsSection({
                   </div>
 
                   {/* Content with truncation */}
-                  <p className="text-gray-600 mb-3 text-sm line-clamp-3">
+                  <p className="text-gray-600 -sm line-clamp-2">
                     {article.content}
                   </p>
                 </div>

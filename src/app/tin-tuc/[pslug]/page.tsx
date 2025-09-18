@@ -1,27 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import OptimizedImage from '@/components/ui/OptimizedImage';
-
-interface Reactions {
-  love: number;
-  like: number;
-  haha: number;
-  wow: number;
-  sad: number;
-  angry: number;
-}
+import api from '@/lib/api';
+import { contentApi, PostReply } from '@/lib/api/content';
+import Image from 'next/image';
 
 interface NewsComment {
   id: string;
   userId: string;
   userName: string;
   displayName: string;
+  avatar?: string;
+  user?: {
+    id: string;
+    displayName: string;
+    avatar?: string;
+  };
   content: string;
-  createdAt: Date;
-  reactions: Reactions;
+  reactions: {
+    love: number;
+    sad: number;
+    angry: number;
+  };
+  createdAt: Date | string;
   replies: NewsReply[];
 }
 
@@ -30,230 +34,313 @@ interface NewsReply {
   userId: string;
   userName: string;
   displayName: string;
+  avatar?: string;
+  user?: {
+    id: string;
+    displayName: string;
+    avatar?: string;
+  };
   content: string;
-  createdAt: Date;
-  reactions: Reactions;
+  reaction?: '❤️' | '😢' | '😡';
+  reactions: {
+    love: number;
+    sad: number;
+    angry: number;
+  };
+  createdAt: Date | string;
 }
-
-// Mock news data with slugs
-const mockNewsData = {
-  'top-10-ecommerce-platforms-2024': {
-    id: '1',
-    slug: 'top-10-ecommerce-platforms-2024',
-    title: 'Top 10 E-commerce Platforms to Watch in 2024',
-    content: `The e-commerce landscape is rapidly evolving with new platforms emerging every day. From innovative marketplaces to specialized niche platforms, businesses have more options than ever before to reach their customers. This comprehensive guide explores the top platforms that are revolutionizing online retail, including their unique features, market positioning, and growth potential.
-
-    Learn how these platforms are leveraging AI, social commerce, and mobile-first strategies to capture market share and deliver exceptional customer experiences. We dive deep into each platform's strengths, weaknesses, and unique selling propositions.
-
-    1. Platform One: Leading the market with innovative features
-    2. Platform Two: Specializing in niche markets
-    3. Platform Three: Mobile-first approach
-    4. Platform Four: AI-powered recommendations
-    5. Platform Five: Social commerce integration
-
-    The future of e-commerce is bright, with these platforms leading the charge towards more personalized, efficient, and engaging shopping experiences.`,
-    image: '/images/news/vinuin.png',
-    category: 'Newly updated',
-    publishedAt: '2024-01-15',
-    readTime: '5 min read',
-    author: 'Sarah Johnson',
-    views: 1250,
-    likes: 342,
-    shares: 89
-  },
-  'consumer-trust-online-reviews-study': {
-    id: '2',
-    slug: 'consumer-trust-online-reviews-study',
-    title: 'Consumer Trust in Online Reviews: A Comprehensive Study',
-    content: `A groundbreaking study conducted across 10,000 consumers reveals the critical role of online reviews in modern purchasing decisions. The research shows that 93% of consumers read reviews before making a purchase, and authentic, detailed reviews significantly impact conversion rates.
-
-    This article delves into the psychology behind review trust, the impact of fake reviews, and how businesses can build credibility through transparent review systems.
-
-    Key findings include:
-    - 87% of consumers trust online reviews as much as personal recommendations
-    - Detailed reviews with pros and cons are 3x more trustworthy
-    - Review recency matters: 73% of consumers only pay attention to reviews written in the last month
-    - Verified purchase badges increase trust by 62%
-
-    Businesses need to understand these dynamics to build effective review strategies that foster trust and drive conversions.`,
-    image: '/images/news/vinuin.png',
-    category: 'Newly updated',
-    publishedAt: '2024-01-12',
-    readTime: '8 min read',
-    author: 'Michael Chen',
-    views: 890,
-    likes: 234,
-    shares: 67
-  },
-  'ai-customer-service-revolution': {
-    id: '3',
-    slug: 'ai-customer-service-revolution',
-    title: 'The Rise of AI in Customer Service',
-    content: `Artificial Intelligence is transforming customer service from reactive to proactive. Companies are now using AI-powered chatbots, sentiment analysis, and predictive analytics to anticipate customer needs and resolve issues before they escalate.
-
-    This article examines successful AI implementations, ROI metrics, and future trends in AI-driven customer support.
-
-    Major implementations include:
-    - 24/7 automated support reducing response times by 85%
-    - Sentiment analysis preventing 40% of potential escalations
-    - Predictive analytics improving first-call resolution by 30%
-    - Personalized recommendations increasing satisfaction scores by 25%
-
-    The integration of AI doesn't replace human agents but empowers them to handle more complex issues while AI manages routine inquiries.`,
-    image: '/images/news/vinuin.png',
-    category: 'Technology',
-    publishedAt: '2024-01-10',
-    readTime: '6 min read',
-    author: 'Emily Davis',
-    views: 2100,
-    likes: 456,
-    shares: 123
-  }
-};
-
-// Mock comments data
-const mockComments: NewsComment[] = [
-  {
-    id: '1',
-    userId: 'user1',
-    userName: 'John Doe',
-    displayName: 'Tech Enthusiast',
-    content: 'Great article! Really helped me understand the current e-commerce landscape.',
-    createdAt: new Date('2024-01-16'),
-    reactions: { love: 5, like: 7, haha: 0, wow: 2, sad: 0, angry: 0 },
-    replies: [
-      {
-        id: 'reply1',
-        userId: 'user2',
-        userName: 'Jane Smith',
-        displayName: 'E-commerce Expert',
-        content: 'I agree! The insights about AI integration are particularly valuable.',
-        createdAt: new Date('2024-01-16'),
-        reactions: { love: 2, like: 3, haha: 0, wow: 0, sad: 0, angry: 0 }
-      }
-    ]
-  },
-  {
-    id: '2',
-    userId: 'user3',
-    userName: 'Mike Johnson',
-    displayName: 'Business Owner',
-    content: 'Would love to see more details about pricing models for these platforms.',
-    createdAt: new Date('2024-01-17'),
-    reactions: { love: 1, like: 6, haha: 0, wow: 1, sad: 0, angry: 0 },
-    replies: []
-  }
-];
 
 export default function PostDetailPage() {
   const params = useParams();
   const pslug = params?.pslug as string;
-  
+
   // Remove 'p-' prefix to get the actual slug
   const slug = pslug?.startsWith('p-') ? pslug.substring(2) : pslug;
-  
-  // Find post by slug, default to first post if not found
-  const news = Object.values(mockNewsData).find(post => post.slug === slug) || Object.values(mockNewsData)[0];
-  
-  const [comments, setComments] = useState<NewsComment[]>(mockComments);
+
+  const [news, setNews] = useState<{
+    id: string;
+    slug: string;
+    title: string;
+    content: string;
+    image: string;
+    category: string;
+    publishedAt: string;
+    readTime: string;
+    author: string;
+    views: number;
+    likes: number;
+    shares: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedPosts, setRelatedPosts] = useState<{
+    id: string;
+    slug: string;
+    title: string;
+    image: string;
+    comments: number;
+    reviews: number;
+  }[]>([]);
+  const [comments, setComments] = useState<NewsComment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [replyDisplayName, setReplyDisplayName] = useState('');
+  const [replyReaction, setReplyReaction] = useState<'❤️' | '😢' | '😡'>('❤️');
   const [showAllComments, setShowAllComments] = useState(false);
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  };
+  useEffect(() => {
+    loadPostData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
-  const handleAddComment = () => {
-    if (newComment.trim() && displayName.trim()) {
-      const comment: NewsComment = {
-        id: `comment-${Date.now()}`,
-        userId: 'current-user',
-        userName: 'Current User',
-        displayName: displayName,
-        content: newComment,
-        createdAt: new Date(),
-        reactions: { love: 0, like: 0, haha: 0, wow: 0, sad: 0, angry: 0 },
-        replies: []
-      };
-      setComments([comment, ...comments]);
-      setNewComment('');
-      setDisplayName('');
+  const loadPostData = async () => {
+    try {
+      setLoading(true);
+      // Fetch the specific post
+      const postResponse = await api.getPost(slug);
+      if (postResponse.data && postResponse.data.post) {
+        const postData = postResponse.data.post;
+        setNews({
+          id: postData.id,
+          slug: postData.slug || slug,
+          title: postData.title,
+          content: postData.content,
+          image: postData.featuredImage || '/images/news/vinuin.png',
+          category: postData.categoryId || 'Uncategorized',
+          publishedAt: postData.publishedAt || postData.createdAt,
+          readTime: postData.readTime || '5 min read',
+          author: postData.author || 'Admin',
+          views: postData.views || 0,
+          likes: postData.likes || 0,
+          shares: postData.shares || 0
+        });
+
+        // Load comments if available
+        type PostDataWithComments = typeof postData & {
+          comments?: Array<{
+            id: string;
+            userId?: string;
+            userName?: string;
+            displayName: string;
+            content: string;
+            reactions: { love: number; sad: number; angry: number };
+            createdAt: string;
+            user?: { id: string; displayName: string; avatar?: string };
+            replies?: Array<{
+              id: string;
+              userId?: string;
+              userName?: string;
+              displayName: string;
+              content: string;
+              reaction?: string;
+              reactions: { selectedReaction?: '❤️' | '😢' | '😡'; love?: number; sad?: number; angry?: number };
+              createdAt: string;
+              user?: { id: string; displayName: string; avatar?: string };
+            }>;
+          }>;
+        };
+        const postDataTyped = postData as PostDataWithComments;
+        if (postDataTyped.comments) {
+          const formattedComments = postDataTyped.comments.map((comment) => ({
+            id: comment.id,
+            userId: comment.userId || 'user',
+            userName: comment.user?.displayName || comment.userName || 'User',
+            displayName: comment.displayName || comment.userName || 'User',
+            avatar: comment.user?.avatar,
+            user: comment.user,
+            content: comment.content,
+            reactions: comment.reactions || { love: 0, sad: 0, angry: 0 },
+            createdAt: comment.createdAt,
+            replies: comment.replies?.map((reply) => ({
+              id: reply.id,
+              userId: reply.userId || 'user',
+              userName: reply.user?.displayName || reply.userName || 'User',
+              displayName: reply.displayName || reply.userName || 'User',
+              avatar: reply.user?.avatar,
+              user: reply.user,
+              content: reply.content,
+              reaction: (reply.reactions?.selectedReaction || reply.reaction) as '❤️' | '😢' | '😡' | undefined,
+              reactions: {
+                love: reply.reactions?.love || 0,
+                sad: reply.reactions?.sad || 0,
+                angry: reply.reactions?.angry || 0
+              },
+              createdAt: reply.createdAt
+            })) || []
+          }));
+          setComments(formattedComments);
+        }
+
+        // Track post view
+        try {
+          await contentApi.trackPostView(slug);
+        } catch (error) {
+          console.error('Failed to track view:', error);
+        }
+      }
+
+      // Fetch related posts
+      const relatedResponse = await api.getPosts({ limit: 5 });
+      if (relatedResponse.data) {
+        const filtered = relatedResponse.data.posts
+          .filter((p: { slug: string }) => p.slug !== slug)
+          .slice(0, 4)
+          .map((p: {
+            id: string;
+            slug: string;
+            title: string;
+            image?: string;
+            comments?: number;
+            reviews?: number;
+          }) => ({
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            image: p.image || '/images/news/vinuin.png',
+            comments: p.comments || 0,
+            reviews: p.reviews || 0
+          }));
+        setRelatedPosts(filtered);
+      }
+    } catch (error) {
+      console.error('Failed to load post:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddReply = (commentId: string) => {
-    if (replyContent.trim() && replyDisplayName.trim()) {
-      const reply: NewsReply = {
-        id: `reply-${Date.now()}`,
-        userId: 'current-user',
-        userName: 'Current User',
-        displayName: replyDisplayName,
-        content: replyContent,
-        createdAt: new Date(),
-        reactions: { love: 0, like: 0, haha: 0, wow: 0, sad: 0, angry: 0 }
-      };
-      
-      setComments(comments.map(comment => {
-        if (comment.id === commentId) {
-          return {
-            ...comment,
-            replies: [...comment.replies, reply]
+  const truncateText = (text: string, maxLength: number = 150) => {
+    if (!text || text.length <= maxLength) return text;
+    return text.substring(0, maxLength) + '...';
+  };
+
+  const toggleExpandComment = (commentId: string) => {
+    setExpandedComments(prev => ({
+      ...prev,
+      [commentId]: !prev[commentId]
+    }));
+  };
+
+  const toggleShowReplies = (commentId: string) => {
+    setExpandedReplies(prev => ({
+      ...prev,
+      [commentId]: !prev[commentId]
+    }));
+  };
+
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateObj.getTime())) {
+      return 'Unknown date';
+    }
+    return dateObj.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const handleAddComment = async () => {
+    if (displayName.trim() && slug) {
+      try {
+        const response = await contentApi.createPostComment(slug, {
+          content: newComment.trim(),
+          displayName: displayName
+        });
+
+        if (response.data) {
+          const newCommentData = response.data;
+          const formattedComment: NewsComment = {
+            id: newCommentData.id,
+            userId: newCommentData.userId || 'anonymous',
+            userName: newCommentData.user?.displayName || displayName,
+            displayName: newCommentData.displayName,
+            user: newCommentData.user,
+            content: newCommentData.content,
+            reactions: newCommentData.reactions || { love: 0, sad: 0, angry: 0 },
+            createdAt: newCommentData.createdAt,
+            replies: newCommentData.replies || []
           };
+          setComments([formattedComment, ...comments]);
+          setNewComment('');
+          setDisplayName('');
         }
-        return comment;
-      }));
-      
+      } catch (error) {
+        console.error('Failed to add comment:', error);
+      }
+    }
+  };
+
+  const handleAddReply = async (commentId: string) => {
+    if (replyDisplayName.trim() && slug) {
+      try {
+        const response = await contentApi.createPostReply(slug, commentId, {
+          content: replyContent.trim(),
+          displayName: replyDisplayName,
+          reaction: replyReaction
+        });
+
+        if (response.data) {
+          const newReplyData = response.data;
+          const updatedCounts = (response.data as { updatedReactionCounts?: { love: number; sad: number; angry: number } } & PostReply).updatedReactionCounts || { love: 0, sad: 0, angry: 0 };
+
+          const formattedReply: NewsReply = {
+            id: newReplyData.id,
+            userId: newReplyData.userId || 'anonymous',
+            userName: newReplyData.userName || replyDisplayName,
+            displayName: newReplyData.displayName,
+            user: newReplyData.user,
+            content: newReplyData.content,
+            reaction: (newReplyData.reactions?.selectedReaction as '❤️' | '😢' | '😡' | undefined) || newReplyData.reaction || replyReaction,
+            reactions: newReplyData.reactions || { love: 0, sad: 0, angry: 0 },
+            createdAt: newReplyData.createdAt
+          };
+
+          setComments(comments.map(comment => {
+            if (comment.id === commentId) {
+              return {
+                ...comment,
+                reactions: updatedCounts, // Update the emoji counts from reply creators
+                replies: [...comment.replies, formattedReply]
+              };
+            }
+            return comment;
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to add reply:', error);
+      }
+
       setReplyContent('');
       setReplyDisplayName('');
+      setReplyReaction('❤️');
       setReplyTo(null);
     }
   };
 
-  const handleReaction = (commentId: string, reactionType: keyof Reactions) => {
-    setComments(comments.map(comment => {
-      if (comment.id === commentId) {
-        return {
-          ...comment,
-          reactions: {
-            ...comment.reactions,
-            [reactionType]: comment.reactions[reactionType] + 1
-          }
-        };
-      }
-      return comment;
-    }));
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#198639]"></div>
+      </div>
+    );
+  }
 
-  const handleReplyReaction = (commentId: string, replyId: string, reactionType: keyof Reactions) => {
-    setComments(comments.map(comment => {
-      if (comment.id === commentId) {
-        return {
-          ...comment,
-          replies: comment.replies.map(reply => {
-            if (reply.id === replyId) {
-              return {
-                ...reply,
-                reactions: {
-                  ...reply.reactions,
-                  [reactionType]: reply.reactions[reactionType] + 1
-                }
-              };
-            }
-            return reply;
-          })
-        };
-      }
-      return comment;
-    }));
-  };
+  if (!news) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">Post not found</h2>
+          <Link href="/tin-tuc" className="text-[#198639] hover:underline">
+            Back to news
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -348,7 +435,7 @@ export default function PostDetailPage() {
 
                 {/* Content */}
                 <div className="prose max-w-none">
-                  {news.content.split('\n\n').map((paragraph, index) => (
+                  {news.content.split('\n\n').map((paragraph: string, index: number) => (
                     <p key={index} className="text-gray-700 mb-4 leading-relaxed">
                       {paragraph}
                     </p>
@@ -466,77 +553,69 @@ export default function PostDetailPage() {
                 {(showAllComments ? comments : comments.slice(0, 2)).map(comment => (
                   <div key={comment.id} className="border-b border-gray-100 pb-6 last:border-0">
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0"></div>
+                      {/* User Avatar */}
+                      {comment.user?.avatar ? (
+                        <Image
+                          src={comment.user.avatar}
+                          alt={comment.displayName}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-full flex-shrink-0 object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-[#e5e7eb] text-gray-600 rounded-full flex-shrink-0 flex items-center justify-center font-semibold">
+                          {(comment.userName)?.charAt(0).toUpperCase() || 'U'}
+                        </div>
+                      )}
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-medium text-gray-900">{comment.userName}</h4>
+                        <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium text-gray-900">{comment.displayName}</h4>
                           <span className="text-xs text-gray-500">
                             {formatDate(comment.createdAt)}
                           </span>
                         </div>
-                        <p className="text-gray-700 mb-3">{comment.content}</p>
-                        <div className="flex items-center justify-between">
+                        {comment.content && (
+                          <p className="text-gray-700 mb-3">
+                            {expandedComments[comment.id] ? comment.content : truncateText(comment.content, 150)}
+                            {comment.content.length > 150 && (
+                              <button
+                                onClick={() => toggleExpandComment(comment.id)}
+                                className="text-[#198639] hover:underline ml-1 text-sm"
+                              >
+                                {expandedComments[comment.id] ? 'Show less' : 'Show more'}
+                              </button>
+                            )}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-2 border-b-2 border-gray-200 pb-2">
+                          {/* Emoji counts from reply creators */}
+                          <span className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <span>❤️</span>
+                              <span>{comment.reactions.love || 0}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span>😢</span>
+                              <span>{comment.reactions.sad || 0}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span>😡</span>
+                              <span>{comment.reactions.angry || 0}</span>
+                            </span>
+                          </span>
+                          {/* Reply button */}
                           <button
                             onClick={() => setReplyTo(comment.id)}
                             className="text-sm text-[#198639] hover:underline"
                           >
                             Reply
                           </button>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleReaction(comment.id, 'love')}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-red-50 transition-colors group"
-                              title="Love"
-                            >
-                              <span className="text-lg">❤️</span>
-                              {comment.reactions.love > 0 && <span className="text-xs text-gray-600">{comment.reactions.love}</span>}
-                            </button>
-                            <button
-                              onClick={() => handleReaction(comment.id, 'like')}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-blue-50 transition-colors group"
-                              title="Like"
-                            >
-                              <span className="text-lg">👍</span>
-                              {comment.reactions.like > 0 && <span className="text-xs text-gray-600">{comment.reactions.like}</span>}
-                            </button>
-                            <button
-                              onClick={() => handleReaction(comment.id, 'haha')}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-yellow-50 transition-colors group"
-                              title="Haha"
-                            >
-                              <span className="text-lg">😂</span>
-                              {comment.reactions.haha > 0 && <span className="text-xs text-gray-600">{comment.reactions.haha}</span>}
-                            </button>
-                            <button
-                              onClick={() => handleReaction(comment.id, 'wow')}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-orange-50 transition-colors group"
-                              title="Wow"
-                            >
-                              <span className="text-lg">😮</span>
-                              {comment.reactions.wow > 0 && <span className="text-xs text-gray-600">{comment.reactions.wow}</span>}
-                            </button>
-                            <button
-                              onClick={() => handleReaction(comment.id, 'sad')}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-blue-50 transition-colors group"
-                              title="Sad"
-                            >
-                              <span className="text-lg">😢</span>
-                              {comment.reactions.sad > 0 && <span className="text-xs text-gray-600">{comment.reactions.sad}</span>}
-                            </button>
-                            <button
-                              onClick={() => handleReaction(comment.id, 'angry')}
-                              className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-red-50 transition-colors group"
-                              title="Angry"
-                            >
-                              <span className="text-lg">😡</span>
-                              {comment.reactions.angry > 0 && <span className="text-xs text-gray-600">{comment.reactions.angry}</span>}
-                            </button>
-                          </div>
                         </div>
 
                         {/* Reply Form */}
                         {replyTo === comment.id && (
-                          <div className="mt-4 space-y-3">
+                          <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
                             <input
                               type="text"
                               value={replyDisplayName}
@@ -544,31 +623,30 @@ export default function PostDetailPage() {
                               placeholder="Your display name"
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] text-sm"
                             />
-                            <div className="relative">
-                              <textarea
-                                value={replyContent}
-                                onChange={(e) => setReplyContent(e.target.value)}
-                                placeholder="Write your reply... (You can use emojis! 😊)"
-                                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] resize-none text-sm"
-                                rows={2}
-                              />
-                              <div className="absolute right-2 top-2">
+                            <div className="text-sm font-medium text-gray-700">Select your reaction:</div>
+                            <div className="flex gap-2">
+                              {(['❤️', '😢', '😡'] as const).map((emoji) => (
                                 <button
+                                  key={emoji}
                                   type="button"
-                                  onClick={() => {
-                                    const emojis = ['😊', '👍', '❤️', '🎉', '😂', '🤔', '👏', '🔥', '💯', '✨'];
-                                    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                                    setReplyContent(prev => prev + randomEmoji);
-                                  }}
-                                  className="text-gray-400 hover:text-gray-600 p-0.5"
-                                  title="Add emoji"
+                                  onClick={() => setReplyReaction(emoji)}
+                                  className={`px-3 py-2 rounded-lg border-2 transition-colors ${
+                                    replyReaction === emoji
+                                      ? 'border-[#198639] bg-green-50'
+                                      : 'border-gray-200 hover:border-gray-300'
+                                  }`}
                                 >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
+                                  <span className="text-xl">{emoji}</span>
                                 </button>
-                              </div>
+                              ))}
                             </div>
+                            <textarea
+                              value={replyContent}
+                              onChange={(e) => setReplyContent(e.target.value)}
+                              placeholder="Write your reply..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] resize-none text-sm"
+                              rows={2}
+                            />
                             <div className="flex gap-2">
                               <button
                                 onClick={() => handleAddReply(comment.id)}
@@ -581,6 +659,7 @@ export default function PostDetailPage() {
                                   setReplyTo(null);
                                   setReplyContent('');
                                   setReplyDisplayName('');
+                                  setReplyReaction('❤️');
                                 }}
                                 className="text-gray-600 px-4 py-1.5 text-sm hover:text-gray-800"
                               >
@@ -593,72 +672,67 @@ export default function PostDetailPage() {
                         {/* Replies */}
                         {comment.replies.length > 0 && (
                           <div className="mt-4 space-y-3 ml-4">
-                            {comment.replies.map(reply => (
+                            {(expandedReplies[comment.id] ? comment.replies : comment.replies.slice(0, 2)).map(reply => (
                               <div key={reply.id} className="flex items-start gap-3">
-                                <div className="w-8 h-8 bg-gray-300 rounded-full flex-shrink-0"></div>
+                                {/* Reply Avatar */}
+                                {reply.user?.avatar ? (
+                                  <Image
+                                    src={reply.user.avatar}
+                                    alt={reply.displayName}
+                                    width={32}
+                                    height={32}
+                                    className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 bg-[#e5e7eb] text-gray-600 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-semibold">
+                                    {reply.userName?.charAt(0).toUpperCase() || 'U'}
+                                  </div>
+                                )}
                                 <div className="flex-1">
+                                  <h5 className="font-medium text-gray-900 text-md">
+                                    {reply.userName}
+                                  </h5>
                                   <div className="flex items-center gap-2 mb-1">
                                     <h5 className="font-medium text-gray-900 text-sm">
                                       {reply.displayName}
                                     </h5>
+                                    {reply.reaction && (
+                                      <span className="text-lg">{reply.reaction}</span>
+                                    )}
                                     <span className="text-xs text-gray-500">
                                       {formatDate(reply.createdAt)}
                                     </span>
                                   </div>
-                                  <p className="text-gray-700 text-sm mb-2">{reply.content}</p>
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      onClick={() => handleReplyReaction(comment.id, reply.id, 'love')}
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full hover:bg-red-50 transition-colors"
-                                      title="Love"
-                                    >
-                                      <span className="text-sm">❤️</span>
-                                      {reply.reactions.love > 0 && <span className="text-xs text-gray-600">{reply.reactions.love}</span>}
-                                    </button>
-                                    <button
-                                      onClick={() => handleReplyReaction(comment.id, reply.id, 'like')}
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full hover:bg-blue-50 transition-colors"
-                                      title="Like"
-                                    >
-                                      <span className="text-sm">👍</span>
-                                      {reply.reactions.like > 0 && <span className="text-xs text-gray-600">{reply.reactions.like}</span>}
-                                    </button>
-                                    <button
-                                      onClick={() => handleReplyReaction(comment.id, reply.id, 'haha')}
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full hover:bg-yellow-50 transition-colors"
-                                      title="Haha"
-                                    >
-                                      <span className="text-sm">😂</span>
-                                      {reply.reactions.haha > 0 && <span className="text-xs text-gray-600">{reply.reactions.haha}</span>}
-                                    </button>
-                                    <button
-                                      onClick={() => handleReplyReaction(comment.id, reply.id, 'wow')}
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full hover:bg-orange-50 transition-colors"
-                                      title="Wow"
-                                    >
-                                      <span className="text-sm">😮</span>
-                                      {reply.reactions.wow > 0 && <span className="text-xs text-gray-600">{reply.reactions.wow}</span>}
-                                    </button>
-                                    <button
-                                      onClick={() => handleReplyReaction(comment.id, reply.id, 'sad')}
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full hover:bg-blue-50 transition-colors"
-                                      title="Sad"
-                                    >
-                                      <span className="text-sm">😢</span>
-                                      {reply.reactions.sad > 0 && <span className="text-xs text-gray-600">{reply.reactions.sad}</span>}
-                                    </button>
-                                    <button
-                                      onClick={() => handleReplyReaction(comment.id, reply.id, 'angry')}
-                                      className="flex items-center gap-1 px-1.5 py-0.5 rounded-full hover:bg-red-50 transition-colors"
-                                      title="Angry"
-                                    >
-                                      <span className="text-sm">😡</span>
-                                      {reply.reactions.angry > 0 && <span className="text-xs text-gray-600">{reply.reactions.angry}</span>}
-                                    </button>
+                                  {reply.content && (
+                                    <p className="text-gray-700 text-sm">
+                                      {truncateText(reply.content, 100)}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-3 mt-1">
+                                    {/* Reply reaction counts */}
+                                    {reply.reactions.love > 0 && (
+                                      <span className="text-xs text-gray-600">❤️ ({reply.reactions.love})</span>
+                                    )}
+                                    {reply.reactions.sad > 0 && (
+                                      <span className="text-xs text-gray-600">😢 ({reply.reactions.sad})</span>
+                                    )}
+                                    {reply.reactions.angry > 0 && (
+                                      <span className="text-xs text-gray-600">😡 ({reply.reactions.angry})</span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
                             ))}
+                            {comment.replies.length > 2 && (
+                              <button
+                                onClick={() => toggleShowReplies(comment.id)}
+                                className="text-sm text-[#198639] hover:underline ml-11"
+                              >
+                                {expandedReplies[comment.id]
+                                  ? `Show less replies`
+                                  : `Show ${comment.replies.length - 2} more replies`}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -698,7 +772,7 @@ export default function PostDetailPage() {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Read more</h3>
                 <div className="space-y-4">
-                  {Object.values(mockNewsData).filter(n => n.slug !== news.slug).slice(0, 4).map((article) => (
+                  {relatedPosts.map((article) => (
                     <div key={article.id} className="flex gap-3 border-b-2 border-gray-200 pb-3 last:border-0 last:pb-0">
                       <div className="flex-shrink-0">
                         <OptimizedImage
