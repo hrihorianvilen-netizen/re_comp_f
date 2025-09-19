@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import moment from 'moment';
+import RichTextEditor from '@/components/ui/RichTextEditor';
+import { getHtmlPreview } from '@/lib/htmlUtils';
 import CommunicationHeader from '@/components/admin/communication/CommunicationHeader';
 import StatusFilter from '@/components/admin/communication/StatusFilter';
 import ActionFilter from '@/components/admin/communication/ActionFilter';
@@ -368,7 +370,7 @@ export default function CommentsManagement() {
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         wordBreak: 'break-word'
-                      }}>{comment.content || 'No text content'}</p>
+                      }}>{comment.content ? getHtmlPreview(comment.content, 150) : 'No text content'}</p>
                     </div>
 
                     {/* Review Info */}
@@ -402,7 +404,7 @@ export default function CommentsManagement() {
                   expandedComment === comment.id ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
                 }`}>
                   <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200">
-                    <form id={`comment-form-${comment.id}`} className="space-y-4">
+                    <form id={`comment-form-${comment.id}`} data-comment-id={comment.id} className="space-y-4">
                       <h3 className="text-lg font-medium text-gray-900">Edit Comment</h3>
                       
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -479,12 +481,28 @@ export default function CommentsManagement() {
                         <div className="space-y-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700">Comment Content</label>
-                            <textarea
-                              rows={6}
-                              name="content"
-                              defaultValue={comment.content || ''}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent"
+                            <RichTextEditor
+                              value={comment.content || ''}
+                              onChange={(value) => {
+                                // Store the value for form submission
+                                const form = document.querySelector(`form[data-comment-id="${comment.id}"]`) as HTMLFormElement;
+                                if (form) {
+                                  const input = form.querySelector('input[name="content"]') as HTMLInputElement;
+                                  if (!input) {
+                                    const hiddenInput = document.createElement('input');
+                                    hiddenInput.type = 'hidden';
+                                    hiddenInput.name = 'content';
+                                    hiddenInput.value = value;
+                                    form.appendChild(hiddenInput);
+                                  } else {
+                                    input.value = value;
+                                  }
+                                }
+                              }}
                               placeholder="Enter comment content"
+                              height="min-h-[150px]"
+                              showPreview={false}
+                              required={false}
                             />
                           </div>
                         </div>

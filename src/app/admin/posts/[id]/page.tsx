@@ -456,13 +456,14 @@ export default function PostDetailPage() {
                     <label htmlFor="seoDescription" className="block text-sm font-medium text-gray-700 mb-2">
                       SEO Description
                     </label>
-                    <textarea
-                      id="seoDescription"
+                    <RichTextEditor
                       value={formData.seoDescription}
-                      onChange={(e) => handleFieldChange('seoDescription', e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      onChange={(value) => handleFieldChange('seoDescription', value)}
                       placeholder="SEO description (155-160 characters)"
+                      maxLength={160}
+                      height="min-h-[80px] max-h-[120px]"
+                      showPreview={false}
+                      required={false}
                     />
                   </div>
 

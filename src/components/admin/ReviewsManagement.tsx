@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import moment from 'moment';
 import { RatingStars } from '@/components/ui';
+import RichTextEditor from '@/components/ui/RichTextEditor';
+import { getHtmlPreview } from '@/lib/htmlUtils';
 import CommunicationHeader from '@/components/admin/communication/CommunicationHeader';
 import StatusFilter from '@/components/admin/communication/StatusFilter';
 import ActionFilter from '@/components/admin/communication/ActionFilter';
@@ -372,7 +374,7 @@ export default function CommunicationReviewsPage() {
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical',
                           wordBreak: 'break-word'
-                        }}>{review.content}</p>
+                        }}>{getHtmlPreview(review.content, 150)}</p>
                         <div className="flex items-center gap-2 text-xs">
                           {(() => {
                             const reactions = getReactions(review);
@@ -424,7 +426,7 @@ export default function CommunicationReviewsPage() {
                   expandedReview === review.id ? 'max-h-screen opacity-100' : 'max-h-0 opacity-0'
                 }`}>
                   <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200">
-                    <form id={`review-form-${review.id}`} className="space-y-4">
+                    <form id={`review-form-${review.id}`} data-review-id={review.id} className="space-y-4">
                       <h3 className="text-lg font-medium text-gray-900">Edit Review</h3>
                       
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -499,12 +501,27 @@ export default function CommunicationReviewsPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700">Review Content</label>
-                            <textarea
-                              rows={6}
-                              name="content"
-                              defaultValue={review.content}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent"
+                            <RichTextEditor
+                              value={review.content}
+                              onChange={(value) => {
+                                // Store the value for form submission
+                                const form = document.querySelector(`form[data-review-id="${review.id}"]`) as HTMLFormElement;
+                                if (form) {
+                                  const input = form.querySelector('input[name="content"]') as HTMLInputElement;
+                                  if (!input) {
+                                    const hiddenInput = document.createElement('input');
+                                    hiddenInput.type = 'hidden';
+                                    hiddenInput.name = 'content';
+                                    hiddenInput.value = value;
+                                    form.appendChild(hiddenInput);
+                                  } else {
+                                    input.value = value;
+                                  }
+                                }
+                              }}
                               placeholder="Enter review content"
+                              height="min-h-[150px]"
+                              showPreview={false}
                             />
                           </div>
 

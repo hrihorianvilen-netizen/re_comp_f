@@ -264,8 +264,7 @@ export default function MerchantDetailPage() {
           });
 
           // Extract SEO data from removeFromListUntil or direct field
-          const extractedSeo = (additionalData?.seo || merchant.seo || {}) as Record<string, unknown>;
-          console.log(extractedSeo, "extractedSeo");
+          const extractedSeo = (merchant.seo || {}) as Record<string, unknown>;
           
           setSeo({
             title: (extractedSeo.title as string) || '',

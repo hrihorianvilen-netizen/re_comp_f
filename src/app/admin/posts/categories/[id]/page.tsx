@@ -418,13 +418,14 @@ export default function CategoryDetailPage() {
                     SEO Description
                   </label>
                   {isEditing ? (
-                    <textarea
-                      id="metaDescription"
+                    <RichTextEditor
                       value={formData.metaDescription}
-                      onChange={(e) => handleFieldChange('metaDescription', e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      onChange={(value) => handleFieldChange('metaDescription', value)}
                       placeholder="Meta description for search engines..."
+                      maxLength={160}
+                      height="min-h-[80px] max-h-[120px]"
+                      showPreview={false}
+                      required={false}
                     />
                   ) : (
                     <p className="text-sm text-gray-900">{formData.metaDescription || 'Not set'}</p>

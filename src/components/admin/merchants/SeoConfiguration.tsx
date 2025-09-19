@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface SeoData {
   title: string;
@@ -145,15 +146,14 @@ export default function SeoConfiguration({ initialSeo, onSeoChange }: SeoConfigu
           <label htmlFor="seo_description" className="block text-sm font-medium text-gray-700">
             Meta Description
           </label>
-          <textarea
-            name="seo_description"
-            id="seo_description"
-            rows={3}
+          <RichTextEditor
             value={seoData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            maxLength={160}
-            className={`mt-1 block w-full px-3 py-2 border ${errors.seo_description ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent`}
+            onChange={(value) => handleInputChange('description', value)}
             placeholder="Enter meta description (150-160 characters recommended)"
+            maxLength={160}
+            height="min-h-[80px] max-h-[120px]"
+            showPreview={false}
+            required={false}
           />
           <div className="mt-1 flex justify-between">
             {errors.seo_description && <p className="text-sm text-red-600">{errors.seo_description}</p>}
