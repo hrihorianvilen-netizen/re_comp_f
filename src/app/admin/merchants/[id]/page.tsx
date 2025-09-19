@@ -33,6 +33,12 @@ interface Merchant {
   removeFromListUntil?: Record<string, unknown> | null;
   isStarred?: boolean;
   allowComments?: boolean;
+  defaultPromotion?: {
+    title?: string;
+    description?: string
+    loginRequired?: boolean;
+    reviewRequired?: boolean
+  };
   promotions?: Array<{
     type: string;
     title: string;
@@ -193,6 +199,8 @@ export default function MerchantDetailPage() {
       try {
         // Fetch specific merchant data from API
         const result = await api.getAdminMerchant(merchantId);
+        console.log(result, "Fetched merchant data");
+        
         if (result.data && result.data.merchant) {
           const merchant = result.data.merchant as Merchant;
 
@@ -269,8 +277,8 @@ export default function MerchantDetailPage() {
           setSeo({
             title: (extractedSeo.title as string) || '',
             description: (extractedSeo.description as string) || '',
-            canonical: (extractedSeo.canonicalUrl as string) || '',
-            schema: (extractedSeo.schemaType as string) || '',
+            canonical: (extractedSeo.canonical as string) || '',
+            schema: (extractedSeo.schema as string) || '',
             image: (extractedSeo.image as string) || ''
           });
 
@@ -288,56 +296,33 @@ export default function MerchantDetailPage() {
           // Set FAQs and screenshots
           if (merchant.faqs) setFaqs(merchant.faqs);
           if (merchant.screenshots) setScreenshots(merchant.screenshots);
-
+          if (merchant.defaultPromotion) {
+            setDefaultPromotion({
+              title: merchant.defaultPromotion.title || '',
+              description: merchant.defaultPromotion.description || '',
+              loginRequired: merchant.defaultPromotion.loginRequired || false,
+              reviewRequired: merchant.defaultPromotion.reviewRequired || false,
+            });
+          }
           // Set promotions - extract additional data from formatted promotions
           if (merchant.promotions) {
-            const defaultProm = merchant.promotions.find((p) => p.type === 'default');
-            const priorityProm = merchant.promotions.find((p) => p.type === 'priority');
-
-            if (defaultProm) {
-              setDefaultPromotion({
-                title: defaultProm.title || defaultProm.code || '',
-                description: defaultProm.description || '',
-                loginRequired: defaultProm.loginRequired || false,
-                reviewRequired: defaultProm.reviewRequired || false,
-                // Extract additional fields from the backend response
-                discountType: (defaultProm as Record<string, unknown>).discountType as string || '',
-                discountValue: (defaultProm as Record<string, unknown>).discountValue as string || '',
-                minimumPurchase: (defaultProm as Record<string, unknown>).minimumPurchase as string || '',
-                termsConditions: (defaultProm as Record<string, unknown>).termsConditions as string || '',
-                link: (defaultProm as Record<string, unknown>).link as string || '',
-                expiryDate: (defaultProm as Record<string, unknown>).expiryDate as string || '',
-                startDate: defaultProm.startDate || '',
-                endDate: defaultProm.endDate || ''
-              });
-            }
-
-            if (priorityProm) {
-              // Extract gift codes from giftCode field if it contains codes
-              let giftCodesString = '';
-              if (priorityProm.giftCode && typeof priorityProm.giftCode === 'object') {
-                const giftCodeData = priorityProm.giftCode as Record<string, unknown>;
-                if (giftCodeData.codes && Array.isArray(giftCodeData.codes)) {
-                  giftCodesString = giftCodeData.codes.join(';');
-                }
-              }
-
-              setPriorityPromotion({
-                title: priorityProm.title || '',
-                description: priorityProm.description || '',
-                loginRequired: priorityProm.loginRequired || false,
-                reviewRequired: priorityProm.reviewRequired || false,
-                startDate: priorityProm.startDate || '',
-                endDate: priorityProm.endDate || '',
-                giftCodes: giftCodesString,
-                // Extract additional fields from giftCode JSON data
-                discountText: (priorityProm.giftCode as Record<string, unknown>)?.discountText as string || '',
-                ctaText: (priorityProm.giftCode as Record<string, unknown>)?.ctaText as string || 'Shop Now',
-                ctaLink: (priorityProm.giftCode as Record<string, unknown>)?.ctaLink as string || '',
-                backgroundColor: (priorityProm.giftCode as Record<string, unknown>)?.backgroundColor as string || '#FFF3E0',
-                textColor: (priorityProm.giftCode as Record<string, unknown>)?.textColor as string || '#E65100'
-              });
-            }
+            const priorityProm = merchant.promotions[0];
+            const giftCodesString = '';
+            setPriorityPromotion({
+              title: priorityProm.title || '',
+              description: priorityProm.description || '',
+              loginRequired: priorityProm.loginRequired || false,
+              reviewRequired: priorityProm.reviewRequired || false,
+              startDate: priorityProm.startDate || '',
+              endDate: priorityProm.endDate || '',
+              giftCodes: giftCodesString,
+              // Extract additional fields from giftCode JSON data
+              discountText: (priorityProm.giftCode as Record<string, unknown>)?.discountText as string || '',
+              ctaText: (priorityProm.giftCode as Record<string, unknown>)?.ctaText as string || 'Shop Now',
+              ctaLink: (priorityProm.giftCode as Record<string, unknown>)?.ctaLink as string || '',
+              backgroundColor: (priorityProm.giftCode as Record<string, unknown>)?.backgroundColor as string || '#FFF3E0',
+              textColor: (priorityProm.giftCode as Record<string, unknown>)?.textColor as string || '#E65100'
+            });
           }
 
           // If merchant is draft/pending, automatically enable edit mode

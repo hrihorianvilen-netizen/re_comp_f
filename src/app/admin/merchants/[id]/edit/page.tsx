@@ -272,6 +272,8 @@ export default function MerchantEditPage() {
           }
 
           // Set promotions if exists
+          console.log(merchant.defaultPromotion, "sdf");
+          
           if (merchant.defaultPromotion) {
             setDefaultPromotion(merchant.defaultPromotion);
           }
