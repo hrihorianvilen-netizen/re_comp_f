@@ -415,19 +415,18 @@ export default function MerchantDetailPage() {
             </h2>
             <div className="text-gray-700 leading-relaxed">
               <div className="relative overflow-hidden">
-                <p 
-                  className={`transition-all duration-500 ease-in-out ${
-                    isDescriptionExpanded 
-                      ? 'opacity-100 transform translate-y-0' 
+                <div
+                  className={`prose prose-sm max-w-none text-gray-600 transition-all duration-500 ease-in-out ${
+                    isDescriptionExpanded
+                      ? 'opacity-100 transform translate-y-0'
                       : 'opacity-100'
                   }`}
                   style={{
                     maxHeight: isDescriptionExpanded ? 'none' : '4.5em',
                     overflow: 'hidden',
                   }}
-                >
-                  {merchant.description}
-                </p>
+                  dangerouslySetInnerHTML={{ __html: merchant.description }}
+                />
                 {!isDescriptionExpanded && merchant.description && merchant.description.length > 300 && (
                   <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none"></div>
                 )}
@@ -581,27 +580,31 @@ export default function MerchantDetailPage() {
                           </div>
                           
                           <div className="ml-4 sm:ml-[52px] mb-4 overflow-hidden">
-                            <p className="text-gray-700 break-words overflow-wrap-anywhere leading-relaxed">
+                            <div className="prose prose-sm max-w-none text-gray-700 break-words overflow-wrap-anywhere leading-relaxed">
                               {/* Mobile: shorter limit (100 chars), Desktop: longer limit (200 chars) */}
                               {review.content && (
                                 <>
                                   {/* Mobile version */}
-                                  <span className="block sm:hidden">
-                                    {review.content.length > 100 && !expandedReviews.has(review.id)
-                                      ? `${review.content.substring(0, 100)}...`
-                                      : review.content
-                                    }
-                                  </span>
+                                  <div
+                                    className="block sm:hidden"
+                                    dangerouslySetInnerHTML={{
+                                      __html: review.content.length > 100 && !expandedReviews.has(review.id)
+                                        ? `${review.content.substring(0, 100)}...`
+                                        : review.content
+                                    }}
+                                  />
                                   {/* Desktop version */}
-                                  <span className="hidden sm:block">
-                                    {review.content.length > 200 && !expandedReviews.has(review.id)
-                                      ? `${review.content.substring(0, 200)}...`
-                                      : review.content
-                                    }
-                                  </span>
+                                  <div
+                                    className="hidden sm:block"
+                                    dangerouslySetInnerHTML={{
+                                      __html: review.content.length > 200 && !expandedReviews.has(review.id)
+                                        ? `${review.content.substring(0, 200)}...`
+                                        : review.content
+                                    }}
+                                  />
                                 </>
                               )}
-                            </p>
+                            </div>
                             {review.content && (
                               <>
                                 {/* Mobile show more/less button */}
@@ -844,9 +847,10 @@ export default function MerchantDetailPage() {
                         </svg>
                       </button>
                       {expandedFAQ === (item.id || index.toString()) && (
-                        <div className="mt-3 text-gray-600 text-sm">
-                          {item.answer}
-                        </div>
+                        <div
+                          className="mt-3 text-gray-600 text-sm prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: item.answer }}
+                        />
                       )}
                     </div>
                   ))}

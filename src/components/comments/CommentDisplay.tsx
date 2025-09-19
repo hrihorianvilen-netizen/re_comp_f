@@ -77,7 +77,10 @@ export default function CommentDisplay({ comments, showAll = false, maxDisplay =
                   </p>
                 </div>
                 {comment.content && (
-                  <p className="text-sm text-gray-700 line-clamp-2">{comment.content}</p>
+                  <div
+                    className="text-sm text-gray-700 line-clamp-2 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: comment.content }}
+                  />
                 )}
                 {comment.isReported && (
                   <span className="inline-block mt-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded">

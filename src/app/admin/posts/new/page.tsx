@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { contentApi, Category } from '@/lib/api/content';
 import { toast } from 'react-hot-toast';
 import FileUpload from '@/components/ui/FileUpload';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 
 export default function NewPostPage() {
@@ -261,21 +262,20 @@ export default function NewPostPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-                    Content <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    id="content"
-                    name="content"
+                  <RichTextEditor
+                    label="Content"
                     value={formData.content}
-                    onChange={handleInputChange}
-                    rows={15}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    onChange={(value) => setFormData(prev => ({ ...prev, content: value }))}
                     placeholder="Write your post content here..."
+                    required={true}
+                    maxLength={10000}
+                    minLength={50}
+                    maxLinks={50}
+                    maxImages={20}
+                    height="min-h-[400px] max-h-[600px]"
+                    autoSave={true}
+                    showPreview={true}
                   />
-                  <p className="mt-1 text-sm text-gray-500">
-                    Note: Rich text editor will be added in future updates
-                  </p>
                 </div>
               </div>
             </div>

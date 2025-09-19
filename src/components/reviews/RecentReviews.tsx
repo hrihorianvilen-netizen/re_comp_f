@@ -3,6 +3,7 @@ import { Review } from '@/types/api';
 import { formatDistanceToNow } from 'date-fns';
 import { RatingStars } from '@/components/ui';
 import { CommentDisplay } from '@/components/comments';
+import { getHtmlPreview } from '@/lib/htmlUtils';
 
 interface RecentReviewsProps {
   reviews: Review[];
@@ -72,9 +73,7 @@ export default function RecentReviews({ reviews }: RecentReviewsProps) {
                     WebkitBoxOrient: 'vertical',
                     lineHeight: '1.4'
                   }}>
-                    {review.content.length > 120 
-                      ? `${review.content.substring(0, 120)}...` 
-                      : review.content}
+                    {getHtmlPreview(review.content, 120)}
                   </span>
                 </p>
 

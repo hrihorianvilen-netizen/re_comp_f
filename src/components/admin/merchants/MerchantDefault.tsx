@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface DefaultPromotion {
   title: string;
@@ -128,15 +129,13 @@ export default function MerchantDefault({
           >
             Description
           </label>
-          <textarea
-            name="default_description"
-            id="default_description"
+          <RichTextEditor
             value={defaultPromotion.description}
-            onChange={(e) => handleDefaultChange('description', e.target.value)}
-            maxLength={256}
-            rows={3}
-            className={`mt-1 block w-full px-3 py-2 border ${errors.default_description ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent`}
+            onChange={(value) => handleDefaultChange('description', value)}
             placeholder="Maximum 256 characters"
+            maxLength={256}
+            height="min-h-[80px] max-h-[120px]"
+            showPreview={false}
           />
           <div className="mt-1 flex justify-between">
             {errors.default_description && <p className="text-sm text-red-600">{errors.default_description}</p>}
@@ -177,15 +176,13 @@ export default function MerchantDefault({
           >
             Description
           </label>
-          <textarea
-            name="promote_description"
-            id="promote_description"
+          <RichTextEditor
             value={promotePromotion.description}
-            onChange={(e) => handlePromoteChange('description', e.target.value)}
-            maxLength={256}
-            rows={3}
-            className={`mt-1 block w-full px-3 py-2 border ${errors.promote_description ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent`}
+            onChange={(value) => handlePromoteChange('description', value)}
             placeholder="Maximum 256 characters"
+            maxLength={256}
+            height="min-h-[80px] max-h-[120px]"
+            showPreview={false}
           />
           <div className="mt-1 flex justify-between">
             {errors.promote_description && <p className="text-sm text-red-600">{errors.promote_description}</p>}

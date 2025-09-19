@@ -5,6 +5,7 @@ import OptimizedImage from '@/components/ui/OptimizedImage';
 import { ReviewComment } from '@/types/api';
 import { useComments, useAddComment } from '@/hooks/useMerchants';
 import { getImageUrl } from '@/lib/utils';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface CommentSystemProps {
   reviewId: string;
@@ -111,9 +112,10 @@ export default function CommentSystem({ reviewId, merchantSlug, initialComments 
                   </span>
                 </div>
                 {comment.content && (
-                  <p className="text-sm text-gray-700 mt-1 leading-relaxed">
-                    {comment.content}
-                  </p>
+                  <div
+                    className="text-sm text-gray-700 mt-1 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: comment.content }}
+                  />
                 )}
               </div>
             </div>
@@ -179,13 +181,15 @@ export default function CommentSystem({ reviewId, merchantSlug, initialComments 
                 <label htmlFor="comment-content" className="block text-sm font-medium text-gray-700 mb-1">
                   Comment (Optional)
                 </label>
-                <textarea
-                  id="comment-content"
+                <RichTextEditor
                   value={newComment.content}
-                  onChange={(e) => setNewComment(prev => ({ ...prev, content: e.target.value }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent text-sm"
+                  onChange={(value) => setNewComment(prev => ({ ...prev, content: value }))}
                   placeholder="Share your thoughts..."
+                  minLength={0}
+                  maxLength={1000}
+                  height="min-h-[80px] max-h-[120px]"
+                  showPreview={false}
+                  required={false}
                 />
               </div>
               

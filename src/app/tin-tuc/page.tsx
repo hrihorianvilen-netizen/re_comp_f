@@ -75,7 +75,7 @@ export default function TinTucPage() {
           id: post.id,
           slug: post.slug || post.id,
           title: post.title || 'Untitled',
-          excerpt: post.content ? post.content.substring(0, 150) + '...' : '',
+          excerpt: post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : '',
           content: post.content || '',
           image: post.image || post.featuredImage || '/images/news/vinuin.png',
           category: post.category || 'Uncategorized',

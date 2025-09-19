@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { EMOTION_REACTIONS } from '@/lib/reactions';
 import { AuthModal } from '@/components/auth';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface CommentFormProps {
   reviewId: string;
@@ -124,18 +125,15 @@ export default function CommentForm({ reviewId, onSubmit }: CommentFormProps) {
           <label htmlFor={`comment-${reviewId}`} className="block text-sm font-medium text-gray-700 mb-1">
             Your Comment *
           </label>
-          <textarea
-            id={`comment-${reviewId}`}
-            rows={3}
+          <RichTextEditor
             value={formData.content}
-            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent resize-none text-sm"
+            onChange={(value) => setFormData({ ...formData, content: value })}
             placeholder="Write your comment..."
+            minLength={10}
+            maxLength={1000}
+            height="min-h-[80px] max-h-[150px]"
+            showPreview={false}
           />
-          <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>Minimum 10 characters</span>
-            <span>{formData.content.length} characters</span>
-          </div>
           {errors.content && (
             <p className="text-red-500 text-xs mt-1">{errors.content}</p>
           )}

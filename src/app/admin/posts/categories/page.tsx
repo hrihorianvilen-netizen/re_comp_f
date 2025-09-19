@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { contentApi, Category } from '@/lib/api/content';
 import { toast } from 'react-hot-toast';
+import { getHtmlPreview } from '@/lib/htmlUtils';
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Array<Category & { parentName?: string }>>([]);
@@ -307,7 +308,7 @@ export default function CategoriesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-500 truncate max-w-xs">
-                        {category.description || '-'}
+                        {category.description ? getHtmlPreview(category.description, 60) : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

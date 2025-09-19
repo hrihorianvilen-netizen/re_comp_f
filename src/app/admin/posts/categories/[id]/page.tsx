@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import AdminHeader from '@/components/admin/shared/AdminHeader';
 import SlugInput from '@/components/ui/SlugInput';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { contentApi, Category } from '@/lib/api/content';
 import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 
@@ -339,20 +340,34 @@ export default function CategoryDetailPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
                   {isEditing ? (
-                    <textarea
-                      id="description"
+                    <RichTextEditor
+                      label="Description"
                       value={formData.description}
-                      onChange={(e) => handleFieldChange('description', e.target.value)}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                      onChange={(value) => handleFieldChange('description', value)}
                       placeholder="Describe this category..."
+                      required={false}
+                      maxLength={2000}
+                      minLength={10}
+                      maxLinks={15}
+                      maxImages={5}
+                      height="min-h-[200px] max-h-[350px]"
+                      autoSave={true}
+                      showPreview={true}
                     />
                   ) : (
-                    <p className="text-sm text-gray-900">{formData.description || 'No description'}</p>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      {formData.description ? (
+                        <div className="prose prose-sm max-w-none bg-gray-50 p-3 rounded-lg border border-gray-200">
+                          <div dangerouslySetInnerHTML={{ __html: formData.description }} />
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No description</p>
+                      )}
+                    </div>
                   )}
                 </div>
 

@@ -1,0 +1,133 @@
+/* Rich Text Editor Styles */
+.editor-container {
+  @apply border border-gray-300 rounded-lg overflow-hidden bg-white;
+}
+
+.editor-toolbar {
+  @apply border-b border-gray-200 p-2 flex flex-wrap items-center gap-1 bg-gray-50;
+}
+
+.toolbar-button {
+  @apply p-1.5 rounded transition-colors duration-150;
+}
+
+.toolbar-button:hover:not(:disabled) {
+  @apply bg-gray-200;
+}
+
+.toolbar-button.active {
+  @apply bg-gray-300;
+}
+
+.toolbar-button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+.toolbar-divider {
+  @apply w-px h-6 bg-gray-300 mx-1;
+}
+
+.editor-content {
+  @apply relative overflow-y-auto;
+}
+
+.editor-footer {
+  @apply border-t border-gray-200 px-3 py-2 flex items-center justify-between bg-gray-50 text-xs;
+}
+
+.char-count {
+  @apply text-gray-500;
+}
+
+.char-count.warning {
+  @apply text-yellow-600;
+}
+
+.char-count.error {
+  @apply text-red-600 font-semibold;
+}
+
+/* TipTap Editor Styles */
+.ProseMirror {
+  @apply min-h-[150px] p-4 focus:outline-none;
+}
+
+.ProseMirror p {
+  @apply mb-2;
+}
+
+.ProseMirror h3 {
+  @apply text-lg font-semibold mb-2 mt-4;
+}
+
+.ProseMirror h4 {
+  @apply text-base font-semibold mb-2 mt-3;
+}
+
+.ProseMirror ul {
+  @apply list-disc pl-6 mb-2;
+}
+
+.ProseMirror ol {
+  @apply list-decimal pl-6 mb-2;
+}
+
+.ProseMirror li {
+  @apply mb-1;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic my-2;
+}
+
+.ProseMirror a {
+  @apply text-blue-600 underline hover:text-blue-800;
+}
+
+.ProseMirror img {
+  @apply max-w-full h-auto rounded my-2;
+}
+
+.ProseMirror table {
+  @apply w-full border-collapse my-2;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  @apply border border-gray-300 px-2 py-1;
+}
+
+.ProseMirror th {
+  @apply bg-gray-100 font-semibold text-left;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Table selection */
+.ProseMirror .selectedCell:after {
+  z-index: 2;
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
+}
+
+/* Disable certain interactions in preview mode */
+.preview-mode {
+  @apply pointer-events-none select-text;
+}
+
+.preview-mode a {
+  @apply pointer-events-auto;
+}

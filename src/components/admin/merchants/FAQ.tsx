@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface FAQItem {
   id: string;
@@ -120,19 +121,19 @@ export default function FAQ({ initialFaqs, onFAQChange }: FAQProps = {}) {
 
               {/* Answer */}
               <div>
-                <label 
-                  htmlFor={`answer-${faq.id}`}
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Answer #{faq.id}
-                </label>
-                <textarea
-                  id={`answer-${faq.id}`}
-                  rows={4}
+                <RichTextEditor
+                  label={`Answer #${faq.id}`}
                   value={faq.answer}
-                  onChange={(e) => handleAnswerChange(faq.id, e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent"
+                  onChange={(value) => handleAnswerChange(faq.id, value)}
                   placeholder={`Enter answer ${faq.id}`}
+                  required={false}
+                  maxLength={1500}
+                  minLength={10}
+                  maxLinks={10}
+                  maxImages={0}
+                  height="min-h-[150px] max-h-[300px]"
+                  autoSave={true}
+                  showPreview={true}
                 />
               </div>
             </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { InteractiveRatingStars, SimpleCaptcha } from '@/components/ui';
 import { AuthModal } from '@/components/auth';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface ReviewFormModalProps {
   isOpen: boolean;
@@ -153,18 +154,15 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
             <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
               Your Review *
             </label>
-            <textarea
-              id="content"
-              rows={5}
+            <RichTextEditor
               value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent resize-none"
+              onChange={(value) => setFormData({ ...formData, content: value })}
               placeholder="Tell us about your experience with this merchant..."
+              minLength={20}
+              maxLength={2000}
+              height="min-h-[120px] max-h-[200px]"
+              showPreview={false}
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>Minimum 20 characters</span>
-              <span>{formData.content.length} characters</span>
-            </div>
             {errors.content && (
               <p className="text-red-500 text-sm mt-1">{errors.content}</p>
             )}

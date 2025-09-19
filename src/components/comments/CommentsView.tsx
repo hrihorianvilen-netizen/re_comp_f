@@ -107,11 +107,12 @@ export default function CommentsView({ reviewId, initialComments = [] }: Comment
                     
                     return (
                       <>
-                        <div className={`text-sm text-gray-700 leading-relaxed whitespace-normal break-words ${
-                          shouldTruncate && !isExpanded ? 'line-clamp-3' : ''
-                        }`}>
-                          {comment.content}
-                        </div>
+                        <div
+                          className={`text-sm text-gray-700 leading-relaxed whitespace-normal break-words prose prose-sm max-w-none ${
+                            shouldTruncate && !isExpanded ? 'line-clamp-3' : ''
+                          }`}
+                          dangerouslySetInnerHTML={{ __html: comment.content }}
+                        />
                         {shouldTruncate && (
                           <button
                             onClick={() => toggleCommentExpansion(comment.id)}

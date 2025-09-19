@@ -7,6 +7,7 @@ import { Merchant } from '@/types/api';
 import { RatingStars } from '@/components/ui';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
+import { getHtmlPreview } from '@/lib/htmlUtils';
 
 const statusColors = {
   approved: 'bg-green-100 text-green-800',
@@ -316,9 +317,7 @@ export default function AdminMerchantsPage() {
                           {merchant.name}
                         </Link>
                         <p className="text-sm text-gray-500">
-                          {merchant.description?.length > 50
-                            ? `${merchant.description.substring(0, 50)}...`
-                            : merchant.description}
+                          {getHtmlPreview(merchant.description || '', 50)}
                         </p>
                       </div>
                     </div>

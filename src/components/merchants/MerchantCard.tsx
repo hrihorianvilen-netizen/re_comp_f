@@ -3,6 +3,7 @@ import { Merchant } from '@/types/api';
 import { RatingStars } from '@/components/ui';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { getImageUrl } from '@/lib/utils';
+import { getHtmlPreview } from '@/lib/htmlUtils';
 
 interface MerchantCardProps {
   merchant: Merchant;
@@ -65,7 +66,7 @@ export default function MerchantCard({ merchant }: MerchantCardProps) {
         <h3 className="font-semibold text-lg mb-2 line-clamp-1">{merchant.name}</h3>
         
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-          {merchant.description}
+          {getHtmlPreview(merchant.description || '', 100)}
         </p>
 
         <div className="flex items-center justify-between">

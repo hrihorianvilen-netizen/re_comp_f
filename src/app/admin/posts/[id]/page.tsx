@@ -6,6 +6,7 @@ import OptimizedImage from '@/components/ui/OptimizedImage';
 import AdminHeader from '@/components/admin/shared/AdminHeader';
 import FileUpload from '@/components/ui/FileUpload';
 import SlugInput from '@/components/ui/SlugInput';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { contentApi } from '@/lib/api/content';
 import toast from 'react-hot-toast';
 import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
@@ -404,20 +405,29 @@ export default function PostDetailPage() {
             {/* Content */}
             <div className="bg-white shadow rounded-lg p-6">
               <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                  Post Content
-                </label>
                 {isEditing ? (
-                  <textarea
-                    id="content"
+                  <RichTextEditor
+                    label="Post Content"
                     value={formData.content}
-                    onChange={(e) => handleFieldChange('content', e.target.value)}
-                    rows={15}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                    onChange={(value) => handleFieldChange('content', value)}
+                    placeholder="Write your post content here..."
+                    required={true}
+                    maxLength={10000}
+                    minLength={50}
+                    maxLinks={50}
+                    maxImages={20}
+                    height="min-h-[400px] max-h-[600px]"
+                    autoSave={true}
+                    showPreview={true}
                   />
                 ) : (
-                  <div className="prose max-w-none">
-                    <p className="text-gray-700 whitespace-pre-wrap">{formData.content}</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Post Content
+                    </label>
+                    <div className="prose max-w-none bg-gray-50 p-4 rounded-lg border border-gray-200">
+                      <div dangerouslySetInnerHTML={{ __html: formData.content }} />
+                    </div>
                   </div>
                 )}
               </div>

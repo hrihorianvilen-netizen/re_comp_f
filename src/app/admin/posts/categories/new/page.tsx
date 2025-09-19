@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import SlugInput from '@/components/ui/SlugInput';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import { contentApi } from '@/lib/api/content';
 import toast from 'react-hot-toast';
 import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
@@ -282,17 +283,19 @@ export default function NewCategoryPage() {
             {/* Description */}
             <div className="bg-white shadow rounded-lg p-6">
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
+                <RichTextEditor
+                  label="Description"
                   value={formData.description}
-                  onChange={handleInputChange}
-                  rows={8}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#A96B11] focus:border-[#A96B11]"
+                  onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
                   placeholder="Describe this category..."
+                  required={false}
+                  maxLength={2000}
+                  minLength={10}
+                  maxLinks={15}
+                  maxImages={5}
+                  height="min-h-[250px] max-h-[400px]"
+                  autoSave={true}
+                  showPreview={true}
                 />
               </div>
             </div>

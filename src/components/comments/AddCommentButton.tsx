@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAddComment } from '@/hooks/useMerchants';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface AddCommentButtonProps {
   reviewId: string;
@@ -107,13 +108,15 @@ export default function AddCommentButton({ reviewId, merchantSlug }: AddCommentB
                   <label htmlFor="modal-comment-content" className="block text-sm font-medium text-gray-700 mb-2">
                     Comment (Optional)
                   </label>
-                  <textarea
-                    id="modal-comment-content"
+                  <RichTextEditor
                     value={newComment.content}
-                    onChange={(e) => setNewComment(prev => ({ ...prev, content: e.target.value }))}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent resize-none"
+                    onChange={(value) => setNewComment(prev => ({ ...prev, content: value }))}
                     placeholder="Share your thoughts about this review..."
+                    minLength={0}
+                    maxLength={1000}
+                    height="min-h-[100px] max-h-[150px]"
+                    showPreview={false}
+                    required={false}
                   />
                 </div>
                 

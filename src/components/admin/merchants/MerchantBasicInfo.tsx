@@ -1,6 +1,7 @@
 'use client';
 
 import LogoUpload from './LogoUpload';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 
 interface MerchantFormData {
   name: string;
@@ -173,19 +174,27 @@ export default function MerchantBasicInfo({
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-            Description <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            name="description"
-            id="description"
-            rows={4}
+          <RichTextEditor
+            label="Description"
             value={formData.description}
-            onChange={onInputChange}
-            className={`mt-1 block w-full px-3 py-2 border ${errors.description ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#A96B11] focus:border-transparent`}
+            onChange={(value) => {
+              // Create a synthetic event for backward compatibility
+              const syntheticEvent = {
+                target: { name: 'description', value }
+              } as React.ChangeEvent<HTMLTextAreaElement>;
+              onInputChange(syntheticEvent);
+            }}
             placeholder="Describe the merchant's business, products, and services..."
+            required={true}
+            maxLength={3000}
+            minLength={10}
+            maxLinks={20}
+            maxImages={10}
+            error={errors.description}
+            height="min-h-[200px] max-h-[400px]"
+            autoSave={true}
+            showPreview={true}
           />
-          {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
         </div>
       </div>
     </div>

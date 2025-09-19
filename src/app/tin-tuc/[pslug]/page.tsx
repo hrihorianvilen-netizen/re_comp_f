@@ -6,6 +6,7 @@ import Link from 'next/link';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import api from '@/lib/api';
 import { contentApi, PostReply } from '@/lib/api/content';
+import RichTextEditor from '@/components/ui/RichTextEditor';
 import Image from 'next/image';
 
 interface NewsComment {
@@ -434,13 +435,10 @@ export default function PostDetailPage() {
                 </div>
 
                 {/* Content */}
-                <div className="prose max-w-none">
-                  {news.content.split('\n\n').map((paragraph: string, index: number) => (
-                    <p key={index} className="text-gray-700 mb-4 leading-relaxed">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
+                <div
+                  className="prose max-w-none text-gray-700 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: news.content }}
+                />
 
                 {/* Share Buttons */}
                 <div className="mt-8 flex justify-center pt-6 border-t border-gray-200">
@@ -515,12 +513,15 @@ export default function PostDetailPage() {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#198639]"
                   />
                   <div className="relative">
-                    <textarea
+                    <RichTextEditor
                       value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
+                      onChange={(value) => setNewComment(value)}
                       placeholder="Write your comment... (You can use emojis! 😊)"
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#198639] resize-none"
-                      rows={3}
+                      minLength={1}
+                      maxLength={1000}
+                      height="min-h-[80px] max-h-[150px]"
+                      showPreview={false}
+                      required={false}
                     />
                     <div className="absolute right-2 top-2">
                       <button
@@ -640,12 +641,15 @@ export default function PostDetailPage() {
                                 </button>
                               ))}
                             </div>
-                            <textarea
+                            <RichTextEditor
                               value={replyContent}
-                              onChange={(e) => setReplyContent(e.target.value)}
+                              onChange={(value) => setReplyContent(value)}
                               placeholder="Write your reply..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] resize-none text-sm"
-                              rows={2}
+                              minLength={1}
+                              maxLength={500}
+                              height="min-h-[60px] max-h-[100px]"
+                              showPreview={false}
+                              required={false}
                             />
                             <div className="flex gap-2">
                               <button

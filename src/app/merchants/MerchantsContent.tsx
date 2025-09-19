@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import { RatingStars } from '@/components/ui';
+import { getHtmlPreview } from '@/lib/htmlUtils';
 
 interface Merchant {
   id: string;
@@ -303,7 +304,7 @@ export default function MerchantsContent() {
                     </div>
                     
                     <p className="text-gray-700 text-sm mt-4 line-clamp-3">
-                      {merchant.description}
+                      {getHtmlPreview(merchant.description || '', 150)}
                     </p>
                     
                     <div className="mt-4 flex justify-between items-center">
