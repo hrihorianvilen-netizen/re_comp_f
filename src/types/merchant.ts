@@ -49,10 +49,8 @@ export interface MerchantUtm {
 }
 
 export interface MerchantScreenshots {
-  desktop: File[];
-  mobile: File[];
-  desktopPreview?: string;
-  mobilePreview?: string;
+  images: File[];
+  preview?: string;
 }
 
 export interface MerchantFaq {
@@ -114,8 +112,7 @@ export interface AdvertisementSettings {
 }
 
 export interface ScreenshotData {
-  desktopImages: File[];
-  mobileImages: File[];
+  images: File[];
 }
 
 export interface SeoData {

@@ -101,10 +101,8 @@ export default function AddMerchantPage() {
 
     // Screenshots
     screenshots: {
-      desktop: [],
-      mobile: [],
-      desktopPreview: '',
-      mobilePreview: ''
+      images: [],
+      preview: ''
     },
 
     // FAQs
@@ -224,14 +222,8 @@ export default function AddMerchantPage() {
 
   const handleScreenshotsChange = useCallback((screenshotsData: ScreenshotData) => {
     console.log('Parent received screenshots data:', {
-      desktopImages: screenshotsData.desktopImages?.length || 0,
-      mobileImages: screenshotsData.mobileImages?.length || 0,
-      desktopFiles: screenshotsData.desktopImages?.map((f: File) => ({
-        name: f?.name,
-        size: f?.size,
-        isFile: f instanceof File
-      })),
-      mobileFiles: screenshotsData.mobileImages?.map((f: File) => ({
+      images: screenshotsData.images?.length || 0,
+      imageFiles: screenshotsData.images?.map((f: File) => ({
         name: f?.name,
         size: f?.size,
         isFile: f instanceof File
@@ -243,16 +235,13 @@ export default function AddMerchantPage() {
       const newState = {
         ...prev,
         screenshots: {
-          desktop: screenshotsData.desktopImages || [], // Store all desktop images
-          mobile: screenshotsData.mobileImages || [],   // Store all mobile images
-          desktopPreview: prev.screenshots.desktopPreview,
-          mobilePreview: prev.screenshots.mobilePreview
+          images: screenshotsData.images || [], // Store all images
+          preview: prev.screenshots.preview
         }
       };
 
       console.log('Parent updating state with:', {
-        desktop: newState.screenshots.desktop.length,
-        mobile: newState.screenshots.mobile.length
+        images: newState.screenshots.images.length
       });
 
       return newState;
@@ -370,18 +359,16 @@ export default function AddMerchantPage() {
 
       // Add screenshots if exist - handle arrays of files
       console.log('Screenshots to upload:', {
-        desktop: formData.screenshots.desktop.length,
-        mobile: formData.screenshots.mobile.length,
-        desktopFiles: formData.screenshots.desktop,
-        mobileFiles: formData.screenshots.mobile
+        images: formData.screenshots.images.length,
+        imageFiles: formData.screenshots.images
       });
 
       // Additional debug logging
       console.log('FormData screenshots state:', formData.screenshots);
 
       // Debug: Check if files are File objects
-      if (formData.screenshots.desktop.length > 0) {
-        console.log('Desktop files check:', formData.screenshots.desktop.map((f, i) => ({
+      if (formData.screenshots.images.length > 0) {
+        console.log('Image files check:', formData.screenshots.images.map((f, i) => ({
           index: i,
           isFile: f instanceof File,
           name: f?.name,
@@ -390,33 +377,13 @@ export default function AddMerchantPage() {
         })));
       }
 
-      if (formData.screenshots.mobile.length > 0) {
-        console.log('Mobile files check:', formData.screenshots.mobile.map((f, i) => ({
-          index: i,
-          isFile: f instanceof File,
-          name: f?.name,
-          size: f?.size,
-          type: f?.type
-        })));
-      }
-
-      if (formData.screenshots.desktop.length > 0) {
-        formData.screenshots.desktop.forEach((file, index) => {
+      if (formData.screenshots.images.length > 0) {
+        formData.screenshots.images.forEach((file, index) => {
           if (file instanceof File) {
-            console.log(`Adding desktop screenshot ${index + 1}:`, file.name, file.size);
-            formDataToSend.append('screenshotDesktop', file);
+            console.log(`Adding screenshot ${index + 1}:`, file.name, file.size);
+            formDataToSend.append('screenshot', file);
           } else {
-            console.error(`Desktop file at index ${index} is not a File object:`, file);
-          }
-        });
-      }
-      if (formData.screenshots.mobile.length > 0) {
-        formData.screenshots.mobile.forEach((file, index) => {
-          if (file instanceof File) {
-            console.log(`Adding mobile screenshot ${index + 1}:`, file.name, file.size);
-            formDataToSend.append('screenshotMobile', file);
-          } else {
-            console.error(`Mobile file at index ${index} is not a File object:`, file);
+            console.error(`Screenshot file at index ${index} is not a File object:`, file);
           }
         });
       }

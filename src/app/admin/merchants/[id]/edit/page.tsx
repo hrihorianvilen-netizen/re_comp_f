@@ -170,9 +170,8 @@ export default function MerchantEditPage() {
 
   // Screenshots state
   const [screenshots, setScreenshots] = useState<string[]>([]);
-  const [screenshotData, setScreenshotData] = useState<{ desktopImages: File[], mobileImages: File[] }>({
-    desktopImages: [],
-    mobileImages: []
+  const [screenshotData, setScreenshotData] = useState<{ images: File[] }>({
+    images: []
   });
 
   // FAQ state
@@ -431,11 +430,8 @@ export default function MerchantEditPage() {
       }
 
       // Add screenshots
-      screenshotData.desktopImages.forEach((file, index) => {
-        formDataToSend.append(`screenshots_desktop_${index}`, file);
-      });
-      screenshotData.mobileImages.forEach((file, index) => {
-        formDataToSend.append(`screenshots_mobile_${index}`, file);
+      screenshotData.images.forEach((file, index) => {
+        formDataToSend.append(`screenshots_${index}`, file);
       });
       
       // Add logo if present
