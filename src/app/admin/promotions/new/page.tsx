@@ -1,0 +1,331 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
+import { toast } from 'react-hot-toast';
+import { MerchantPromotion } from '@/types/merchant';
+import PromotionForm from '@/components/admin/promotions/PromotionForm';
+import { v4 as uuidv4 } from 'uuid';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
+
+interface Merchant {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export default function AddPromotionPage() {
+  const router = useRouter();
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [merchantId, setMerchantId] = useState('');
+  const [promotions, setPromotions] = useState<MerchantPromotion[]>([
+    {
+      id: uuidv4(),
+      title: '',
+      description: '',
+      type: 'common',
+      startDate: '',
+      endDate: '',
+      giftcodes: '',
+      loginRequired: false,
+      reviewRequired: false
+    }
+  ]);
+  const [expandedPromotion, setExpandedPromotion] = useState<number>(0);
+
+  useEffect(() => {
+    fetchMerchants();
+  }, []);
+
+  const fetchMerchants = async () => {
+    try {
+      const response = await api.get<{ merchants: Merchant[] }>('/api/admin/merchants?limit=100');
+      if (response.data?.merchants) {
+        setMerchants(response.data.merchants);
+      }
+    } catch (error) {
+      console.error('Error fetching merchants:', error);
+      toast.error('Failed to load merchants');
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!merchantId) {
+      newErrors.merchantId = 'Please select a merchant';
+    }
+
+    promotions.forEach((promotion, index) => {
+      if (!promotion.title.trim()) {
+        newErrors[`promotions.${index}.title`] = 'Title is required';
+      }
+      if (!promotion.description.trim()) {
+        newErrors[`promotions.${index}.description`] = 'Description is required';
+      }
+      if (!promotion.type) {
+        newErrors[`promotions.${index}.type`] = 'Type is required';
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+
+    if (!validateForm() || loading) return;
+
+    setLoading(true);
+    try {
+      // Create all promotions
+      const createPromises = promotions.map(promotion => {
+        const dataToSend = {
+          merchantId,
+          title: promotion.title,
+          description: promotion.description,
+          type: promotion.type.toUpperCase(), // Convert to uppercase for backend
+          startDate: promotion.startDate,
+          endDate: promotion.endDate,
+          giftcodes: promotion.giftcodes,
+          loginRequired: promotion.loginRequired,
+          reviewRequired: promotion.reviewRequired,
+          isActive: true
+        };
+        return api.post('/api/admin/promotions', dataToSend);
+      });
+
+      await Promise.all(createPromises);
+
+      toast.success(`${promotions.length} promotion(s) created successfully!`);
+      router.push('/admin/promotions');
+
+    } catch (error) {
+      console.error('Error creating promotion:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create promotion';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBack = () => {
+    router.push('/admin/promotions');
+  };
+
+  const handlePromotionChange = (index: number, field: keyof MerchantPromotion, value: string | boolean) => {
+    const updatedPromotions = [...promotions];
+    updatedPromotions[index] = {
+      ...updatedPromotions[index],
+      [field]: value
+    };
+    setPromotions(updatedPromotions);
+
+    // Clear error when user starts typing
+    const errorKey = `promotions.${index}.${field}`;
+    if (errors[errorKey]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleAddPromotion = () => {
+    const newPromotion: MerchantPromotion = {
+      id: uuidv4(),
+      title: '',
+      description: '',
+      type: 'common',
+      startDate: '',
+      endDate: '',
+      giftcodes: '',
+      loginRequired: false,
+      reviewRequired: false
+    };
+    setPromotions([...promotions, newPromotion]);
+    setExpandedPromotion(promotions.length);
+  };
+
+  const handleRemovePromotion = (index: number) => {
+    if (promotions.length === 1) {
+      toast.error('At least one promotion is required');
+      return;
+    }
+    const updatedPromotions = promotions.filter((_, i) => i !== index);
+    setPromotions(updatedPromotions);
+    if (expandedPromotion === index) {
+      setExpandedPromotion(0);
+    } else if (expandedPromotion > index) {
+      setExpandedPromotion(expandedPromotion - 1);
+    }
+  };
+
+  const togglePromotion = (index: number) => {
+    setExpandedPromotion(expandedPromotion === index ? -1 : index);
+  };
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header with Save button */}
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Add Promotions</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Create one or more promotions for a merchant
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="px-6 py-2.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+          >
+            Back to Promotions
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className={`px-6 py-2.5 rounded-md text-white font-medium transition-colors ${
+              loading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-[#A96B11] hover:bg-[#8B560E] active:bg-[#6B4309]'
+            }`}
+          >
+            {loading ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+
+      {/* Form */}
+      <div className="space-y-6">
+        <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Promotion Details</h2>
+
+          {/* Merchant Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Merchant <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={merchantId}
+              onChange={(e) => {
+                setMerchantId(e.target.value);
+                if (errors.merchantId) {
+                  setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.merchantId;
+                    return newErrors;
+                  });
+                }
+              }}
+              className={`w-full px-3 py-2 border ${
+                errors.merchantId ? 'border-red-300' : 'border-gray-300'
+              } rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11]`}
+            >
+              <option value="">-- Select a merchant --</option>
+              {merchants.map((merchant) => (
+                <option key={merchant.id} value={merchant.id}>
+                  {merchant.name}
+                </option>
+              ))}
+            </select>
+            {errors.merchantId && (
+              <p className="mt-1 text-sm text-red-600">{errors.merchantId}</p>
+            )}
+          </div>
+
+          {/* Promotions List */}
+          <div className="space-y-4">
+            {promotions.map((promotion, index) => (
+              <div key={promotion.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                {/* Promotion Header */}
+                <div
+                  className="bg-gray-50 px-4 py-3 flex items-center justify-between cursor-pointer hover:bg-gray-100"
+                  onClick={() => togglePromotion(index)}
+                >
+                  <div className="flex items-center space-x-3">
+                    <svg
+                      className={`h-5 w-5 text-gray-500 transform transition-transform ${
+                        expandedPromotion === index ? 'rotate-90' : ''
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span className="font-medium text-gray-900">
+                      {promotion.title || `Promotion ${index + 1}`}
+                    </span>
+                    {promotion.type && (
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        promotion.type === 'default' ? 'bg-blue-100 text-blue-800' :
+                        promotion.type === 'common' ? 'bg-green-100 text-green-800' :
+                        'bg-purple-100 text-purple-800'
+                      }`}>
+                        {promotion.type === 'default' ? 'Default' :
+                         promotion.type === 'common' ? 'Common' : 'Private'}
+                      </span>
+                    )}
+                  </div>
+                  {promotions.length > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePromotion(index);
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+
+                {/* Promotion Content */}
+                {expandedPromotion === index && (
+                  <div className="p-4 bg-white">
+                    <PromotionForm
+                      promotion={promotion}
+                      index={index}
+                      onChange={handlePromotionChange}
+                      errors={errors}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Add Promotion Button */}
+          <div className="flex justify-center pt-4">
+            <button
+              type="button"
+              onClick={handleAddPromotion}
+              className="inline-flex items-center px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-[#A96B11] hover:text-[#A96B11] transition-colors"
+            >
+              <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Another Promotion
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Loading Overlay */}
+      <LoadingOverlay
+        show={loading}
+        message={`Creating ${promotions.length} promotion(s)...`}
+      />
+    </div>
+  );
+}

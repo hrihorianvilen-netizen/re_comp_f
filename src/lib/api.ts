@@ -1002,6 +1002,38 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Generic HTTP methods for dynamic API calls
+  async get<T = unknown>(endpoint: string) {
+    return this.request<T>(endpoint);
+  }
+
+  async post<T = unknown>(endpoint: string, body?: unknown) {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async patch<T = unknown>(endpoint: string, body?: unknown) {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async put<T = unknown>(endpoint: string, body?: unknown) {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  async delete<T = unknown>(endpoint: string) {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient(API_BASE_URL);

@@ -6,13 +6,14 @@ import api from '@/lib/api';
 import { getAssetUrl } from '@/lib/utils';
 import MerchantFormHeader from '@/components/admin/merchants/MerchantFormHeader';
 import MerchantBasicInfo from '@/components/admin/merchants/MerchantBasicInfo';
-import MerchantDefault from '@/components/admin/merchants/MerchantDefault';
+import Promotions from '@/components/admin/merchants/Promotions';
 import AdminOptions from '@/components/admin/merchants/AdminOptions';
 import SeoConfiguration from '@/components/admin/merchants/SeoConfiguration';
 import UtmTracking from '@/components/admin/merchants/UtmTracking';
 import Screenshots from '@/components/admin/merchants/Screenshots';
 import FAQ from '@/components/admin/merchants/FAQ';
 import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
+import type { MerchantPromotion } from '@/types/merchant';
 
 interface MerchantFormData {
   name: string;
@@ -29,23 +30,15 @@ interface MerchantFormData {
 }
 
 interface PromotionData {
-  title?: string;
-  description?: string;
-  promoCode?: string;
-  code?: string;
-  discount?: string;
-  startDate?: string;
-  endDate?: string;
-  validUntil?: string;
-  conditions?: string;
-  link?: string;
-  loginRequired?: boolean;
-  reviewRequired?: boolean;
-  isActive?: boolean;
-  displayOrder?: number;
-  type?: string;
-  giftcodes?: string;
-  giftCode?: Record<string, unknown>;
+  id: string;
+  title: string;
+  description: string;
+  type: 'default' | 'common' | 'private';
+  startDate: string;
+  endDate: string;
+  giftcodes: string;
+  loginRequired: boolean;
+  reviewRequired: boolean;
 }
 
 interface MerchantResponse {
@@ -88,8 +81,7 @@ interface MerchantResponse {
   utmCampaign?: string;
   utmTerm?: string;
   utmContent?: string;
-  defaultPromotion?: PromotionData;
-  promotePromotion?: PromotionData;
+  promotions?: PromotionData[];
 }
 
 export default function MerchantEditPage() {
@@ -154,9 +146,8 @@ export default function MerchantEditPage() {
     adsEndDate: ''
   });
 
-  // Default Promotions state
-  const [defaultPromotion, setDefaultPromotion] = useState<PromotionData>({});
-  const [promotePromotion, setPromotePromotion] = useState<PromotionData>({});
+  // Promotions state
+  const [promotions, setPromotions] = useState<PromotionData[]>([]);
 
   // UTM state
   const [utmData, setUtmData] = useState({
@@ -272,13 +263,19 @@ export default function MerchantEditPage() {
           }
 
           // Set promotions if exists
-          console.log(merchant.defaultPromotion, "sdf");
-          
-          if (merchant.defaultPromotion) {
-            setDefaultPromotion(merchant.defaultPromotion);
-          }
-          if (merchant.promotePromotion) {
-            setPromotePromotion(merchant.promotePromotion);
+          if (merchant.promotions && Array.isArray(merchant.promotions)) {
+            const formattedPromotions = merchant.promotions.map((promo: MerchantPromotion & { code?: string; giftCode?: { giftcodes?: string } }) => ({
+              id: promo.id || `promo-${Date.now()}-${Math.random()}`,
+              title: promo.title || '',
+              description: promo.description || '',
+              type: ((promo.type || 'common').toLowerCase() as 'default' | 'common' | 'private'), // Convert from database uppercase to frontend lowercase
+              startDate: promo.startDate ? new Date(promo.startDate).toISOString().split('T')[0] : '',
+              endDate: promo.endDate ? new Date(promo.endDate).toISOString().split('T')[0] : '',
+              giftcodes: promo.code || promo.giftCode?.giftcodes || '',
+              loginRequired: Boolean(promo.loginRequired),
+              reviewRequired: Boolean(promo.reviewRequired)
+            }));
+            setPromotions(formattedPromotions);
           }
         } else {
           console.error('Merchant not found:', result.error);
@@ -421,14 +418,9 @@ export default function MerchantEditPage() {
         formDataToSend.append('faqs', JSON.stringify(faqs));
       }
 
-      // Add default promotion
-      if (Object.keys(defaultPromotion).length > 0) {
-        formDataToSend.append('defaultPromotion', JSON.stringify(defaultPromotion));
-      }
-
-      // Add promote promotion
-      if (Object.keys(promotePromotion).length > 0) {
-        formDataToSend.append('promotePromotion', JSON.stringify(promotePromotion));
+      // Add promotions
+      if (promotions && promotions.length > 0) {
+        formDataToSend.append('promotions', JSON.stringify(promotions));
       }
 
       // Add screenshots
@@ -541,31 +533,9 @@ export default function MerchantEditPage() {
               />
             </div>
             <div className="col-span-3">
-              <MerchantDefault
-                initialDefaultPromotion={
-                  defaultPromotion.title || defaultPromotion.description
-                    ? {
-                        title: defaultPromotion.title || '',
-                        description: defaultPromotion.description || ''
-                      }
-                    : undefined
-                }
-                initialPromotePromotion={
-                  promotePromotion.title || promotePromotion.description
-                    ? {
-                        title: promotePromotion.title || '',
-                        description: promotePromotion.description || '',
-                        type: promotePromotion.type || '',
-                        startDate: promotePromotion.startDate || '',
-                        endDate: promotePromotion.endDate || '',
-                        giftcodes: promotePromotion.giftcodes || '',
-                        loginRequired: Boolean(promotePromotion.loginRequired),
-                        reviewRequired: Boolean(promotePromotion.reviewRequired)
-                      }
-                    : undefined
-                }
-                onDefaultChange={(data) => setDefaultPromotion({...defaultPromotion, ...data})}
-                onPromoteChange={(data) => setPromotePromotion({...promotePromotion, ...data})}
+              <Promotions
+                initialPromotions={promotions}
+                onPromotionsChange={(data) => setPromotions(data)}
               />
             </div>
             

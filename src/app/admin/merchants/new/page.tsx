@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import MerchantFormHeader from '@/components/admin/merchants/MerchantFormHeader';
 import MerchantBasicInfo from '@/components/admin/merchants/MerchantBasicInfo';
 import AdminOptions from '@/components/admin/merchants/AdminOptions';
-import MerchantDefault from '@/components/admin/merchants/MerchantDefault';
+import Promotions from '@/components/admin/merchants/Promotions';
 import SeoConfiguration from '@/components/admin/merchants/SeoConfiguration';
 import UtmTracking from '@/components/admin/merchants/UtmTracking';
 import Screenshots from '@/components/admin/merchants/Screenshots';
@@ -16,7 +16,6 @@ import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 import type {
   MerchantFormData,
   MerchantPromotion,
-  MerchantPromotePromotion,
   MerchantUtm,
   ScreenshotData,
   MerchantFaq
@@ -51,30 +50,8 @@ export default function AddMerchantPage() {
     hideReviews: false,
     hideWriteReview: false,
 
-    // Default promotion
-    defaultPromotion: {
-      code: '',
-      description: '',
-      discountType: 'percentage',
-      discountValue: '',
-      minimumPurchase: '',
-      expiryDate: '',
-      termsConditions: '',
-      link: ''
-    },
-
-    // Promote promotion
-    promotePromotion: {
-      isActive: false,
-      title: '',
-      description: '',
-      discountText: '',
-      validUntil: '',
-      ctaText: 'Shop Now',
-      ctaLink: '',
-      backgroundColor: '#FFF3E0',
-      textColor: '#E65100'
-    },
+    // Promotions
+    promotions: [],
 
     // SEO Configuration
     seo: {
@@ -178,19 +155,12 @@ export default function AddMerchantPage() {
     }
   };
 
-  const handleDefaultPromotionChange = (promotion: MerchantPromotion) => {
+  const handlePromotionsChange = useCallback((promotions: MerchantPromotion[]) => {
     setFormData(prev => ({
       ...prev,
-      defaultPromotion: promotion
+      promotions
     }));
-  };
-
-  const handlePromotePromotionChange = (promotion: MerchantPromotePromotion) => {
-    setFormData(prev => ({
-      ...prev,
-      promotePromotion: promotion
-    }));
-  };
+  }, []);
 
   const handleSeoChange = (seoData: {
     title: string;
@@ -332,11 +302,10 @@ export default function AddMerchantPage() {
       formDataToSend.append('hideReviews', formData.hideReviews.toString());
       formDataToSend.append('hideWriteReview', formData.hideWriteReview.toString());
 
-      // Add default promotion (as JSON string)
-      formDataToSend.append('defaultPromotion', JSON.stringify(formData.defaultPromotion));
-
-      // Add promote promotion (as JSON string)
-      formDataToSend.append('promotePromotion', JSON.stringify(formData.promotePromotion));
+      // Add promotions array (as JSON string)
+      if (formData.promotions && formData.promotions.length > 0) {
+        formDataToSend.append('promotions', JSON.stringify(formData.promotions));
+      }
 
       // Add SEO configuration (as JSON string)
       formDataToSend.append('seo', JSON.stringify(formData.seo));
@@ -470,11 +439,11 @@ export default function AddMerchantPage() {
               />
             </div>
 
-            {/* Default & Promote Promotions - Full Width */}
+            {/* Promotions - Full Width */}
             <div className="col-span-3">
-              <MerchantDefault
-                onDefaultChange={handleDefaultPromotionChange}
-                onPromoteChange={handlePromotePromotionChange}
+              <Promotions
+                initialPromotions={formData.promotions}
+                onPromotionsChange={handlePromotionsChange}
               />
             </div>
 

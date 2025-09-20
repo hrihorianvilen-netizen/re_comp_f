@@ -8,12 +8,13 @@ import toast from 'react-hot-toast';
 import { validateSlugFormat, autoGenerateSlug } from '@/lib/slug';
 import MerchantDetailHeader from '@/components/admin/merchants/MerchantDetailHeader';
 import MerchantBasicInfo from '@/components/admin/merchants/MerchantBasicInfo';
-import MerchantDefault from '@/components/admin/merchants/MerchantDefault';
+import Promotions from '@/components/admin/merchants/Promotions';
 import AdminOptions from '@/components/admin/merchants/AdminOptions';
 import SeoConfiguration from '@/components/admin/merchants/SeoConfiguration';
 import UtmTracking from '@/components/admin/merchants/UtmTracking';
 import Screenshots from '@/components/admin/merchants/Screenshots';
 import FAQ from '@/components/admin/merchants/FAQ';
+import { MerchantPromotion as PromotionData } from '@/types/merchant';
 
 interface Merchant {
   id: string;
@@ -111,22 +112,18 @@ interface AdminOptionsAdvertisement {
   adsEndDate?: string;
 }
 
-interface MerchantPromotion {
-  title?: string;
-  description?: string;
-  loginRequired?: boolean;
-  reviewRequired?: boolean;
-  startDate?: string;
-  endDate?: string;
-  giftCodes?: string;
-  discountType?: string;
-  discountValue?: string;
-  minimumPurchase?: string;
-  termsConditions?: string;
-  link?: string;
-  expiryDate?: string;
-  [key: string]: unknown; // Allow additional properties
-}
+// Unused interface - kept for reference
+/* interface MerchantPromotionType {
+  id: string;
+  title: string;
+  description: string;
+  type: 'default' | 'common' | 'private';
+  startDate: string;
+  endDate: string;
+  giftcodes: string;
+  loginRequired: boolean;
+  reviewRequired: boolean;
+} */
 
 interface MerchantSeo {
   title?: string;
@@ -171,8 +168,7 @@ export default function MerchantDetailPage() {
   const [settings, setSettings] = useState<MerchantSettings>({});
   const [adminOptionsSettings, setAdminOptionsSettings] = useState<AdminOptionsSettings>({});
   const [adminOptionsAdvertisement, setAdminOptionsAdvertisement] = useState<AdminOptionsAdvertisement>({});
-  const [defaultPromotion, setDefaultPromotion] = useState<MerchantPromotion>({});
-  const [priorityPromotion, setPriorityPromotion] = useState<MerchantPromotion>({});
+  const [promotions, setPromotions] = useState<PromotionData[]>([]);
   const [seo, setSeo] = useState<MerchantSeo>({});
   const [utm, setUtm] = useState<MerchantUtm>({});
   const [faqs, setFaqs] = useState<Array<{ id: string; question: string; answer: string }>>([]);
@@ -296,33 +292,31 @@ export default function MerchantDetailPage() {
           // Set FAQs and screenshots
           if (merchant.faqs) setFaqs(merchant.faqs);
           if (merchant.screenshots) setScreenshots(merchant.screenshots);
-          if (merchant.defaultPromotion) {
-            setDefaultPromotion({
-              title: merchant.defaultPromotion.title || '',
-              description: merchant.defaultPromotion.description || '',
-              loginRequired: merchant.defaultPromotion.loginRequired || false,
-              reviewRequired: merchant.defaultPromotion.reviewRequired || false,
-            });
-          }
-          // Set promotions - extract additional data from formatted promotions
-          if (merchant.promotions) {
-            const priorityProm = merchant.promotions[0];
-            const giftCodesString = '';
-            setPriorityPromotion({
-              title: priorityProm.title || '',
-              description: priorityProm.description || '',
-              loginRequired: priorityProm.loginRequired || false,
-              reviewRequired: priorityProm.reviewRequired || false,
-              startDate: priorityProm.startDate || '',
-              endDate: priorityProm.endDate || '',
-              giftCodes: giftCodesString,
-              // Extract additional fields from giftCode JSON data
-              discountText: (priorityProm.giftCode as Record<string, unknown>)?.discountText as string || '',
-              ctaText: (priorityProm.giftCode as Record<string, unknown>)?.ctaText as string || 'Shop Now',
-              ctaLink: (priorityProm.giftCode as Record<string, unknown>)?.ctaLink as string || '',
-              backgroundColor: (priorityProm.giftCode as Record<string, unknown>)?.backgroundColor as string || '#FFF3E0',
-              textColor: (priorityProm.giftCode as Record<string, unknown>)?.textColor as string || '#E65100'
-            });
+          // Set promotions
+          if (merchant.promotions && Array.isArray(merchant.promotions)) {
+            const formattedPromotions = merchant.promotions.map((promo: {
+              id?: string;
+              title: string;
+              description: string;
+              type: string;
+              startDate?: string;
+              endDate?: string;
+              code?: string;
+              giftCode?: { giftcodes?: string } | { codes: string[] } | Record<string, unknown>;
+              loginRequired: boolean;
+              reviewRequired: boolean;
+            }) => ({
+              id: promo.id || `promo-${Date.now()}-${Math.random()}`,
+              title: promo.title || '',
+              description: promo.description || '',
+              type: ((promo.type || 'common').toLowerCase() as 'default' | 'common' | 'private'),
+              startDate: promo.startDate ? new Date(promo.startDate).toISOString().split('T')[0] : '',
+              endDate: promo.endDate ? new Date(promo.endDate).toISOString().split('T')[0] : '',
+              giftcodes: promo.code || (promo.giftCode && 'giftcodes' in promo.giftCode && typeof promo.giftCode.giftcodes === 'string' ? promo.giftCode.giftcodes : '') || '',
+              loginRequired: Boolean(promo.loginRequired),
+              reviewRequired: Boolean(promo.reviewRequired)
+            }));
+            setPromotions(formattedPromotions);
           }
 
           // If merchant is draft/pending, automatically enable edit mode
@@ -458,35 +452,9 @@ export default function MerchantDetailPage() {
       }
     }
 
-    // Add default promotion with all fields
-    if (defaultPromotion.title) {
-      formDataToSend.append('defaultPromotion[title]', defaultPromotion.title);
-      formDataToSend.append('defaultPromotion[description]', defaultPromotion.description || '');
-      formDataToSend.append('defaultPromotion[loginRequired]', String(defaultPromotion.loginRequired || false));
-      formDataToSend.append('defaultPromotion[reviewRequired]', String(defaultPromotion.reviewRequired || false));
-      // Add additional promotion fields
-      if (defaultPromotion.discountType) formDataToSend.append('defaultPromotion[discountType]', defaultPromotion.discountType);
-      if (defaultPromotion.discountValue) formDataToSend.append('defaultPromotion[discountValue]', defaultPromotion.discountValue);
-      if (defaultPromotion.minimumPurchase) formDataToSend.append('defaultPromotion[minimumPurchase]', defaultPromotion.minimumPurchase);
-      if (defaultPromotion.termsConditions) formDataToSend.append('defaultPromotion[termsConditions]', defaultPromotion.termsConditions);
-      if (defaultPromotion.link) formDataToSend.append('defaultPromotion[link]', defaultPromotion.link);
-      if (defaultPromotion.expiryDate) formDataToSend.append('defaultPromotion[expiryDate]', defaultPromotion.expiryDate);
-    }
-
-    if (priorityPromotion.title) {
-      formDataToSend.append('priorityPromotion[title]', priorityPromotion.title);
-      formDataToSend.append('priorityPromotion[description]', priorityPromotion.description || '');
-      formDataToSend.append('priorityPromotion[loginRequired]', String(priorityPromotion.loginRequired || false));
-      formDataToSend.append('priorityPromotion[reviewRequired]', String(priorityPromotion.reviewRequired || false));
-      if (priorityPromotion.startDate) formDataToSend.append('priorityPromotion[startDate]', priorityPromotion.startDate);
-      if (priorityPromotion.endDate) formDataToSend.append('priorityPromotion[endDate]', priorityPromotion.endDate);
-      if (priorityPromotion.giftCodes) formDataToSend.append('priorityPromotion[giftCodes]', priorityPromotion.giftCodes);
-      // Add additional priority promotion fields
-      if ('discountText' in priorityPromotion && priorityPromotion.discountText) formDataToSend.append('priorityPromotion[discountText]', priorityPromotion.discountText as string);
-      if ('ctaText' in priorityPromotion && (priorityPromotion as Record<string, unknown>).ctaText) formDataToSend.append('priorityPromotion[ctaText]', (priorityPromotion as Record<string, unknown>).ctaText as string);
-      if ('ctaLink' in priorityPromotion && (priorityPromotion as Record<string, unknown>).ctaLink) formDataToSend.append('priorityPromotion[ctaLink]', (priorityPromotion as Record<string, unknown>).ctaLink as string);
-      if ('backgroundColor' in priorityPromotion && (priorityPromotion as Record<string, unknown>).backgroundColor) formDataToSend.append('priorityPromotion[backgroundColor]', (priorityPromotion as Record<string, unknown>).backgroundColor as string);
-      if ('textColor' in priorityPromotion && (priorityPromotion as Record<string, unknown>).textColor) formDataToSend.append('priorityPromotion[textColor]', (priorityPromotion as Record<string, unknown>).textColor as string);
+    // Add promotions
+    if (promotions && promotions.length > 0) {
+      formDataToSend.append('promotions', JSON.stringify(promotions));
     }
 
     // Add SEO with image support    
@@ -709,41 +677,12 @@ export default function MerchantDetailPage() {
               </div>
             </div>
 
-            {/* MerchantDefault - Full width */}
+            {/* Promotions - Full width */}
             <div className={`col-span-3 ${!isEditMode ? 'pointer-events-none opacity-75' : ''}`}>
-              <MerchantDefault
-                initialDefaultPromotion={{
-                  ...defaultPromotion,
-                  title: defaultPromotion.title || '',
-                  description: defaultPromotion.description || ''
-                }}
-                initialPromotePromotion={{
-                  ...priorityPromotion,
-                  title: priorityPromotion.title || '',
-                  description: priorityPromotion.description || '',
-                  type: 'type' in priorityPromotion ? (priorityPromotion as Record<string, unknown>).type as string : 'priority',
-                  startDate: priorityPromotion.startDate || '',
-                  endDate: priorityPromotion.endDate || '',
-                  giftcodes: priorityPromotion.giftCodes || '',
-                  loginRequired: priorityPromotion.loginRequired || false,
-                  reviewRequired: priorityPromotion.reviewRequired || false
-                }}
-                onDefaultChange={(data) => {
-                  setDefaultPromotion({
-                    title: data.title,
-                    description: data.description
-                  });
-                }}
-                onPromoteChange={(data) => {
-                  setPriorityPromotion({
-                    title: data.title,
-                    description: data.description,
-                    startDate: data.startDate,
-                    endDate: data.endDate,
-                    giftCodes: data.giftcodes,
-                    loginRequired: data.loginRequired,
-                    reviewRequired: data.reviewRequired
-                  });
+              <Promotions
+                initialPromotions={promotions}
+                onPromotionsChange={(data) => {
+                  setPromotions(data);
                 }}
               />
             </div>

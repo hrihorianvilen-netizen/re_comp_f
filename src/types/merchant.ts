@@ -1,25 +1,15 @@
 export interface MerchantPromotion {
-  code?: string;
-  description?: string;
-  discountType?: 'percentage' | 'fixed' | 'freeshipping' | 'deal';
-  discountValue?: string;
-  minimumPurchase?: string;
-  expiryDate?: string;
-  termsConditions?: string;
-  link?: string;
+  id: string;
+  title: string;
+  description: string;
+  type: 'default' | 'common' | 'private';
+  startDate: string;
+  endDate: string;
+  giftcodes: string;
+  loginRequired: boolean;
+  reviewRequired: boolean;
 }
 
-export interface MerchantPromotePromotion {
-  isActive?: boolean;
-  title?: string;
-  description?: string;
-  discountText?: string;
-  validUntil?: string;
-  ctaText?: string;
-  ctaLink?: string;
-  backgroundColor?: string;
-  textColor?: string;
-}
 
 export interface MerchantSeo {
   metaTitle?: string;
@@ -82,8 +72,7 @@ export interface MerchantFormData {
   hideWriteReview: boolean;
 
   // Promotions
-  defaultPromotion: MerchantPromotion;
-  promotePromotion: MerchantPromotePromotion;
+  promotions: MerchantPromotion[];
 
   // SEO Configuration
   seo: MerchantSeo;
