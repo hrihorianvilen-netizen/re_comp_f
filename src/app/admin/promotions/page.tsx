@@ -485,7 +485,7 @@ export default function AllPromotionsPage() {
                     <td className="px-4 py-3 hidden sm:table-cell">
                       {promotion.merchant ? (
                         <Link
-                          href={`/admin/merchants/${promotion.merchant.id}`}
+                          href={`/admin/merchants/${promotion.merchant.id}/edit`}
                           className="text-sm text-[#A96B11] hover:text-[#8B560E] block truncate max-w-[150px]"
                         >
                           {promotion.merchant.name}
