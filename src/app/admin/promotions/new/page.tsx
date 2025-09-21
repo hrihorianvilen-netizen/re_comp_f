@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
@@ -8,20 +8,26 @@ import { MerchantPromotion } from '@/types/merchant';
 import PromotionForm from '@/components/admin/promotions/PromotionForm';
 import { v4 as uuidv4 } from 'uuid';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import { useMerchants } from '@/hooks/useMerchants';
 
 interface Merchant {
   id: string;
   name: string;
   slug: string;
+  category?: string;
 }
 
 export default function AddPromotionPage() {
   const router = useRouter();
-  const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const [merchantSearch, setMerchantSearch] = useState('');
   const [merchantId, setMerchantId] = useState('');
+  const [selectedMerchant, setSelectedMerchant] = useState<{ id: string; name: string } | null>(null);
+  const [showMerchantDropdown, setShowMerchantDropdown] = useState(false);
+  const [searchDebounce, setSearchDebounce] = useState<NodeJS.Timeout | null>(null);
   const [promotions, setPromotions] = useState<MerchantPromotion[]>([
     {
       id: uuidv4(),
@@ -37,19 +43,59 @@ export default function AddPromotionPage() {
   ]);
   const [expandedPromotion, setExpandedPromotion] = useState<number>(0);
 
+  // Fetch merchants based on search
+  const { data: merchantsData, isLoading: merchantsLoading } = useMerchants({
+    search: merchantSearch,
+    limit: 10,
+    excludeDrafts: true
+  });
+
+  // Handle clicks outside dropdown
   useEffect(() => {
-    fetchMerchants();
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowMerchantDropdown(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const fetchMerchants = async () => {
-    try {
-      const response = await api.get<{ merchants: Merchant[] }>('/api/admin/merchants?limit=100');
-      if (response.data?.merchants) {
-        setMerchants(response.data.merchants);
-      }
-    } catch (error) {
-      console.error('Error fetching merchants:', error);
-      toast.error('Failed to load merchants');
+  // Debounce merchant search
+  const handleMerchantSearch = (value: string) => {
+    setMerchantSearch(value);
+    setSelectedMerchant(null);
+    setMerchantId('');
+
+    if (searchDebounce) {
+      clearTimeout(searchDebounce);
+    }
+
+    if (value.trim()) {
+      setShowMerchantDropdown(true);
+      const timeout = setTimeout(() => {
+        // Search will be triggered automatically by the useMerchants hook
+      }, 300);
+      setSearchDebounce(timeout);
+    } else {
+      setShowMerchantDropdown(false);
+    }
+  };
+
+  const selectMerchant = (merchant: { id: string; name: string }) => {
+    setSelectedMerchant(merchant);
+    setMerchantId(merchant.id);
+    setMerchantSearch(merchant.name);
+    setShowMerchantDropdown(false);
+
+    // Clear error when merchant is selected
+    if (errors.merchantId) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.merchantId;
+        return newErrors;
+      });
     }
   };
 
@@ -88,7 +134,7 @@ export default function AddPromotionPage() {
           merchantId,
           title: promotion.title,
           description: promotion.description,
-          type: promotion.type.toUpperCase(), // Convert to uppercase for backend
+          type: promotion.type, // Keep lowercase for backend
           startDate: promotion.startDate,
           endDate: promotion.endDate,
           giftcodes: promotion.giftcodes,
@@ -96,9 +142,8 @@ export default function AddPromotionPage() {
           reviewRequired: promotion.reviewRequired,
           isActive: true
         };
-        return api.post('/api/admin/promotions', dataToSend);
+        return api.post('/admin/promotions', dataToSend);
       });
-
       await Promise.all(createPromises);
 
       toast.success(`${promotions.length} promotion(s) created successfully!`);
@@ -207,34 +252,77 @@ export default function AddPromotionPage() {
         <div className="bg-white shadow-sm rounded-lg p-6 border border-gray-200">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Promotion Details</h2>
 
-          {/* Merchant Selection */}
-          <div className="mb-4">
+          {/* Merchant Search */}
+          <div className="mb-4 relative w-1/2" ref={dropdownRef}>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Select Merchant <span className="text-red-500">*</span>
             </label>
-            <select
-              value={merchantId}
-              onChange={(e) => {
-                setMerchantId(e.target.value);
-                if (errors.merchantId) {
-                  setErrors(prev => {
-                    const newErrors = { ...prev };
-                    delete newErrors.merchantId;
-                    return newErrors;
-                  });
-                }
-              }}
-              className={`w-full px-3 py-2 border ${
-                errors.merchantId ? 'border-red-300' : 'border-gray-300'
-              } rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11]`}
-            >
-              <option value="">-- Select a merchant --</option>
-              {merchants.map((merchant) => (
-                <option key={merchant.id} value={merchant.id}>
-                  {merchant.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                type="text"
+                value={merchantSearch}
+                onChange={(e) => handleMerchantSearch(e.target.value)}
+                onFocus={() => merchantSearch && setShowMerchantDropdown(true)}
+                placeholder="Search for merchant..."
+                autoComplete="off"
+                className={`w-full px-3 py-2 pr-10 border ${
+                  errors.merchantId ? 'border-red-300' : 'border-gray-300'
+                } rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11]`}
+              />
+              {/* Search icon or loading spinner */}
+              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                {merchantsLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                )}
+              </div>
+            </div>
+
+            {/* Merchant dropdown */}
+            {showMerchantDropdown && (
+              <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                {merchantsLoading ? (
+                  <div className="px-4 py-2 text-gray-500">Searching...</div>
+                ) : merchantsData?.merchants && merchantsData.merchants.length > 0 ? (
+                  merchantsData.merchants.map((merchant: Merchant) => (
+                    <div
+                      key={merchant.id}
+                      onClick={() => selectMerchant({ id: merchant.id, name: merchant.name })}
+                      className="cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-[#A96B11] hover:text-white"
+                    >
+                      <div className="flex items-center">
+                        <span className="font-normal block truncate">
+                          {merchant.name}
+                        </span>
+                        {merchant.category && (
+                          <span className="ml-2 text-xs opacity-75">
+                            ({merchant.category})
+                          </span>
+                        )}
+                      </div>
+                      {selectedMerchant?.id === merchant.id && (
+                        <span className="absolute inset-y-0 right-0 flex items-center pr-4">
+                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-gray-500">
+                    {merchantSearch ? 'No merchants found' : 'Type to search merchants'}
+                  </div>
+                )}
+              </div>
+            )}
+
             {errors.merchantId && (
               <p className="mt-1 text-sm text-red-600">{errors.merchantId}</p>
             )}
