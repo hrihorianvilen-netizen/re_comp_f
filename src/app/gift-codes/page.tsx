@@ -281,7 +281,10 @@ export default function GiftCodesPage() {
                     {getPromotionBadge(promotion.type)}
                   </div>
 
-                  <p className="text-sm text-gray-600 mb-4">{promotion.description}</p>
+                  <div
+                    className="text-sm text-gray-600 mb-4"
+                    dangerouslySetInnerHTML={{ __html: promotion.description }}
+                  />
 
                   {/* Requirements */}
                   <div className="flex flex-wrap gap-2 mb-4">
