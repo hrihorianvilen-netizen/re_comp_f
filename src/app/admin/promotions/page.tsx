@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 import { stripHtmlTags } from '@/lib/htmlUtils';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
+import GiftCodeViewer from '@/components/admin/promotions/GiftCodeViewer';
 
 interface Promotion {
   id: string;
@@ -41,6 +42,8 @@ export default function AllPromotionsPage() {
   const [typeCounts, setTypeCounts] = useState<Record<string, number>>({ all: 0, default: 0, common: 0, private: 0 });
   const [selectedPromotions, setSelectedPromotions] = useState<Set<string>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
+  const [viewingGiftCodes, setViewingGiftCodes] = useState<{ id: string; title: string } | null>(null);
+  const [showGiftCodeDropdown, setShowGiftCodeDropdown] = useState(false);
   const itemsPerPage = 10;
 
   // Fetch promotions when filters change
@@ -50,6 +53,23 @@ export default function AllPromotionsPage() {
   }, [currentPage, searchQuery, filterType]);
 
   // Type counts are now fetched with promotions, no need for separate effect
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showGiftCodeDropdown) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.gift-code-dropdown')) {
+          setShowGiftCodeDropdown(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showGiftCodeDropdown]);
 
   const fetchPromotions = async () => {
     setLoading(true);
@@ -276,6 +296,58 @@ export default function AllPromotionsPage() {
               <option value="private">Private ({typeCounts.private})</option>
             </select>
           </div>
+
+          {/* View Gift Code Button */}
+          <div className="sm:w-auto flex items-end relative gift-code-dropdown">
+            <button
+              onClick={() => {
+                const promotionsWithGiftCodes = filteredPromotions.filter(p => p.giftcodes);
+                if (promotionsWithGiftCodes.length === 1) {
+                  setViewingGiftCodes({
+                    id: promotionsWithGiftCodes[0].id,
+                    title: promotionsWithGiftCodes[0].title
+                  });
+                } else if (promotionsWithGiftCodes.length > 1) {
+                  setShowGiftCodeDropdown(!showGiftCodeDropdown);
+                }
+              }}
+              className="px-4 py-2 bg-[#A96B11] text-white rounded-md hover:bg-[#8B560E] transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={!filteredPromotions.some(p => p.giftcodes)}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+              View Gift Code
+            </button>
+
+            {/* Dropdown for multiple promotions with gift codes */}
+            {showGiftCodeDropdown && (
+              <div className="absolute top-full mt-2 right-0 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-10">
+                <div className="py-2">
+                  <div className="px-4 py-2 text-sm font-medium text-gray-700 border-b">
+                    Select Promotion
+                  </div>
+                  {filteredPromotions
+                    .filter(p => p.giftcodes)
+                    .map(promotion => (
+                      <button
+                        key={promotion.id}
+                        onClick={() => {
+                          setViewingGiftCodes({ id: promotion.id, title: promotion.title });
+                          setShowGiftCodeDropdown(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center justify-between"
+                      >
+                        <span className="truncate">{promotion.title}</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          {promotion.giftcodes?.split(/[\n,]/).filter(c => c.trim()).length || 0} codes
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -436,10 +508,43 @@ export default function AllPromotionsPage() {
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap hidden md:table-cell">
                       <div className="text-sm">
-                        {promotion.giftcodes ?
-                          <span className="text-green-600">✓</span> :
+                        {promotion.giftcodes ? (
+                          <div className="relative group">
+                            <span className="text-gray-700 font-mono text-xs cursor-help border-b border-dotted border-gray-400">
+                              {promotion.giftcodes.split(/[\n,]/)[0].substring(0, 10)}...
+                            </span>
+                            {/* Hover tooltip showing gift code preview */}
+                            <div className="absolute z-50 invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-900 text-white p-3 rounded-lg shadow-lg -top-2 left-full ml-2 min-w-[200px] max-w-[400px]">
+                              <div className="text-xs font-semibold mb-2 border-b border-gray-700 pb-1">
+                                Gift Codes Preview ({promotion.giftcodes.split(/[\n,]/).filter((c: string) => c.trim()).length} total)
+                              </div>
+                              <div className="space-y-1">
+                                {(() => {
+                                  const codes = promotion.giftcodes.split(/[\n,]/).filter((c: string) => c.trim());
+                                  const displayCodes = codes.slice(0, 10);
+                                  const remaining = codes.length - 10;
+
+                                  return (
+                                    <>
+                                      {displayCodes.map((code: string, idx: number) => (
+                                        <div key={idx} className="text-xs font-mono">
+                                          {code.trim()}
+                                        </div>
+                                      ))}
+                                      {remaining > 0 && (
+                                        <div className="text-xs text-gray-400 italic pt-1 border-t border-gray-700">
+                                          ...and {remaining} more
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
                           <span className="text-gray-400">-</span>
-                        }
+                        )}
                       </div>
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap hidden sm:table-cell">
@@ -551,6 +656,15 @@ export default function AllPromotionsPage() {
         show={isProcessing}
         message={processingMessage}
       />
+
+      {/* Gift Code Viewer Modal */}
+      {viewingGiftCodes && (
+        <GiftCodeViewer
+          promotionId={viewingGiftCodes.id}
+          promotionTitle={viewingGiftCodes.title}
+          onClose={() => setViewingGiftCodes(null)}
+        />
+      )}
     </div>
   );
 }
