@@ -368,16 +368,18 @@ export default function MerchantDetailPage() {
                         setModalOpen(true);
                       }}
                     >
-                      <OptimizedImage
-                        src={screenshot || '/images/shopee.jpg'}
-                        alt={`${merchant.name} screenshot ${index + 1}`}
-                        width={200}
-                        height={150}
-                        className="rounded-lg border w-full h-auto hover:opacity-90 transition-all duration-300 group-hover:scale-105"
-                        sizeType="card"
-                        qualityPriority="medium"
-                        priority={index < 3}
-                      />
+                      <div className="relative w-full" style={{ paddingBottom: '75%' }}>
+                        <OptimizedImage
+                          src={getImageUrl(screenshot, '/images/shopee.jpg')}
+                          alt={`${merchant.name} screenshot ${index + 1}`}
+                          width={400}
+                          height={300}
+                          className="absolute inset-0 rounded-lg border w-full h-full object-contain bg-white hover:opacity-90 transition-all duration-300 group-hover:scale-105"
+                          sizeType="card"
+                          qualityPriority="medium"
+                          priority={index < 3}
+                        />
+                      </div>
                       {/* Overlay for better user experience */}
                       <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-lg flex items-center justify-center">
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -896,7 +898,7 @@ export default function MerchantDetailPage() {
                 <SwiperSlide key={index}>
                   <div className="flex items-center justify-center h-[70vh] relative">
                     <OptimizedImage
-                      src={screenshot || '/images/shopee.jpg'}
+                      src={getImageUrl(screenshot, '/images/shopee.jpg')}
                       alt={`${merchant.name} screenshot ${index + 1}`}
                       width={800}
                       height={600}

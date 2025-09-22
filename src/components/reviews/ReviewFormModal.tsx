@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { InteractiveRatingStars, SimpleCaptcha } from '@/components/ui';
+import { useState, useEffect } from 'react';
+import { InteractiveRatingStars } from '@/components/ui';
 import { AuthModal } from '@/components/auth';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import { useAuth } from '@/contexts/AuthContext';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 interface ReviewFormModalProps {
   isOpen: boolean;
@@ -18,9 +20,11 @@ export interface ReviewFormData {
   title: string;
   content: string;
   recommend: boolean;
+  captchaToken?: string;
 }
 
 export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmit }: ReviewFormModalProps) {
+  const { user, isAuthenticated } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [formData, setFormData] = useState<ReviewFormData>({
@@ -33,47 +37,121 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
 
   const [errors, setErrors] = useState<Partial<ReviewFormData>>({});
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
-  const [captchaReset, setCaptchaReset] = useState(false);
+  const [showTitleField, setShowTitleField] = useState(false);
+  const [recaptchaRef, setRecaptchaRef] = useState<ReCAPTCHA | null>(null);
+  const [requiresCaptcha, setRequiresCaptcha] = useState(false);
+
+  // Helper function to strip HTML tags from content
+  const stripHtmlTags = (html: string): string => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
+  };
+
+  // Auto-populate display name for authenticated users
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setFormData(prev => ({
+        ...prev,
+        displayName: user.displayName || user.name || user.email || 'Anonymous'
+      }));
+      setRequiresCaptcha(false);
+    } else {
+      setRequiresCaptcha(true);
+    }
+  }, [isAuthenticated, user]);
+
+  // Show title field when content has at least 10 characters
+  useEffect(() => {
+    const plainTextContent = stripHtmlTags(formData.content);
+    if (plainTextContent.length >= 10) {
+      setShowTitleField(true);
+      // Auto-populate title with first sentence if title is empty
+      if (!formData.title) {
+        const firstSentence = plainTextContent.split(/[.!?]/)[0].trim();
+        if (firstSentence) {
+          setFormData(prev => ({ ...prev, title: firstSentence }));
+        }
+      }
+    } else {
+      setShowTitleField(false);
+    }
+  }, [formData.content, formData.title]);
+
+  const isMeaningfulText = (text: string): boolean => {
+    // Check for repeated characters (e.g., "aaaaa", "12345")
+    const hasRepeatedChars = /(..).*\1/.test(text.toLowerCase());
+    const isSequential = /^(.)\1+$/.test(text) || /^(012|123|234|345|456|567|678|789|890|abc|bcd|cde)/.test(text.toLowerCase());
+    const hasVariedContent = text.split('').filter((char, index, arr) => arr.indexOf(char) === index).length > 3;
+
+    return !hasRepeatedChars && !isSequential && hasVariedContent && text.trim().length >= 10;
+  };
 
   const validate = () => {
     const newErrors: Partial<ReviewFormData> = {};
-    
-    if (!formData.displayName.trim()) {
+
+    // Guest users need display name
+    if (!isAuthenticated && !formData.displayName.trim()) {
       newErrors.displayName = 'Display name is required';
     }
+
+    // Rating is required
     if (formData.rating === 0) {
       newErrors.rating = 1;
     }
-    if (!formData.title.trim()) {
+
+    // Content validation (min 10 chars, meaningful text)
+    const plainTextContent = stripHtmlTags(formData.content);
+    if (!plainTextContent.trim() || plainTextContent.length < 10) {
+      newErrors.content = 'Review must be at least 10 characters';
+    } else if (!isMeaningfulText(plainTextContent)) {
+      newErrors.content = 'Please provide meaningful content for your review';
+    }
+
+    // Title validation (only when title field is shown)
+    if (showTitleField && !formData.title.trim()) {
       newErrors.title = 'Title is required';
     }
-    if (!formData.content.trim() || formData.content.length < 20) {
-      newErrors.content = 'Review must be at least 20 characters';
-    }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate() && isCaptchaVerified) {
-      onSubmit(formData);
-      // Reset form
-      setFormData({
-        displayName: '',
-        rating: 0,
-        title: '',
-        content: '',
-        recommend: true,
-      });
-      setIsCaptchaVerified(false);
-      setCaptchaReset(true);
-      onClose();
-    } else if (!isCaptchaVerified) {
-      // Show captcha error or focus on captcha
+
+    if (!validate()) return;
+
+    // Check captcha requirement
+    if (requiresCaptcha && !isCaptchaVerified) {
       alert('Please complete the captcha verification.');
+      return;
     }
+
+    // Submit the review
+    onSubmit({
+      ...formData,
+      captchaToken: formData.captchaToken
+    });
+
+    // Reset form
+    setFormData({
+      displayName: isAuthenticated && user ? user.displayName || user.name || user.email || 'Anonymous' : '',
+      rating: 0,
+      title: '',
+      content: '',
+      recommend: true,
+    });
+    setIsCaptchaVerified(false);
+    setShowTitleField(false);
+    if (recaptchaRef) {
+      recaptchaRef.reset();
+    }
+    onClose();
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    setFormData(prev => ({ ...prev, captchaToken: token || undefined }));
+    setIsCaptchaVerified(!!token);
   };
 
   if (!isOpen) return null;
@@ -113,41 +191,25 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
             )}        
           </div>
 
-          {/* Display Name */}
-          <div>
-            <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
-              Display Name *
-            </label>
-            <input
-              type="text"
-              id="displayName"
-              value={formData.displayName}
-              onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent"
-              placeholder="Enter your display name"
-            />
-            {errors.displayName && (
-              <p className="text-red-500 text-sm mt-1">{errors.displayName}</p>
-            )}
-          </div>
-
-          {/* Review Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Review Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent"
-              placeholder="Summarize your experience"
-            />
-            {errors.title && (
-              <p className="text-red-500 text-sm mt-1">{errors.title}</p>
-            )}
-          </div>
+          {/* Display Name - Only for guest users */}
+          {!isAuthenticated && (
+            <div>
+              <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
+                Display Name *
+              </label>
+              <input
+                type="text"
+                id="displayName"
+                value={formData.displayName}
+                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent"
+                placeholder="Enter your display name"
+              />
+              {errors.displayName && (
+                <p className="text-red-500 text-sm mt-1">{errors.displayName}</p>
+              )}
+            </div>
+          )}
 
           {/* Review Content */}
           <div>
@@ -158,15 +220,39 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
               value={formData.content}
               onChange={(value) => setFormData({ ...formData, content: value })}
               placeholder="Tell us about your experience with this merchant..."
-              minLength={20}
-              maxLength={2000}
+              minLength={10}
+              maxLength={1000}
               height="min-h-[120px] max-h-[200px]"
               showPreview={false}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Minimum 10 characters required. Current: {stripHtmlTags(formData.content).length}
+            </p>
             {errors.content && (
               <p className="text-red-500 text-sm mt-1">{errors.content}</p>
             )}
           </div>
+
+          {/* Review Title - Appears after content has 10+ characters */}
+          {showTitleField && (
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Review Title *
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#198639] focus:border-transparent"
+                placeholder="Summarize your experience"
+              />
+              {errors.title && (
+                <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+              )}
+            </div>
+          )}
+
 
           {/* Recommendation */}
           <div className="flex items-center gap-3">
@@ -182,11 +268,21 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
             </label>
           </div>
 
-          {/* Captcha */}
-          <SimpleCaptcha
-            onVerify={setIsCaptchaVerified}
-            reset={captchaReset}
-          />
+          {/* Captcha - Required for guests or suspicious activity */}
+          {requiresCaptcha && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Security Verification *
+              </label>
+              <ReCAPTCHA
+                ref={(ref) => setRecaptchaRef(ref)}
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || 'your-recaptcha-site-key'}
+                onChange={handleCaptchaChange}
+                onExpired={() => handleCaptchaChange(null)}
+                onErrored={() => handleCaptchaChange(null)}
+              />
+            </div>
+          )}
 
           {/* Submit Buttons */}
           <div className="space-y-3 pt-2">
@@ -197,29 +293,31 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
               Submit Review
             </button>
             
-            {/* Register/Login Buttons */}
-            <div className="flex gap-2 justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthModalMode('register');
-                  setShowAuthModal(true);
-                }}
-                className="px-6 py-2 bg-white text-gray-700 text-sm rounded-md hover:bg-gray-100 font-medium transition-colors border border-gray-300"
-              >
-                Register
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthModalMode('login');
-                  setShowAuthModal(true);
-                }}
-                className="px-6 py-2 bg-white text-gray-700 text-sm rounded-md hover:bg-gray-100 font-medium transition-colors border border-gray-300"
-              >
-                Login
-              </button>
-            </div>
+            {/* Register/Login Buttons - Only show for guests */}
+            {!isAuthenticated && (
+              <div className="flex gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthModalMode('register');
+                    setShowAuthModal(true);
+                  }}
+                  className="px-6 py-2 bg-white text-gray-700 text-sm rounded-md hover:bg-gray-100 font-medium transition-colors border border-gray-300"
+                >
+                  Register
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthModalMode('login');
+                    setShowAuthModal(true);
+                  }}
+                  className="px-6 py-2 bg-white text-gray-700 text-sm rounded-md hover:bg-gray-100 font-medium transition-colors border border-gray-300"
+                >
+                  Login
+                </button>
+              </div>
+            )}
             
             {/* Terms & Conditions */}
             <p className="text-xs text-gray-500 text-center">

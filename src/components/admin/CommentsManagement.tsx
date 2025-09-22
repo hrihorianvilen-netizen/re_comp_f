@@ -31,7 +31,7 @@ interface CommentWithDetails {
   content?: string;
   isReported: boolean;
   reportCount: number;
-  status: 'published' | 'pending' | 'hidden';
+  status: 'published' | 'pending' | 'hidden' | 'spam' | 'deleted';
   createdAt: string;
   updatedAt: string;
   user?: {
@@ -72,9 +72,11 @@ export default function CommentsManagement() {
   // Map UI status names to actual comment statuses
   const getActualStatus = (uiStatus: string) => {
     switch (uiStatus) {
-      case 'spam': return 'hidden';
-      case 'trash': return 'pending'; 
+      case 'spam': return 'spam';
+      case 'trash': return 'deleted';
+      case 'hidden': return 'hidden';
       case 'published': return 'published';
+      case 'pending': return 'pending';
       case 'all': return undefined;
       default: return uiStatus;
     }
@@ -107,8 +109,9 @@ export default function CommentsManagement() {
   const statusCounts = {
     all: statusCountsData?.pagination?.total || commentsData?.pagination?.total || 0,
     published: getAllComments().filter(c => c.status === 'published').length,
-    spam: getAllComments().filter(c => c.status === 'hidden').length, // Map 'hidden' to 'spam' for UI
-    trash: getAllComments().filter(c => c.status === 'pending').length, // Map 'pending' to 'trash' for UI
+    spam: getAllComments().filter(c => (c.status as string) === 'spam' || c.status === 'hidden').length, // Count both spam and hidden
+    trash: getAllComments().filter(c => (c.status as string) === 'deleted').length, // Deleted comments
+    pending: getAllComments().filter(c => c.status === 'pending').length, // Pending comments
   };
 
   const handleSelectAll = () => {
@@ -388,9 +391,13 @@ export default function CommentsManagement() {
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                           comment.status === 'published'
                             ? 'bg-green-100 text-green-800'
-                            : comment.status === 'hidden'
+                            : comment.status === 'spam' || comment.status === 'hidden'
                             ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
+                            : comment.status === 'deleted'
+                            ? 'bg-gray-100 text-gray-800'
+                            : comment.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-blue-100 text-blue-800'
                         }`}>
                           {comment.status}
                         </span>
@@ -472,7 +479,9 @@ export default function CommentsManagement() {
                             >
                               <option value="published">Published</option>
                               <option value="pending">Pending</option>
+                              <option value="spam">Spam</option>
                               <option value="hidden">Hidden</option>
+                              <option value="deleted">Deleted</option>
                             </select>
                           </div>
                         </div>

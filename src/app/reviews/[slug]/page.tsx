@@ -6,9 +6,7 @@ import OptimizedImage from '@/components/ui/OptimizedImage';
 import Link from 'next/link';
 import { Review, ReviewComment, Merchant } from '@/types/api';
 import { RatingStars } from '@/components/ui';
-import { CommentForm, CommentFormData } from '@/components/comments';
-import { getApiReaction, getReactionEmoji } from '@/lib/reactions';
-import api from '@/lib/api';
+import CommentsSection from '@/components/reviews/CommentsSection';
 
 // Mock data for reviews with slugs
 const mockReviewData = {
@@ -88,7 +86,6 @@ export default function ReviewDetailPage() {
   const mockReview = Object.values(mockReviewData).find(review => review.slug === slug) || Object.values(mockReviewData)[0];
   
   const [review, setReview] = useState<Review & { merchant?: Merchant }>(mockReview);
-  const [showCommentForm, setShowCommentForm] = useState(false);
   const [reactionCounts, setReactionCounts] = useState({
     love: review.helpful || 0,
     cry: review.notHelpful || 0,
@@ -123,39 +120,6 @@ export default function ReviewDetailPage() {
     return formatDate(date);
   };
 
-  const handleCommentSubmit = async (data: CommentFormData) => {
-    try {
-      // Convert emotion reaction to the format expected by the API
-      const reaction = data.selectedReaction ? getApiReaction(data.selectedReaction) : '❤️';
-      
-      // Call the API to submit the comment
-      const result = await api.addComment(review.id, {
-        reaction,
-        content: data.content,
-        displayName: data.title || 'Anonymous User', // Use title as display name since API doesn't have title field
-      });
-      
-      if (result.error) {
-        alert(`Failed to submit comment: ${result.error}`);
-        return;
-      }
-      
-      // Use the comment returned from the backend
-      const newComment: ReviewComment = result.data!.comment;
-      
-      // Update local state
-      setReview({
-        ...review,
-        comments: [...(review.comments || []), newComment],
-      });
-      
-      setShowCommentForm(false);
-      alert('Comment submitted successfully!');
-    } catch (error) {
-      console.error('Error submitting comment:', error);
-      alert('Failed to submit comment. Please try again.');
-    }
-  };
 
   const handleReaction = (type: 'love' | 'cry' | 'angry') => {
     if (userReactions[type]) {
@@ -381,61 +345,29 @@ export default function ReviewDetailPage() {
                 <span className="text-lg">😡</span>
                 <span>{reactionCounts.angry}</span>
               </button>
-              <button 
-                onClick={() => setShowCommentForm(!showCommentForm)}
-                className="hover:text-blue-600 ml-2 outline-none"
-              >
-                Reply
-              </button>
             </div>
           </div>
 
           {/* Comments Section */}
           <div className="mt-6">
-            <h3 className="font-semibold text-lg mb-4">
-              Comments ({review.comments?.length || 0})
-            </h3>
-            
-            {review.comments && review.comments.length > 0 && (
-              <div className="space-y-4">
-                {review.comments.map((comment) => (
-                  <div key={comment.id} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-medium text-gray-600 font-bold">
-                          {(comment.displayName || 'A').charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-medium">{comment.displayName}</span>
-                          {comment.displayName === 'Store Owner' && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                              Merchant
-                            </span>
-                          )}
-                          {comment.selectedReaction && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-sm">
-                                {getReactionEmoji(comment.selectedReaction)}
-                              </span>
-                            </div>
-                          )}
-                          <span className="text-sm text-gray-500">
-                            {formatTimeAgo(comment.createdAt)}
-                          </span>
-                        </div>
-                        {comment.displayName && (
-                          <h5 className="font-medium text-gray-900 mb-1">{comment.displayName}</h5>
-                        )}
-                        <p className="text-gray-700">{comment.content}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
+            <CommentsSection
+              reviewId={review.id}
+              comments={review.comments || []}
+              onCommentAdded={(newComment) => {
+                // Update the review with the new comment
+                setReview({
+                  ...review,
+                  comments: [{
+                    ...newComment,
+                    reviewId: review.id,
+                    isReported: false,
+                    reportCount: 0,
+                    status: 'published' as const,
+                    updatedAt: newComment.createdAt as string
+                  } as ReviewComment, ...(review.comments || [])]
+                });
+              }}
+            />
           </div>
         </div>
       </div>
@@ -515,31 +447,6 @@ export default function ReviewDetailPage() {
         </div>
       )}
 
-      {/* Comment Reply Modal */}
-      {showCommentForm && (
-        <div className="fixed inset-0 z-50 bg-[#00000080] bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Reply to {review.displayName}&apos;s comment</h3>
-              <button
-                onClick={() => setShowCommentForm(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-4">
-              <CommentForm
-                reviewId={review.id}
-                onSubmit={handleCommentSubmit}
-                onCancel={() => setShowCommentForm(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

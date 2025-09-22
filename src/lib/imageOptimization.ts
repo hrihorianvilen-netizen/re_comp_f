@@ -6,6 +6,18 @@ export const SUPPORTED_IMAGE_FORMATS = ['jpeg', 'jpg', 'png', 'webp', 'avif', 'g
 // Check if URL is a valid image
 export const isValidImageUrl = (url: string): boolean => {
   if (!url) return false;
+
+  // Check if it's a Supabase storage URL (these don't always have extensions)
+  if (url.includes('supabase.co/storage/') || url.includes('supabase.com/storage/')) {
+    return true;
+  }
+
+  // Check if it's a data URL (base64)
+  if (url.startsWith('data:image/')) {
+    return true;
+  }
+
+  // Check for standard image extensions
   const extension = url.split('.').pop()?.toLowerCase();
   return extension ? SUPPORTED_IMAGE_FORMATS.includes(extension) : false;
 };

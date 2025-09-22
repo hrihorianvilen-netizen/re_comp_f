@@ -8,6 +8,7 @@ import MerchantFormHeader from '@/components/admin/merchants/MerchantFormHeader'
 import MerchantBasicInfo from '@/components/admin/merchants/MerchantBasicInfo';
 import Promotions from '@/components/admin/merchants/Promotions';
 import AdminOptions from '@/components/admin/merchants/AdminOptions';
+import ExclusionManager from '@/components/admin/merchants/ExclusionManager';
 import SeoConfiguration from '@/components/admin/merchants/SeoConfiguration';
 import UtmTracking from '@/components/admin/merchants/UtmTracking';
 import Screenshots from '@/components/admin/merchants/Screenshots';
@@ -532,6 +533,15 @@ export default function MerchantEditPage() {
                 onAdvertisementChange={(advertisement) => setAdminOptionsAdvertisement(prev => ({ ...prev, ...advertisement }))}
               />
             </div>
+
+            {/* Exclusion Manager - Full width */}
+            <div className="col-span-3">
+              <ExclusionManager
+                merchantId={merchantId}
+                merchantName={formData.name}
+              />
+            </div>
+
             <div className="col-span-3">
               <Promotions
                 initialPromotions={promotions}

@@ -14,6 +14,7 @@ import SeoConfiguration from '@/components/admin/merchants/SeoConfiguration';
 import UtmTracking from '@/components/admin/merchants/UtmTracking';
 import Screenshots from '@/components/admin/merchants/Screenshots';
 import FAQ from '@/components/admin/merchants/FAQ';
+import ExclusionManager from '@/components/admin/merchants/ExclusionManager';
 import { MerchantPromotion as PromotionData } from '@/types/merchant';
 
 interface Merchant {
@@ -675,6 +676,14 @@ export default function MerchantDetailPage() {
                   }}
                 />
               </div>
+            </div>
+
+            {/* Exclusion Manager - Full width */}
+            <div className={`col-span-3 ${!isEditMode ? 'pointer-events-none opacity-75' : ''}`}>
+              <ExclusionManager
+                merchantId={merchantId}
+                merchantName={formData.name}
+              />
             </div>
 
             {/* Promotions - Full width */}

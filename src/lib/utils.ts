@@ -43,6 +43,11 @@ export function getImageUrl(path: string | null | undefined, fallback: string = 
     if (url && url !== '') {
       // Check if it's a valid URL or a local path
       if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('/')) {
+        // Additional check for Supabase URLs to ensure they're valid
+        if (url.includes('supabase.co/storage/') || url.includes('supabase.com/storage/')) {
+          // Supabase URLs are always valid
+          return url;
+        }
         return url;
       }
     }

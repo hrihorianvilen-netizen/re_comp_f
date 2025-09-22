@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'react-hot-toast';
 
@@ -44,11 +44,7 @@ export default function GiftCodeViewer({ promotionId, promotionTitle, onClose }:
   const [details, setDetails] = useState<GiftCodeDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'codes' | 'claims'>('overview');
 
-  useEffect(() => {
-    fetchGiftCodeDetails();
-  }, [promotionId]);
-
-  const fetchGiftCodeDetails = async () => {
+  const fetchGiftCodeDetails = useCallback(async () => {
     try {
       const response = await api.get<{
         giftCodeDetails: GiftCodeDetails;
@@ -63,7 +59,11 @@ export default function GiftCodeViewer({ promotionId, promotionTitle, onClose }:
     } finally {
       setLoading(false);
     }
-  };
+  }, [promotionId]);
+
+  useEffect(() => {
+    fetchGiftCodeDetails();
+  }, [fetchGiftCodeDetails]);
 
   if (loading) {
     return (
