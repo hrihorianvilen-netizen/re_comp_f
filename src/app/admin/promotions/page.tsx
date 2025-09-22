@@ -43,70 +43,13 @@ export default function AllPromotionsPage() {
   const [selectAll, setSelectAll] = useState(false);
   const itemsPerPage = 10;
 
+  // Fetch promotions when filters change
   useEffect(() => {
     fetchPromotions();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, searchQuery, filterType]);
 
-  // Fetch total type counts separately (unfiltered)
-  useEffect(() => {
-    if (promotions.length > 0 || searchQuery) {
-      fetchTypeCounts();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, promotions]); // Refetch counts when search changes or promotions load
-
-  const fetchTypeCounts = async () => {
-    try {
-      // Fetch counts for each type in parallel
-      const types = ['all', 'default', 'common', 'private'];
-
-      const countPromises = types.map(async (type) => {
-        const params = new URLSearchParams({
-          page: '1',
-          limit: '1',
-          ...(type !== 'all' && { type: type }),
-          ...(searchQuery && { search: searchQuery })
-        });
-
-        const response = await api.get<{
-          pagination?: { total: number };
-        }>(`/admin/promotions?${params}`);
-
-        return {
-          type,
-          count: response.data?.pagination?.total || 0
-        };
-      });
-
-      const results = await Promise.all(countPromises);
-
-      console.log(results, 'type count results');
-      
-
-      const counts = { all: 0, default: 0, common: 0, private: 0 };
-      results.forEach(({ type, count }) => {
-        console.log(type, count, 'type count');
-        
-        counts[type as keyof typeof counts] = count;
-      });
-
-      console.log('Type counts:', counts);
-      setTypeCounts(counts);
-    } catch (error) {
-      console.error('Error fetching type counts:', error);
-      // Fallback: use current page data for counts
-      const counts = { all: 0, default: 0, common: 0, private: 0 };
-      promotions.forEach((promo: Promotion) => {
-        counts.all++;
-        const lowerType = promo.type.toLowerCase();
-        if (lowerType in counts) {
-          counts[lowerType as keyof typeof counts]++;
-        }
-      });
-      setTypeCounts(counts);
-    }
-  };
+  // Type counts are now fetched with promotions, no need for separate effect
 
   const fetchPromotions = async () => {
     setLoading(true);
@@ -133,21 +76,47 @@ export default function AllPromotionsPage() {
           private: number;
         };
       }>(`/admin/promotions?${params}`);
-      if (response.data) {
-        const fetchedPromotions = response.data.promotions || [];
-        setPromotions(fetchedPromotions);
-        setTotalPages(response.data.pagination?.pages || 1);
-        setTotalPromotions(response.data.pagination?.total || fetchedPromotions.length);
 
-        // Don't update type counts here as they are fetched separately
+      if (response.error) {
+        console.error('API error:', response.error);
+        toast.error(response.error || 'Failed to load promotions');
+        setPromotions([]);
+        return;
+      }
+      console.log(response.data, 'fetched promotions');
+      
+      if (response.data) {
+        // Process promotions to ensure giftcodes field is properly set
+        const processedPromotions = (response.data.promotions || []).map(promo => ({
+          ...promo,
+          giftcodes: promo.giftcodes || ''
+        }));
+
+        setPromotions(processedPromotions);
+        setTotalPages(response.data.pagination?.pages || 1);
+        setTotalPromotions(response.data.pagination?.total || 0);
+
+        // Update type counts from backend
+        // These counts are already calculated without type filter on backend
+        if (response.data.typeCounts) {
+          setTypeCounts(response.data.typeCounts);
+        }
+      } else {
+        console.error('No data in response');
+        setPromotions([]);
       }
     } catch (error) {
       console.error('Error fetching promotions:', error);
       toast.error('Failed to load promotions');
+      setPromotions([]);
     } finally {
       setLoading(false);
     }
   };
+
+
+  // Remove the fetchTypeCounts function as counts now come from the main API call
+
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this promotion?')) return;
@@ -270,77 +239,43 @@ export default function AllPromotionsPage() {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow">
-        {/* Search Bar */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Search
-          </label>
-          <input
-            type="text"
-            placeholder="Search by title or merchant..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11]"
-          />
-        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search Bar */}
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search by title or merchant..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11]"
+            />
+          </div>
 
-        {/* Type Tabs */}
-        <div className="flex flex-wrap gap-2 border-b border-gray-200">
-          <button
-            onClick={() => {
-              setFilterType('all');
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
-              filterType === 'all'
-                ? 'text-[#A96B11] border-[#A96B11]'
-                : 'text-gray-600 border-transparent hover:text-gray-800'
-            }`}
-          >
-            All ({typeCounts.all})
-          </button>
-          <button
-            onClick={() => {
-              setFilterType('default');
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
-              filterType === 'default'
-                ? 'text-[#A96B11] border-[#A96B11]'
-                : 'text-gray-600 border-transparent hover:text-gray-800'
-            }`}
-          >
-            Default ({typeCounts.default})
-          </button>
-          <button
-            onClick={() => {
-              setFilterType('common');
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
-              filterType === 'common'
-                ? 'text-[#A96B11] border-[#A96B11]'
-                : 'text-gray-600 border-transparent hover:text-gray-800'
-            }`}
-          >
-            Common ({typeCounts.common})
-          </button>
-          <button
-            onClick={() => {
-              setFilterType('private');
-              setCurrentPage(1);
-            }}
-            className={`px-4 py-2 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
-              filterType === 'private'
-                ? 'text-[#A96B11] border-[#A96B11]'
-                : 'text-gray-600 border-transparent hover:text-gray-800'
-            }`}
-          >
-            Private ({typeCounts.private})
-          </button>
+          {/* Type Dropdown Filter */}
+          <div className="sm:w-48">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Type
+            </label>
+            <select
+              value={filterType}
+              onChange={(e) => {
+                setFilterType(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#A96B11] bg-white"
+            >
+              <option value="all">All ({typeCounts.all})</option>
+              <option value="default">Default ({typeCounts.default})</option>
+              <option value="common">Common ({typeCounts.common})</option>
+              <option value="private">Private ({typeCounts.private})</option>
+            </select>
+          </div>
         </div>
       </div>
 
