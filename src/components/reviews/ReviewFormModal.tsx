@@ -78,12 +78,30 @@ export default function ReviewFormModal({ isOpen, onClose, merchantName, onSubmi
   }, [formData.content, formData.title]);
 
   const isMeaningfulText = (text: string): boolean => {
-    // Check for repeated characters (e.g., "aaaaa", "12345")
-    const hasRepeatedChars = /(..).*\1/.test(text.toLowerCase());
-    const isSequential = /^(.)\1+$/.test(text) || /^(012|123|234|345|456|567|678|789|890|abc|bcd|cde)/.test(text.toLowerCase());
-    const hasVariedContent = text.split('').filter((char, index, arr) => arr.indexOf(char) === index).length > 3;
+    const trimmed = text.trim();
+    if (trimmed.length < 10) return false;
 
-    return !hasRepeatedChars && !isSequential && hasVariedContent && text.trim().length >= 10;
+    // Check for obvious spam patterns (same character repeated 5+ times)
+    const hasSpamPatterns = /(.)\1{4,}/.test(trimmed);
+    if (hasSpamPatterns) return false;
+
+    // Check for keyboard mashing patterns
+    const keyboardPatterns = ['asdf', 'qwer', 'zxcv', '1234', 'abcd'];
+    const lowerText = trimmed.toLowerCase();
+    const hasKeyboardMashing = keyboardPatterns.some(pattern =>
+      lowerText.includes(pattern.repeat(2)) // Only flag if pattern repeats (like "asdfasdf")
+    );
+    if (hasKeyboardMashing) return false;
+
+    // Check for variety of characters (at least 4 different characters)
+    const uniqueChars = new Set(trimmed.replace(/\s/g, '').split('')).size;
+    if (uniqueChars < 4) return false;
+
+    // Check for meaningful words (at least 3 words of 2+ characters)
+    const words = trimmed.split(/\s+/).filter(word => word.length >= 2);
+    if (words.length < 3) return false;
+
+    return true;
   };
 
   const validate = () => {

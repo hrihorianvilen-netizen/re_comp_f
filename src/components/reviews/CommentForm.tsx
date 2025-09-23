@@ -24,7 +24,11 @@ const REACTIONS = [
 ];
 
 export default function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  // Debug logging
+  console.log('CommentForm - isAuthenticated:', isAuthenticated);
+  console.log('CommentForm - user:', user);
   const [formData, setFormData] = useState<CommentData>({
     displayName: '',
     reaction: '',
@@ -163,7 +167,7 @@ export default function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
       </div>
 
       {/* Display Name (for guests only) */}
-      {!isAuthenticated && (
+      {!isAuthenticated ? (
         <div>
           <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-1">
             Display Name *
@@ -180,6 +184,10 @@ export default function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
           {errors.displayName && (
             <p className="text-red-500 text-sm mt-1">{errors.displayName}</p>
           )}
+        </div>
+      ) : (
+        <div className="text-sm text-gray-600">
+          Commenting as: <span className="font-semibold">{user?.displayName || user?.name || 'User'}</span>
         </div>
       )}
 
@@ -208,7 +216,7 @@ export default function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
       </div>
 
       {/* Captcha for guests */}
-      {!isAuthenticated && (
+      {!isAuthenticated ? (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Security Verification *
@@ -220,6 +228,15 @@ export default function CommentForm({ onSubmit, onCancel }: CommentFormProps) {
             onExpired={() => handleCaptchaChange(null)}
             onErrored={() => handleCaptchaChange(null)}
           />
+          {!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && (
+            <p className="text-xs text-red-500 mt-1">
+              ReCAPTCHA not configured. Please add NEXT_PUBLIC_RECAPTCHA_SITE_KEY to your environment.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="text-xs text-gray-500">
+          Verified user - no captcha required
         </div>
       )}
 

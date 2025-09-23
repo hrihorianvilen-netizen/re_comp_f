@@ -292,6 +292,7 @@ class ApiClient {
     rating: number;
     content: string;
     displayName?: string;
+    captchaToken?: string;
   }) {
     return this.request<{ review: Review; message: string }>('/reviews', {
       method: 'POST',

@@ -5,6 +5,7 @@ import { Navigation, Footer } from '@/components/layout';
 import { AuthProvider } from '@/contexts/AuthContext';
 import QueryProvider from '@/providers/QueryProvider';
 import AdSlot from '@/components/ui/AdSlot';
+import { Toaster } from 'react-hot-toast';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,28 @@ export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <QueryProvider>
       <AuthProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              duration: 3000,
+              style: {
+                background: '#198639',
+              },
+            },
+            error: {
+              duration: 4000,
+              style: {
+                background: '#ef4444',
+              },
+            },
+          }}
+        />
         {isAdminPath ? (
           // Admin paths have their own layout
           <>{children}</>

@@ -122,6 +122,7 @@ export function useCreateReview() {
       rating: number;
       content: string;
       displayName?: string;
+      captchaToken?: string;
     }) => {
       const response = await api.createReview({
         merchantId: data.merchantId,
@@ -129,6 +130,7 @@ export function useCreateReview() {
         rating: data.rating,
         content: data.content,
         displayName: data.displayName,
+        captchaToken: data.captchaToken,
       });
       if (response.error) throw new Error(response.error);
       return { review: response.data?.review, merchantSlug: data.merchantSlug };
@@ -160,6 +162,7 @@ export function useAddComment() {
         reaction: '❤️' | '😢' | '😡';
         content?: string;
         displayName?: string;
+        captchaToken?: string;
       };
     }) => {
       const response = await api.addComment(reviewId, data);

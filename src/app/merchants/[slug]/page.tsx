@@ -14,7 +14,8 @@ import { Autoplay, Navigation } from 'swiper/modules';
 import api from '@/lib/api';
 import { getImageUrl } from '@/lib/utils';
 import AdSlot from '@/components/ui/AdSlot';
-import { useUpdateRecentlyViewed } from '@/hooks/useMerchants';
+import { useUpdateRecentlyViewed, useCreateReview } from '@/hooks/useMerchants';
+import toast from 'react-hot-toast';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
@@ -39,8 +40,36 @@ export default function MerchantDetailPage() {
   const [expandedReviews, setExpandedReviews] = useState<Set<string>>(new Set());
   const [selectedRatingFilters, setSelectedRatingFilters] = useState<Set<number>>(new Set());
 
-  // Use React Query mutation for recently viewed
+  // Use React Query mutations
   const updateRecentlyViewed = useUpdateRecentlyViewed();
+  const createReviewMutation = useCreateReview();
+
+  // Function to refresh reviews list
+  const refreshReviews = async () => {
+    if (!merchant?.slug) return;
+    try {
+      const reviewsRes = await api.getReviews({ merchantSlug: merchant.slug, limit: 50 });
+      if (reviewsRes.data) {
+        setReviews(reviewsRes.data.reviews || []);
+      }
+    } catch (error) {
+      console.error('Failed to refresh reviews:', error);
+    }
+  };
+
+  // Function to refresh merchant data (including updated rating)
+  const refreshMerchantData = async () => {
+    if (!slug) return;
+    try {
+      const merchantRes = await api.getMerchant(slug);
+      if (merchantRes.data) {
+        const merchantData = merchantRes.data.merchant || merchantRes.data;
+        setMerchant(merchantData);
+      }
+    } catch (error) {
+      console.error('Failed to refresh merchant data:', error);
+    }
+  };
 
   // Load merchant and reviews from backend
   useEffect(() => {
@@ -153,31 +182,57 @@ export default function MerchantDetailPage() {
     return counts;
   };
 
-  // Connect review submission to backend
+  // Connect review submission to backend using React Query
   const handleReviewSubmit = async (data: ReviewFormData) => {
     if (!merchant) return;
-    
+
+    const loadingToast = toast.loading('Submitting your review...');
+
     try {
-      const response = await api.createReview({
+      await createReviewMutation.mutateAsync({
         merchantId: merchant.id,
+        merchantSlug: merchant.slug,
         title: data.title,
         rating: data.rating,
         content: data.content,
-        displayName: data.displayName
+        displayName: data.displayName,
+        captchaToken: data.captchaToken
       });
-      
-      if (response.error) {
-        alert(`Failed to submit review: ${response.error}`);
-      } else if (response.data) {
-        // Add new review to the beginning of the list
-        setReviews([response.data.review, ...reviews]);
-        setCurrentReviewPage(1); // Reset to first page to show the new review
-        setReviewModalOpen(false);
-        alert('Review submitted successfully!');
-      }
+
+      toast.dismiss(loadingToast);
+      toast.success('Review submitted successfully!', {
+        icon: '✅',
+      });
+      setReviewModalOpen(false);
+
+      // Refresh both merchant data (for updated rating) and reviews list
+      await Promise.all([
+        refreshMerchantData(),
+        refreshReviews()
+      ]);
+      setCurrentReviewPage(1);
     } catch (error) {
+      toast.dismiss(loadingToast);
       console.error('Review submission error:', error);
-      alert('Failed to submit review. Please try again.');
+
+      // Extract meaningful error message
+      let errorMessage = 'Failed to submit review. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('already reviewed')) {
+          errorMessage = 'You have already reviewed this merchant.';
+        } else if (error.message.includes('meaningful content')) {
+          errorMessage = 'Please provide more meaningful content for your review.';
+        } else if (error.message.includes('Captcha')) {
+          errorMessage = 'Captcha verification failed. Please try again.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+      }
+
+      toast.error(errorMessage, {
+        icon: '❌',
+        duration: 5000,
+      });
     }
   };
 
@@ -185,21 +240,32 @@ export default function MerchantDetailPage() {
   const handleReportReview = async (reviewId: string) => {
     try {
       const confirmed = window.confirm('Are you sure you want to report this review? This action will be reviewed by our moderation team.');
-      
+
       if (!confirmed) return;
-      
+
+      const loadingToast = toast.loading('Reporting review...');
       const response = await api.reportReview(reviewId);
-      
+      toast.dismiss(loadingToast);
+
       if (response.data?.message) {
-        alert('Review reported successfully. Thank you for helping us maintain quality reviews.');
+        toast.success('Review reported successfully. Thank you for helping us maintain quality reviews.', {
+          icon: '🛡️',
+          duration: 4000,
+        });
       } else if (response.error) {
-        alert(`Failed to report review: ${response.error}`);
+        toast.error(response.error, {
+          icon: '⚠️',
+        });
       } else {
-        alert('Failed to report review. Please try again.');
+        toast.error('Failed to report review. Please try again.', {
+          icon: '❌',
+        });
       }
     } catch (error) {
       console.error('Failed to report review:', error);
-      alert('Failed to report review. Please try again.');
+      toast.error('Failed to report review. Please try again.', {
+        icon: '❌',
+      });
     }
   };
 
@@ -665,6 +731,7 @@ export default function MerchantDetailPage() {
                                   <AddCommentButton
                                     reviewId={review.id}
                                     merchantSlug={merchant.slug}
+                                    onCommentAdded={refreshReviews}
                                   />
                                 </>
                               );
