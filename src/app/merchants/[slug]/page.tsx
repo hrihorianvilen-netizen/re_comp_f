@@ -439,17 +439,17 @@ export default function MerchantDetailPage() {
                           src={getImageUrl(screenshot, '/images/shopee.jpg')}
                           alt={`${merchant.name} screenshot ${index + 1}`}
                           width={400}
-                          height={300}
-                          className="absolute inset-0 rounded-lg border w-full h-full object-contain bg-white hover:opacity-90 transition-all duration-300 group-hover:scale-105"
+                          height={250}
+                          className="absolute inset-0 rounded-lg w-full h-auto z-20 object-contain bg-white hover:opacity-90 transition-all duration-300 group-hover:scale-105"
                           sizeType="card"
                           qualityPriority="medium"
                           priority={index < 3}
                         />
                       </div>
                       {/* Overlay for better user experience */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-lg flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="absolute inset-0 bg-white transition-all duration-300 rounded-lg flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 z-20 transition-opacity duration-300">
+                          <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
                           </svg>
                         </div>
