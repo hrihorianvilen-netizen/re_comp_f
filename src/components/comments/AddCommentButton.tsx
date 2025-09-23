@@ -48,6 +48,19 @@ export default function AddCommentButton({ reviewId, merchantSlug, onCommentAdde
       return;
     }
 
+    // Check comment content (now required)
+    const stripHtmlTags = (html: string): string => {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      return doc.body.textContent || '';
+    };
+
+    const plainTextContent = stripHtmlTags(newComment.content);
+    if (!plainTextContent.trim() || plainTextContent.length < 10) {
+      toast.error('Comment must be at least 10 characters.');
+      setErrorMessage('Comment must be at least 10 characters.');
+      return;
+    }
+
     // Check display name for guests
     if (!isAuthenticated && !newComment.displayName.trim()) {
       toast.error('Display name is required.');
@@ -208,17 +221,17 @@ export default function AddCommentButton({ reviewId, merchantSlug, onCommentAdde
                 
                 <div>
                   <label htmlFor="modal-comment-content" className="block text-sm font-medium text-gray-700 mb-2">
-                    Comment (Optional)
+                    Comment *
                   </label>
                   <RichTextEditor
                     value={newComment.content}
                     onChange={(value) => setNewComment(prev => ({ ...prev, content: value }))}
-                    placeholder="Share your thoughts about this review..."
-                    minLength={0}
+                    placeholder="Share your thoughts about this review... (minimum 10 characters)"
+                    minLength={10}
                     maxLength={1000}
                     height="min-h-[100px] max-h-[150px]"
                     showPreview={false}
-                    required={false}
+                    required={true}
                   />
                 </div>
                 
@@ -267,6 +280,7 @@ export default function AddCommentButton({ reviewId, merchantSlug, onCommentAdde
                     disabled={
                       addCommentMutation.isPending ||
                       !newComment.reaction ||
+                      newComment.content.trim().length < 10 ||
                       (!isAuthenticated && (!newComment.displayName.trim() || !isCaptchaVerified))
                     }
                     className="flex-1 px-4 py-2 bg-[#198639] text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer text-center w-1/2 flex items-center justify-center"
